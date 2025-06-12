@@ -158,9 +158,14 @@ function ammo_get_all_afdelingen_list() {
   $query
     ->entityCondition('entity_type', 'node')
     ->entityCondition('bundle', 'afdeling')
-    ->propertyCondition('status', '1', '=')
-    ->fieldCondition('afd_status', 'value', 'Erkend', '=')
-    ->propertyOrderBy('title', 'ASC');
+    ->propertyCondition('status', '1', '=');
+  
+  $field_info = field_info_field('afd_status');
+  if (!empty($field_info)) {
+    $query->fieldCondition('afd_status', 'value', 'Erkend', '=');
+  }
+
+  $query->propertyOrderBy('title', 'ASC');
   $result = $query->execute();
 
   if (isset($result['node'])) {
@@ -527,6 +532,9 @@ function ammo_afdelingen_access($admin_owner = NULL) {
   // Afdelingen filteren op gebruikers id.
   if (ammo_admin_access() && !empty($admin_owner)) {
     $afdelingen = ammo_get_afdelingen('all');
+    if (!is_array($afdelingen)) {
+      $afdelingen = [];
+    }
     $afdelingen = array(0 => '- ' . $admin_owner) + $afdelingen;
   }
   else {
@@ -1022,9 +1030,14 @@ function ammo_get_branch($contact_id) {
   $query
     ->entityCondition('entity_type', 'node')
     ->entityCondition('bundle', 'afdeling')
-    ->propertyCondition('status', '1', '=')
-    ->fieldCondition('afd_status', 'value', 'Erkend', '=')
-    ->fieldCondition('afd_id', 'value', $contact_id, '=');
+    ->propertyCondition('status', '1', '=');
+
+  $field_info = field_info_field('afd_status');
+  if (!empty($field_info)) {
+    $query->fieldCondition('afd_status', 'value', 'Erkend', '=');
+  }
+  
+  $query->fieldCondition('afd_id', 'value', $contact_id, '=');
   $result = $query->execute();
 
   if (isset($result['node'])) {

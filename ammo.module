@@ -69,44 +69,51 @@ function ammo_menu() {
     'weight' => 1,
   );
 
-  $items['ammo/meeting'] = array(
+  $items['admin/ammo'] = array(
+    'title' => 'Ammo',
+    'description' => 'Bijeenkomst, Document, Export and Print',
+    'page callback' => 'system_admin_menu_block_page',
+    'access callback' => 'ammo_admin_access',
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+    'weight' => 4,
+  );
+
+  $items['admin/ammo/meeting'] = array(
     'title' => 'Bijeenkomst',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_meeting_form'),
     'file' => 'meeting.form.inc',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_NORMAL_ITEM,
     'access callback' => 'ammo_superadmin_access',
-    'weight' => 4,
   );
 
-  $items['ammo/document'] = array(
+  $items['admin/ammo/document'] = array(
     'title' => 'Document',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_document_form'),
     'file' => 'document.form.inc',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_NORMAL_ITEM,
     'access callback' => 'ammo_superadmin_access',
-    'weight' => 5,
   );
 
-  $items['ammo/print'] = array(
+  $items['admin/ammo/print'] = array(
     'title' => 'Print',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_print_form'),
     'access callback' => 'ammo_admin_access',
     'file' => 'print.form.inc',
-    'weight' => 5,
   );
 
-  $items['ammo/export'] = array(
+  $items['admin/ammo/export'] = array(
     'title' => 'Export',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_export_form'),
     'access callback' => 'ammo_admin_access',
     'file' => 'export.form.inc',
-    'weight' => 5,
   );
 
   $items['ammo/support/%/%/%/%'] = array(

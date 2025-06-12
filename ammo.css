@@ -4,11 +4,6 @@
   color: #fff;
 }
 
-.page-ammo .tabs li.active a {
-  background-color: #000;
-  color: #fff;
-}
-
 div.ammo-content {
   max-width: 960px;
   margin: 0px auto;
