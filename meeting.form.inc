@@ -10,6 +10,41 @@ function ammo_meeting_form($form, &$form_state) {
   $form['#prefix'] = '<div id="ammo-meeting-ajax">';
   $form['#suffix'] = '</div>';
 
+  if (!empty($storage['confirm_delete_id'])) {
+    $meeting = entity_load_single('meeting', $storage['confirm_delete_id']);
+    if ($meeting) {
+      $form['confirm_message'] = array(
+        '#markup' => '<p>' . 'Weet u zeker dat u de bijeenkomst "' . check_plain($meeting->title) . '" wilt verwijderen?' . '</p>',
+      );
+      $form['confirm_actions'] = array('#type' => 'actions');
+      $form['confirm_actions']['confirm'] = array(
+        '#type' => 'submit',
+        '#value' => 'Ja, verwijderen',
+        '#name' => 'confirm_delete',
+        '#ajax' => array(
+          'callback' => 'ammo_meeting_form_ajax',
+          'wrapper' => 'ammo-meeting-ajax',
+          'method' => 'replace',
+          'effect' => 'fade',
+          'event' => 'click',
+        ),
+      );
+      $form['confirm_actions']['cancel'] = array(
+        '#type' => 'submit',
+        '#value' => 'Nee, annuleren',
+        '#name' => 'cancel_delete',
+        '#ajax' => array(
+          'callback' => 'ammo_meeting_form_ajax',
+          'wrapper' => 'ammo-meeting-ajax',
+          'method' => 'replace',
+          'effect' => 'fade',
+          'event' => 'click',
+        ),
+      );
+    }
+    return $form;
+  }
+
   if (empty($storage['meeting_id'])) {
     $form['meetings'] = array(
       '#title' => 'Bestaande bijeenkomsten',
@@ -19,10 +54,10 @@ function ammo_meeting_form($form, &$form_state) {
     // Editing existing meeting.
     $meetings = entity_load('meeting');
     foreach ($meetings as $key => $meeting) {
-      $form['meetings'][$key]['del'] = array(
+      $form['meetings'][$key]['delete'] = array(
         '#type' => 'submit',
-        '#value' => 'X',
-        '#name' => 'del_' . $key,
+        '#value' => 'Verwijderen',
+        '#name' => 'delete_' . $key,
         '#ajax' => array(
           'callback' => 'ammo_meeting_form_ajax',
           'wrapper' => 'ammo-meeting-ajax',
@@ -203,16 +238,12 @@ function ammo_meeting_form_submit($form, &$form_state) {
   $trigger = $form_state['triggering_element']['#name'];
 
   // Check if delete meeting button was clicked.
-  $pattern = '/^del_(\d+)$/';
+  $pattern = '/^delete_(\d+)$/';
   if (preg_match($pattern, $trigger, $matches)) {
-    $result = entity_delete('meeting', $matches[1]);
-    if (FALSE === $result) {
-      drupal_set_message('Verwijderen bijeenkomst is mislukt.', 'error');
-    }
-    else {
-      drupal_set_message('Bijeenkomst is verwijderd');
-      $form_state['input'] = array();
-    }
+    $storage['confirm_delete_id'] = $matches[1];
+    $storage['meeting_id'] = NULL;
+    unset($storage['meeting']);
+    unset($form_state['input']);
   }
 
   // Check if edit meeting button was clicked.
@@ -224,6 +255,23 @@ function ammo_meeting_form_submit($form, &$form_state) {
   }
 
   switch ($trigger) {
+    case 'confirm_delete':
+      if (!empty($storage['confirm_delete_id'])) {
+        $result = entity_delete('meeting', $storage['confirm_delete_id']);
+        if (FALSE === $result) {
+          drupal_set_message('Verwijderen bijeenkomst is mislukt.', 'error');
+        }
+        else {
+          drupal_set_message('Bijeenkomst is verwijderd');
+        }
+        unset($storage['confirm_delete_id']);
+        $form_state['input'] = array();
+      }
+      break;
+
+    case 'cancel_delete':
+      unset($storage['confirm_delete_id']);
+      break;
     // Save meeting.
     case 'submit':
       // Save meeting.
