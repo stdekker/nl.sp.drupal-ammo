@@ -3,7 +3,21 @@
 function ammo_support_form($form, &$form_state, $action, $contact_type, $target_type = NULL, $entity_id = NULL) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
-  $contact_id = $user_wrapper->field_contact_id->value();
+  
+  // Fallback for when OpenID is disabled - allow admins to test
+  $contact_id = NULL;
+  try {
+    if (isset($user_wrapper->field_contact_id)) {
+      $contact_id = $user_wrapper->field_contact_id->value();
+    }
+  } catch (EntityMetadataWrapperException $e) {
+    // Field doesn't exist, use fallback
+  }
+  
+  // If no contact_id and user is admin, use user ID as fallback
+  if (empty($contact_id) && ammo_admin_access()) {
+    $contact_id = $user->uid;
+  }
 
   $meeting_id = ammo_get_meeting_id($target_type, $entity_id);
   if (
@@ -224,7 +238,21 @@ function ammo_support_form_validate($form, &$form_state) {
 function ammo_support_form_submit($form, &$form_state) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
-  $contact_id = $user_wrapper->field_contact_id->value();
+  
+  // Fallback for when OpenID is disabled - allow admins to test
+  $contact_id = NULL;
+  try {
+    if (isset($user_wrapper->field_contact_id)) {
+      $contact_id = $user_wrapper->field_contact_id->value();
+    }
+  } catch (EntityMetadataWrapperException $e) {
+    // Field doesn't exist, use fallback
+  }
+  
+  // If no contact_id and user is admin, use user ID as fallback
+  if (empty($contact_id) && ammo_admin_access()) {
+    $contact_id = $user->uid;
+  }
 
   $values = $form_state['values'];
   $action = arg(2);

@@ -242,7 +242,21 @@ function ammo_is_related($target_id, $target_type, $relation_type = NULL, $conta
   if ($contact_id === NULL) {
     global $user;
     $user_wrapper = entity_metadata_wrapper('user', $user);
-    $contact_id = $user_wrapper->field_contact_id->value();
+    
+    // Fallback for when OpenID is disabled - allow admins to test
+    $contact_id = NULL;
+    try {
+      if (isset($user_wrapper->field_contact_id)) {
+        $contact_id = $user_wrapper->field_contact_id->value();
+      }
+    } catch (EntityMetadataWrapperException $e) {
+      // Field doesn't exist, use fallback
+    }
+    
+    // If no contact_id and user is admin, use user ID as fallback
+    if (empty($contact_id) && ammo_admin_access()) {
+      $contact_id = $user->uid;
+    }
   }
   // Get related contacts.
   $query = new EntityFieldQuery();
@@ -540,7 +554,22 @@ function ammo_afdelingen_access($admin_owner = NULL) {
   else {
     global $user;
     $user_wrapper = entity_metadata_wrapper('user', $user);
-    $contact_id = $user_wrapper->field_contact_id->value();
+    
+    // Fallback for when OpenID is disabled - allow admins to test
+    $contact_id = NULL;
+    try {
+      if (isset($user_wrapper->field_contact_id)) {
+        $contact_id = $user_wrapper->field_contact_id->value();
+      }
+    } catch (EntityMetadataWrapperException $e) {
+      // Field doesn't exist, use fallback
+    }
+    
+    // If no contact_id and user is admin, use user ID as fallback
+    if (empty($contact_id) && ammo_admin_access()) {
+      $contact_id = $user->uid;
+    }
+    
     $afdelingen = ammo_get_afdelingen($contact_id);
   }
   return $afdelingen;
@@ -720,7 +749,22 @@ function ammo_access($branch_id) {
   if (!empty($branch_id)) {
     global $user;
     $user_wrapper = entity_metadata_wrapper('user', $user);
-    $contact_id = $user_wrapper->field_contact_id->value();
+    
+    // Fallback for when OpenID is disabled - allow admins to test
+    $contact_id = NULL;
+    try {
+      if (isset($user_wrapper->field_contact_id)) {
+        $contact_id = $user_wrapper->field_contact_id->value();
+      }
+    } catch (EntityMetadataWrapperException $e) {
+      // Field doesn't exist, use fallback
+    }
+    
+    // If no contact_id and user is admin, use user ID as fallback
+    if (empty($contact_id) && ammo_admin_access()) {
+      $contact_id = $user->uid;
+    }
+    
     $afdelingen = ammo_get_afdelingen($contact_id);
     if (is_array($afdelingen)) {
       if (array_key_exists($branch_id, $afdelingen)) {
@@ -1201,7 +1245,21 @@ function ammo_get_documents($form_state = array()) {
 function ammo_removable_member_owners($target_type, $entity_id) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
-  $contact_id = $user_wrapper->field_contact_id->value();
+  
+  // Fallback for when OpenID is disabled - allow admins to test
+  $contact_id = NULL;
+  try {
+    if (isset($user_wrapper->field_contact_id)) {
+      $contact_id = $user_wrapper->field_contact_id->value();
+    }
+  } catch (EntityMetadataWrapperException $e) {
+    // Field doesn't exist, use fallback
+  }
+  
+  // If no contact_id and user is admin, use user ID as fallback
+  if (empty($contact_id) && ammo_admin_access()) {
+    $contact_id = $user->uid;
+  }
 
   $contacts = ammo_get_related_contacts($entity_id, $target_type, 'owner', 'member');
   // Controleer of de betreffende leden lid zijn van afdeling voorzitter.
