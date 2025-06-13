@@ -18,9 +18,10 @@ function ammo_menu() {
   $items = array();
 
   $items['ammo'] = array(
-    'type' => MENU_NORMAL_ITEM,
-    'access callback' => 'user_is_logged_in',
+    'title' => 'Ammo',
     'page callback' => 'ammo_intropage',
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_NORMAL_ITEM,
   );
 
   $items['ammo/ammo'] = array(
@@ -71,13 +72,10 @@ function ammo_menu() {
 
   $items['admin/ammo'] = array(
     'title' => 'Ammo',
-    'description' => 'Bijeenkomst, Document, Export and Print',
-    'page callback' => 'system_admin_menu_block_page',
+    'description' => 'Ammo admin',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_admin_form'),
     'access callback' => 'ammo_admin_access',
-    'type' => MENU_NORMAL_ITEM,
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
-    'weight' => 4,
   );
 
   $items['admin/ammo/meeting'] = array(
@@ -90,11 +88,37 @@ function ammo_menu() {
   );
 
   $items['admin/ammo/document'] = array(
-    'title' => 'Document',
+    'title' => 'Documenten',
+    'page callback' => 'ammo_document_list_page',
+    'file' => 'document.form.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/document/add'] = array(
+    'title' => 'Document toevoegen',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_document_form'),
     'file' => 'document.form.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_ACTION,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/document/%document/edit'] = array(
+    'title' => 'Document bewerken',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_document_form', 3),
+    'file' => 'document.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/document/%document/delete'] = array(
+    'title' => 'Document verwijderen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_document_delete_confirm_form', 3),
+    'file' => 'document.form.inc',
+    'type' => MENU_CALLBACK,
     'access callback' => 'ammo_superadmin_access',
   );
 
@@ -134,6 +158,15 @@ function ammo_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Load a document.
+ * @param $id
+ * @return \stdClass
+ */
+function document_load($id) {
+  return entity_load_single('document', $id);
 }
 
 function ammo_permission() {

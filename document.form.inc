@@ -1,213 +1,144 @@
 <?php
 
-function ammo_document_form($form, &$form_state) {
-  if (empty($form_state['storage'])) {
-    $form_state['storage'] = array();
+function ammo_document_list_page() {
+  $meetings = entity_load('meeting');
+  $documents = entity_load('document');
+  $output = '';
+
+  if (empty($meetings)) {
+    $output .= '<p>Er zijn geen bijeenkomsten gevonden. Maak eerst een bijeenkomst aan.</p>';
+    return $output;
   }
-  $storage = $form_state['storage'];
+
+  // Group documents by meeting
+  $grouped_documents = array();
+  foreach ($documents as $doc) {
+    $grouped_documents[$doc->meeting_id][] = $doc;
+  }
+
+  foreach ($meetings as $meeting) {
+    $output .= '<h2>' . $meeting->title . '</h2>';
+    if (isset($grouped_documents[$meeting->id]) && !empty($grouped_documents[$meeting->id])) {
+      $header = array('Titel', 'Omschrijving', 'Operaties');
+      $rows = array();
+      foreach ($grouped_documents[$meeting->id] as $doc) {
+        $rows[] = array(
+          $doc->title,
+          $doc->description,
+          l('Bewerken', 'admin/ammo/document/' . $doc->id . '/edit') . ' | ' .
+          l('Verwijderen', 'admin/ammo/document/' . $doc->id . '/delete'),
+        );
+      }
+      $output .= theme('table', array('header' => $header, 'rows' => $rows));
+    } else {
+      $output .= '<p>Nog geen documenten voor deze bijeenkomst.</p>';
+    }
+  }
+
+  return $output;
+}
+
+
+function ammo_document_form($form, &$form_state, $document = NULL) {
   $form = array();
 
-  $form['#prefix'] = '<div id="ammo-document-ajax">';
-  $form['#suffix'] = '</div>';
-
-  $form['form_title'] = array(
-    '#type' => 'item',
-    '#markup' => 'Voeg een document toe',
-    '#prefix' => '<h2>',
-    '#suffix' => '</h2>',
-  );
-
-  if (empty($storage['document_id'])) {
-    $form['form_title']['#markup'] = 'Voeg een document toe';
-  }
-  else {
-    $form['form_title']['#markup'] = 'Bewerk document';
+  if ($document) {
+    $form['#title'] = 'Bewerk document';
+    $form_state['document'] = $document;
+  } else {
+    $form['#title'] = 'Voeg een document toe';
   }
 
-  if (empty($storage['meeting_id'])) {
+  if (!$document) {
     $meetings = entity_load('meeting');
+    $options = array();
     foreach ($meetings as $meeting) {
       $options[$meeting->id] = $meeting->title;
     }
     if (!empty($options)) {
-      $form['meeting'] = array(
+      $form['meeting_id'] = array(
         '#type' => 'select',
         '#title' => 'Bijeenkomst',
         '#options' => $options,
-        '#empty_option' => 'Kies',
+        '#required' => TRUE,
+        '#empty_option' => 'Kies een bijeenkomst',
       );
-
-      $form['submit'] = array(
-        '#type' => 'submit',
-        '#value' => 'Verder',
-        '#name' => 'submit_meeting',
-        '#ajax' => array(
-          'callback' => 'ammo_document_form_ajax',
-          'wrapper' => 'ammo-document-ajax',
-        ),
+    } else {
+        drupal_set_message('Er zijn geen bijeenkomsten gevonden. Maak eerst een bijeenkomst aan.', 'warning');
+        return $form;
+    }
+  } else {
+      $form['meeting_id'] = array(
+        '#type' => 'value',
+        '#value' => $document->meeting_id,
       );
-    }
   }
-  else {
 
-    $form['title'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Title',
-    );
 
-    $form['description'] = array(
-      '#type' => 'textarea',
-      '#title' => 'Description',
-    );
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Titel',
+    '#default_value' => $document ? $document->title : '',
+    '#required' => TRUE,
+  );
 
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => 'Indienen',
-      '#name' => 'submit',
-      '#ajax' => array(
-        'callback' => 'ammo_document_form_ajax',
-        'wrapper' => 'ammo-document-ajax',
-      ),
-    );
+  $form['description'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Omschrijving',
+    '#default_value' => $document ? $document->description : '',
+  );
 
-    if (empty($storage['document_id'])) {
-
-      // New document.
-      $documents = entity_load('document');
-      $count = 0;
-      foreach ($documents as $key => $document) {
-        if ($document->meeting_id == $form_state['values']['meeting']) {
-          $count ++;
-        }
-      }
-      if ($count > 0) {
-        $form['form_title2'] = array(
-          '#type' => 'item',
-          '#markup' => 'Bestaande documenten',
-          '#prefix' => '<h2>',
-          '#suffix' => '</h2>',
-        );
-      }
-      foreach ($documents as $key => $document) {
-        if ($document->meeting_id == $form_state['values']['meeting']) {
-          $count ++;
-          $form['documents'][$key]['del'] = array(
-            '#type' => 'submit',
-            '#value' => 'X',
-            '#name' => 'del_' . $key,
-            '#ajax' => array(
-              'callback' => 'ammo_document_form_ajax',
-              'wrapper' => 'ammo-document-ajax',
-            ),
-            '#prefix' => '<p>',
-          );
-          $form['documents'][$key]['edit'] = array(
-            '#type' => 'submit',
-            '#value' => 'Bewerk',
-            '#name' => 'edit_' . $key,
-            '#ajax' => array(
-              'callback' => 'ammo_document_form_ajax',
-              'wrapper' => 'ammo-document-ajax',
-              'method' => 'replace',
-              'effect' => 'fade',
-              'event' => 'click',
-            ),
-            '#suffix' => $document->title.'</p>',
-          );
-        }
-      }
-    }
-    else {
-      // Editing existing document, set defaults.
-      unset($form_state['input']);
-      $form['title']['#default_value'] = $storage['document']->title;
-      $form['description']['#default_value'] = $storage['document']->description;
-    }
-  }
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Opslaan',
+  );
 
   return $form;
 }
 
 function ammo_document_form_validate($form, &$form_state) {
-  $storage = &$form_state['storage'];
   $values = $form_state['values'];
-  $trigger = $form_state['triggering_element']['#name'];
-
-  switch ($trigger) {
-    case 'submit':
-      if (empty($values['title'])) {
-        form_set_error('title', 'Vul een titel in.');
-      }
-      if (empty($storage['document_id'])) {
-        // New document.
-        $unique_title = ammo_entity_check_title('document', $values['title']);
-        if ($unique_title === FALSE) {
-          form_set_error('title', 'Titel is reeds in gebruik.');
-        }
-      }
-
-    case 'submit_meeting':
-      if (!empty($values['meeting'])) {
-        $meeting = entity_load_single('meeting', $values['meeting']);
-        $storage['meeting'] = $meeting;
-        $storage['meeting_id'] = $meeting->id;
-      }
-      break;
-
+  if (empty($values['title'])) {
+    form_set_error('title', 'Vul een titel in.');
   }
 }
 
 function ammo_document_form_submit($form, &$form_state) {
-  $storage = &$form_state['storage'];
   $values = $form_state['values'];
-  $trigger = $form_state['triggering_element']['#name'];
+  $document = isset($form_state['document']) ? $form_state['document'] : NULL;
+  
+  $entity_values = array(
+    'meeting_id' => $values['meeting_id'],
+    'title' => $values['title'],
+    'description' => $values['description'],
+  );
+  
+  $document_id = $document ? $document->id : NULL;
 
-  // Check if delete document button was clicked.
-  $pattern = '/^del_(\d+)$/';
-  if (preg_match($pattern, $trigger, $matches)) {
-    $result = entity_delete('document', $matches[1]);
-    if (FALSE === $result) {
-      drupal_set_message('Verwijderen document is mislukt.', 'error');
-    }
-    else {
-      drupal_set_message('Document is verwijderd');
-    }
-    return $form;
-  }
+  $saved = ammo_save_entity('document', $entity_values, $document_id);
 
-  // Check if edit document button was clicked.
-  $pattern = '/^edit_(\d+)$/';
-  if (preg_match($pattern, $trigger, $matches)) {
-    $document = entity_load_single('document', $matches[1]);
-    // Store document id.
-    $storage['document_id'] = $document->id;
-    $storage['document'] = $document;
+  if ($saved) {
+    drupal_set_message('Document is opgeslagen.');
+    $form_state['redirect'] = 'admin/ammo/document';
+  } else {
+    drupal_set_message('Document is niet opgeslagen.', 'error');
   }
-
-  switch ($trigger) {
-    case 'submit':
-      // Save document.
-      $document_id = isset($storage['document_id']) ? $storage['document_id'] : NULL;
-      $saved = ammo_save_entity('document', array(
-        'meeting_id' => $storage['meeting_id'],
-        'title' => $values['title'],
-        'description' => $values['description'],
-      ), $document_id);
-      if ($saved) {
-        $storage['document'] = $saved;
-        $storage['document_id'] = $saved->id;
-        drupal_set_message('Document is opgeslagen.');
-        unset($form_state['input']);
-        unset($form_state['storage']);
-      }
-      else {
-        drupal_set_message('Document is niet opgeslagen.' , 'error');
-      }
-      break;
-  }
-  $form_state['rebuild'] = TRUE;
 }
 
-function ammo_document_form_ajax($form, &$form_state) {
-  return $form;
+function ammo_document_delete_confirm_form($form, &$form_state, $document) {
+  $form['#document'] = $document;
+  return confirm_form($form,
+    'Weet je zeker dat je het document "' . $document->title . '" wilt verwijderen?',
+    'admin/ammo/document',
+    'Dit kan niet ongedaan worden gemaakt.',
+    'Verwijderen',
+    'Annuleren'
+  );
+}
+
+function ammo_document_delete_confirm_form_submit($form, &$form_state) {
+  $document = $form['#document'];
+  entity_delete('document', $document->id);
+  drupal_set_message('Document "' . $document->title . '" is verwijderd.');
+  $form_state['redirect'] = 'admin/ammo/document';
 }
