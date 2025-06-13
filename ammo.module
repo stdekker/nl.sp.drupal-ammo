@@ -46,7 +46,7 @@ function ammo_menu() {
     'page arguments' => array('ammo_overview_amendments_form', 2),
     'file' => 'amendments.form.inc',
     'type' => MENU_LOCAL_TASK,
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'ammo_view_overview_access',
     'weight' => -1,
   );
 
@@ -66,7 +66,7 @@ function ammo_menu() {
     'page arguments' => array('ammo_overview_motions_form', 2),
     'file' => 'motions.form.inc',
     'type' => MENU_LOCAL_TASK,
-    'access callback' => 'ammo_show_motions_access',
+    'access callback' => 'ammo_view_motions_access',
     'weight' => 1,
   );
 
@@ -179,6 +179,9 @@ function ammo_permission() {
     'add amendments and motions' => array(
       'title' => 'Voeg wijzigingsvoorstellen en moties toe',
     ),
+    'view submitted amendments and motions' => array(
+      'title' => 'Bekijk ingediende wijzigingsvoorstellen en moties',
+    ),
   );
 }
 
@@ -190,12 +193,20 @@ function ammo_admin_access() {
   return user_access('administer ammo') || user_access('administer amendments and motions');
 }
 
+function ammo_view_overview_access() {
+  return user_access('view submitted amendments and motions') || ammo_admin_access();
+}
+
 function ammo_add_access($type = NULL) {
   return user_access('administer ammo') || user_access('administer amendments and motions') || user_access('add amendments and motions');
 }
 
 function ammo_add_motion_access() {
   return (user_access('administer ammo') || user_access('administer amendments and motions') || user_access('add amendments and motions')) && ammo_show_motions();
+}
+
+function ammo_view_motions_access() {
+  return ammo_show_motions() && ammo_view_overview_access();
 }
 
 function ammo_show_motions_access() {
@@ -939,10 +950,12 @@ function ammo_mail($key, &$message, $params) {
 }
 
 function ammo_intropage() {
+  $has_any_access = ammo_add_access() || ammo_view_overview_access();
   return theme('intropage', array(
     'add_access' => ammo_add_access(),
     'admin_access' => ammo_admin_access(),
     'superadmin_access' => ammo_superadmin_access(),
+    'has_any_access' => $has_any_access,
   ));
 }
 
