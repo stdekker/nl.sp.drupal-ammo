@@ -73,8 +73,7 @@ function ammo_menu() {
   $items['admin/ammo'] = array(
     'title' => 'Ammo',
     'description' => 'Ammo admin',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('ammo_admin_form'),
+    'page callback' => 'ammo_admin_overview_page',
     'access callback' => 'ammo_admin_access',
   );
 
@@ -945,6 +944,32 @@ function ammo_intropage() {
     'admin_access' => ammo_admin_access(),
     'superadmin_access' => ammo_superadmin_access(),
   ));
+}
+
+function ammo_admin_overview_page() {
+  $links = array();
+
+  // Manually add other admin links that are not local tasks.
+  $other_links = array(
+    'admin/ammo/meeting' => t('Bijeenkomst'),
+    'admin/ammo/document' => t('Documenten'),
+    'admin/ammo/print' => t('Print'),
+    'admin/ammo/export' => t('Export'),
+    'admin/ammo/user-section' => t('Indienen / wijzigen'),
+  );
+
+  foreach ($other_links as $path => $title) {
+     $item = menu_get_item($path);
+     if ($item && $item['access']) {
+        $links[] = l($title, $path);
+     }
+  }
+
+  if (empty($links)) {
+    return t('There are no administrative pages available.');
+  }
+
+  return theme('item_list', array('items' => $links));
 }
 
 function ammo_show_motions() {
