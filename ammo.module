@@ -492,8 +492,17 @@ function template_preprocess_overview_amendments(&$variables) {
         'description' => check_plain($document->description),
         'meeting_id' => check_plain($document->meeting_id),
       );
-      $amendments_results = db_query("SELECT id, chapter, page, state, chapterized_id FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'concept' AND state != 'blocked' AND state != 'withdrawn' ORDER BY chapter, page, line, chapterized_id", array(":document_id" => $document->id));
+      $amendments_results = db_query("SELECT id, chapter, page, state, chapterized_id FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'blocked' AND state != 'withdrawn' ORDER BY chapter, page, line, chapterized_id", array(":document_id" => $document->id));
       foreach ($amendments_results as $amendment) {
+        // Skip concept amendments unless user is owner or has admin access
+        if ($amendment->state === 'concept') {
+          $is_admin = ammo_admin_access();
+          $is_owner = ammo_is_related($amendment->id, 'amendment', 'owner', 'member');
+          if (!$is_admin && !$is_owner) {
+            continue;
+          }
+        }
+        
         // Get owners.
         $owners_member = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'member');
         $owners_branch = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'branch');
@@ -523,8 +532,17 @@ function template_preprocess_overview_amendments(&$variables) {
         $data['meeting']['documents'][$document->id]['totals'][$amendment->state]++;
       }
       // Store amendment index by chapterized id.
-      $amendments_index_results = db_query("SELECT id, chapter FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'concept' AND state != 'blocked' ORDER BY chapter, chapterized_id, id", array(":document_id" => $document->id));
+      $amendments_index_results = db_query("SELECT id, chapter, state FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'blocked' ORDER BY chapter, chapterized_id, id", array(":document_id" => $document->id));
       foreach ($amendments_index_results as $amendment) {
+        // Skip concept amendments unless user is owner or has admin access
+        if ($amendment->state === 'concept') {
+          $is_admin = ammo_admin_access();
+          $is_owner = ammo_is_related($amendment->id, 'amendment', 'owner', 'member');
+          if (!$is_admin && !$is_owner) {
+            continue;
+          }
+        }
+        
         $data['meeting']['documents'][$document->id]['amendment_index'][$amendment->chapter][] = $amendment->id;
       }
     }

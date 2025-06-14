@@ -34,7 +34,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         if (ammo_populate_form('amendment', $path_id, $form_state)) {
           $meeting_id = ammo_get_meeting_id('amendment', $form_state['storage']['amendment']);
           if (ammo_support_access($meeting_id) || ammo_superadmin_access()) {
-            $form_state['storage']['first_step'] = 7;
+            $form_state['storage']['first_step'] = 8;
           }
           else {
             return;
@@ -68,9 +68,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   // Set laste page depending on permissions.
-  $form_state['storage']['last_step'] = 6;
+  $form_state['storage']['last_step'] = 7; // Add confirmation step
   if (ammo_admin_access()) {
-    $form_state['storage']['last_step'] = 7;
+    $form_state['storage']['last_step'] = 8; // Admin advice step moves to 8
   }
 
   // If $form_state['step'] is not set, we set it to the first step.
@@ -190,9 +190,54 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#title' => 'Toelichting',
       '#default_value' => ammo_default($form_state, 'supplement'),
     );
+    $form['submission_type'] = array(
+      '#type' => 'radios',
+      '#title' => 'Opslaan als',
+      '#options' => array(
+        'draft' => 'Concept',   
+        'submit' => 'Definitief',
+      ),
+      '#default_value' => ammo_default($form_state, 'submission_type') ? ammo_default($form_state, 'submission_type') : 'submit',
+      '#description' => 'Een concept-voorstel wordt nog niet getoond en je kunt het later nog bewerken. Kies voor definitief als je het voorstel wil publiceren. Je kunt dat niet ongedaan maken.',
+    );
   }
 
   if ($form_state['step'] == 7) {
+    $form['title']['#markup'] = '<h2>Bevestiging</h2>';
+    
+    // Show summary of what will be submitted (only for definitive submissions)
+    $submission_type = ammo_default($form_state, 'submission_type') ?: 'submit';
+    $submission_text = 'definitief'; // This step only shows for definitive submissions
+    
+    $summary = '<div class="amendment-summary">';
+    $summary .= '<h3>Samenvatting van uw wijzigingsvoorstel:</h3>';
+    $summary .= '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '</p>';
+    $summary .= '<p><strong>Document:</strong> ' . check_plain($form_state['storage']['document_display_name']) . '</p>';
+    $summary .= '<p><strong>Hoofdstuk:</strong> ' . check_plain(ammo_default($form_state, 'chapter')) . '</p>';
+    $summary .= '<p><strong>Pagina:</strong> ' . check_plain(ammo_default($form_state, 'page')) . '</p>';
+    $summary .= '<p><strong>Regel:</strong> ' . check_plain(ammo_default($form_state, 'line')) . '</p>';
+    $summary .= '<p><strong>Wijzigingsvoorstel:</strong><br/>' . nl2br(check_plain(ammo_default($form_state, 'amendment_text'))) . '</p>';
+    if (ammo_default($form_state, 'supplement')) {
+      $summary .= '<p><strong>Toelichting:</strong><br/>' . nl2br(check_plain(ammo_default($form_state, 'supplement'))) . '</p>';
+    }
+    $summary .= '<p><strong>Status:</strong> ' . $submission_text . '</p>';
+    $summary .= '</div>';
+    
+    $form['summary'] = array(
+      '#type' => 'item',
+      '#markup' => $summary,
+    );
+    
+    $confirm_text = 'Weet u zeker dat u dit wijzigingsvoorstel definitief wilt indienen? Dit kan niet ongedaan worden gemaakt.';
+    
+    $form['confirm'] = array(
+      '#type' => 'checkbox',
+      '#title' => $confirm_text,
+      '#required' => TRUE,
+    );
+  }
+
+  if ($form_state['step'] == 8) {
     $form['title']['#markup'] = '<h2>Wijzigingsvoorstel advies</h2>';
     $form['item'] = array(
       '#type' => 'item',
@@ -300,6 +345,11 @@ function ammo_amendment_form_validate($form, &$form_state) {
       form_set_error('amendment_text', 'Vul de wijzigingsvoorstel tekst in.');
     }
     break;
+  case 7:
+    if (empty($values['confirm'])) {
+      form_set_error('confirm', 'U moet bevestigen dat u het wijzigingsvoorstel wilt opslaan/indienen.');
+    }
+    break;
   }
 }
 
@@ -358,6 +408,41 @@ function ammo_amendment_form_submit($form, &$form_state)
       $form_state['storage']['new'] = FALSE;
       break;
     case 6:
+      // Store form data
+      $form_state['storage']['chapter'] = $values['chapter'];
+      $form_state['storage']['page'] = $values['page'];
+      $form_state['storage']['line'] = $values['line'];
+      $form_state['storage']['amendment_text'] = $values['amendment_text'];
+      $form_state['storage']['supplement'] = $values['supplement'];
+      $form_state['storage']['submission_type'] = $values['submission_type'];
+      
+      // If saving as draft, save directly without confirmation step
+      if ($values['submission_type'] === 'draft') {
+        // Keep as concept (draft)
+        $form_state['storage']['state'] = 'concept';
+        $form_state['values']['state'] = 'concept';
+        
+        $mapping = array(
+          'chapter' => 'chapter',
+          'page' => 'page',
+          'line' => 'line',
+          'amendment_text' => 'amendment_text',
+          'supplement' => 'supplement',
+          'state' => 'state',
+        );
+        $amendment = ammo_store('amendment', $storage['amendment'], $mapping, $form, $form_state);
+        
+        // Show success message for draft
+        drupal_set_message('<h3>Concept opgeslagen</h3><p>Het wijzigingsvoorstel is opgeslagen als concept. U kunt het later nog wijzigen.</p>' . theme('amendment', array('entity_id' => $storage['amendment'], 'no_links' => TRUE)));
+        
+        // Skip to end - redirect user
+        ammo_ajax_redirect($form_state['storage']['destination']['destination']);
+        return;
+      }
+      // For definitive submission, continue to confirmation step
+      break;
+    case 7:
+      // Confirmation step - save definitive submission (drafts are handled in step 6)
       if ($storage['state'] === 'concept') {
         $form_state['storage']['state'] = 'submitted';
         $form_state['values']['state'] = 'submitted';
@@ -374,9 +459,11 @@ function ammo_amendment_form_submit($form, &$form_state)
       // Reset storage variable.
       $values = $form_state['values'];
       $storage = $form_state['storage'];
-      drupal_set_message('<h3>Opgeslagen</h3>' . theme('amendment', array('entity_id' => $storage['amendment'], 'no_links' => TRUE)));
+      
+      // Show success message for definitive submission
+      drupal_set_message('<h3>Wijzigingsvoorstel ingediend</h3><p>Het wijzigingsvoorstel is definitief ingediend voor behandeling.</p>' . theme('amendment', array('entity_id' => $storage['amendment'], 'no_links' => TRUE)));
       break;
-    case 7:
+    case 8:
       $mapping = array(
         'advice' => 'advice',
         'advice_supplement' => 'advice_supplement',
