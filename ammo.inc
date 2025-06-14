@@ -464,11 +464,13 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
   if (empty($entity)) {
     drupal_set_message('Waarden zijn niet opgeslagen.', 'error');
   }
-  if (!empty($differences) || empty($original_entity)) {
-    global $language;
-    // Send mails if ammo values where changed.
-    if (!empty($differences)) {
-      ammo_changes_update_mail($entity_type, $entity_id, $differences, $form_state['storage']['meeting']);
+  else {
+    if (!empty($differences) || empty($original_entity)) {
+      global $language;
+      // Send mails if ammo values where changed.
+      if (!empty($differences)) {
+        ammo_changes_update_mail($entity_type, $entity->id, $differences, $form_state['storage']['meeting']);
+      }
     }
   }
   return $entity;
