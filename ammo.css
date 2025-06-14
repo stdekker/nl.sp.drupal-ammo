@@ -165,3 +165,11 @@ h4.inline-title {
 .page-ammo td {
   padding: 0 1em 0 0;
 }
+
+.more-text {
+  display: none;
+}
+
+.ellipsis {
+  color: #666;
+}
