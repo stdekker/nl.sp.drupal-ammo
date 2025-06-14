@@ -42,7 +42,7 @@ function ammo_amendment_advice() {
   return array(
     'accept' => 'Overnemen',
     //'accept_amended' => 'Gewijzigd overnemen',
-    //'accept_intention' => 'Strekking overnemen',
+    'accept_intention' => 'Strekking overnemen',
     //'accept_partially' => 'Gedeeltelijk overnemen',
     'reject' => 'Afwijzen',
   );
