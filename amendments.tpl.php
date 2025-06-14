@@ -1,11 +1,10 @@
 <h2 id="inhoud">Overzicht alle ingediende wijzigingsvoorstelen</h2>
 
 <?php if (!empty($meeting['documents']) && empty($meeting['hide'])) : ?>
-  <ul class="first navigation">
+  <div class="first navigation">
     <?php foreach ($meeting['documents'] as $document) : ?>
-
-      <li class="document">
-
+      <?php if (!empty($document['amendments'])) : ?>
+      <div class="document">
         <a href="#document<?php print $document['id']; ?>"><strong>Document: <?php print $document['title']; ?></strong></a>
         <?php if (!empty($document['chapters'])) : ?>
           <ul class="chapters tab">
@@ -19,11 +18,7 @@
           </ul>
           <?php foreach ($document['chapters'] as $chapter) : ?>
             <div id="<?php print 'tabcontent-' . $document['id'] . '-' . $chapter['nr']; ?>" class="tabcontent <?php print ($firstchapter == $chapter['nr']) ? 'active' : ''; ?>">
-              <ul class="amendments">
-                <li class="amendment">
-                  <a href="#chapter<?php print $chapter['nr']; ?>">Hoofdstuk <?php print $chapter['nr']; ?></a>
-                </li>
-              </ul>
+
               <ul class="amendments">
                 <?php $amendment_ids = $document['amendment_index'][$chapter['nr']]; ?>
                 <?php foreach ($amendment_ids as $amendment_id) : ?>
@@ -36,42 +31,40 @@
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
-      </li>
+      </div>
+      <?php endif; ?>
     <?php endforeach; ?>
-  </ul>
+  </div>
 
-  <ul class="first">
+  <div class="first">
     <?php foreach ($meeting['documents'] as $document) : ?>
-      <li>
+      <?php if (!empty($document['amendments'])) : ?>
         <h2 id="document<?php print $document['id']; ?>" class="document-title"><?php print $document['title']; ?></h2>
-        <ul>
-          <?php if ($meeting['admin_access']) : ?>
-            <?php $states = ammo_states(); ?>
-            <?php if (!empty($meeting['documents'][$document['id']]['totals'])): ?>
-              <?php foreach ($meeting['documents'][$document['id']]['totals'] as $key => $value) : ?>
-                <?php $rows[] = array($states[$key], $value); ?>
-              <?php endforeach; ?>
-              <?php print theme('table', array('rows' => $rows)); ?>
-            <?php endif; ?>
-          <?php endif; ?>
+          <?php if ($meeting['admin_access']): 
+            $states = ammo_states();
+            if (!empty($meeting['documents'][$document['id']]['totals'])):
+              foreach ($meeting['documents'][$document['id']]['totals'] as $key => $value):
+                $rows[] = array($states[$key], $value);
+              endforeach;
+              print theme('table', array('rows' => $rows));
+            endif;
+          endif;
 
-          <?php if (!empty($document['chapters'])) : ?>
-            <?php foreach ($document['chapters'] as $chapter) : ?>
-              <?php $amendment_ids = $document['amendment_index'][$chapter['nr']]; ?>
-              <?php foreach ($amendment_ids as $amendment_id) : ?>
-                <?php $amendment = $document['amendments'][$amendment_id]; ?>
+          if (!empty($document['chapters'])):
+            foreach ($document['chapters'] as $chapter):
+              $amendment_ids = $document['amendment_index'][$chapter['nr']];
+              foreach ($amendment_ids as $amendment_id):
+                $amendment = $document['amendments'][$amendment_id]; ?>
                 <ul>
                   <li class="ammo-element <?php print $amendment['state']; ?>">
                     <?php print theme('amendment', array('entity_id' => $amendment['id'], 'destination' => $destination)); ?>
                   </li>
                 </ul>
-              <?php endforeach; ?>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </ul>
-      </li>
+              <?php endforeach;
+            endforeach;
+          endif;
+          ?>
+      <?php endif; ?>
     <?php endforeach; ?>
-  </ul>
-
+  </div>
 <?php endif; ?>
-<hr />
