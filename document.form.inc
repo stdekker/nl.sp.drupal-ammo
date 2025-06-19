@@ -17,7 +17,7 @@ function ammo_document_list_page() {
   }
 
   foreach ($meetings as $meeting) {
-    $output .= '<h2>' . $meeting->title . '</h2>';
+    $output .= '<h2>' . l($meeting->title, 'admin/ammo/meeting/' . $meeting->id . '/edit', array('attributes' => array('title' => 'Bewerk bijeenkomst instellingen'))) . '</h2>';
     if (isset($grouped_documents[$meeting->id]) && !empty($grouped_documents[$meeting->id])) {
       $header = array('Titel', 'Omschrijving', 'Operaties');
       $rows = array();
@@ -130,8 +130,8 @@ function ammo_document_delete_confirm_form($form, &$form_state, $document) {
   return confirm_form($form,
     'Weet je zeker dat je het document "' . $document->title . '" wilt verwijderen?',
     'admin/ammo/document',
-    'Dit kan niet ongedaan worden gemaakt.',
-    'Verwijderen',
+    'Dit verwijdert de ingediende voorstellen en kan niet ongedaan worden gemaakt.',
+    'Document definitief verwijderen',
     'Annuleren'
   );
 }

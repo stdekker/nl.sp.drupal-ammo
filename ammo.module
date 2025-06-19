@@ -78,11 +78,37 @@ function ammo_menu() {
   );
 
   $items['admin/ammo/meeting'] = array(
-    'title' => 'Bijeenkomst',
+    'title' => 'Bijeenkomsten',
+    'page callback' => 'ammo_meeting_list_page',
+    'file' => 'meeting.form.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/meeting/add'] = array(
+    'title' => 'Bijeenkomst toevoegen',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ammo_meeting_form'),
     'file' => 'meeting.form.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_ACTION,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/meeting/%meeting/edit'] = array(
+    'title' => 'Bijeenkomst bewerken',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_meeting_edit_form', 3),
+    'file' => 'meeting.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
+  $items['admin/ammo/meeting/%meeting/delete'] = array(
+    'title' => 'Bijeenkomst verwijderen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_meeting_delete_confirm_form', 3),
+    'file' => 'meeting.form.inc',
+    'type' => MENU_CALLBACK,
     'access callback' => 'ammo_superadmin_access',
   );
 
@@ -166,6 +192,15 @@ function ammo_menu() {
  */
 function document_load($id) {
   return entity_load_single('document', $id);
+}
+
+/**
+ * Load a meeting.
+ * @param $id
+ * @return \stdClass
+ */
+function meeting_load($id) {
+  return entity_load_single('meeting', $id);
 }
 
 function ammo_permission() {
@@ -982,7 +1017,7 @@ function ammo_admin_overview_page() {
 
   // Manually add other admin links that are not local tasks.
   $other_links = array(
-    'admin/ammo/meeting' => t('Bijeenkomst'),
+    'admin/ammo/meeting' => t('Bijeenkomsten'),
     'admin/ammo/document' => t('Documenten'),
     'admin/ammo/print' => t('Print'),
     'admin/ammo/export' => t('Export'),

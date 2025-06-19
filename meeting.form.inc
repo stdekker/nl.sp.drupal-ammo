@@ -1,92 +1,62 @@
 <?php
 
-function ammo_meeting_form($form, &$form_state) {
-  if (empty($form_state['storage'])) {
-    $form_state['storage'] = array();
+function ammo_meeting_list_page() {
+  $meetings = entity_load('meeting');
+  $output = '';
+
+  if (empty($meetings)) {
+    $output .= '<p>Er zijn geen bijeenkomsten gevonden.</p>';
+    return $output;
   }
-  $storage = $form_state['storage'];
+
+  $header = array(
+    'Titel', 
+    'Beschrijving', 
+    'Datum', 
+    'Contact e-mail', 
+    'Instellingen',
+    'Operaties'
+  );
+  
+  $rows = array();
+  foreach ($meetings as $meeting) {
+    $date = new DateTime($meeting->date);
+    $settings = array();
+    
+    if ($meeting->hide_state) {
+      $settings[] = 'Status verborgen';
+    }
+    if ($meeting->hide_advice) {
+      $settings[] = 'Advies verborgen';
+    }
+    if ($meeting->hide_meeting) {
+      $settings[] = 'Bijeenkomst verborgen';
+    }
+    if ($meeting->no_motions) {
+      $settings[] = 'Geen moties';
+    }
+    
+    $settings_text = !empty($settings) ? implode(', ', $settings) : 'Standaard instellingen';
+    
+    $rows[] = array(
+      check_plain($meeting->title),
+      check_plain($meeting->description),
+      $date->format('d-m-Y'),
+      check_plain($meeting->email),
+      $settings_text,
+      l('Bewerken', 'admin/ammo/meeting/' . $meeting->id . '/edit') . ' | ' .
+      l('Verwijderen', 'admin/ammo/meeting/' . $meeting->id . '/delete'),
+    );
+  }
+  
+  $output .= theme('table', array('header' => $header, 'rows' => $rows));
+  return $output;
+}
+
+function ammo_meeting_form($form, &$form_state) {
   $form = array();
 
-  $form['#prefix'] = '<div id="ammo-meeting-ajax">';
-  $form['#suffix'] = '</div>';
-
-  if (!empty($storage['confirm_delete_id'])) {
-    $meeting = entity_load_single('meeting', $storage['confirm_delete_id']);
-    if ($meeting) {
-      $form['confirm_message'] = array(
-        '#markup' => '<p>' . 'Weet u zeker dat u de bijeenkomst "' . check_plain($meeting->title) . '" wilt verwijderen?' . '</p>',
-      );
-      $form['confirm_actions'] = array('#type' => 'actions');
-      $form['confirm_actions']['confirm'] = array(
-        '#type' => 'submit',
-        '#value' => 'Ja, verwijderen',
-        '#name' => 'confirm_delete',
-        '#ajax' => array(
-          'callback' => 'ammo_meeting_form_ajax',
-          'wrapper' => 'ammo-meeting-ajax',
-          'method' => 'replace',
-          'effect' => 'fade',
-          'event' => 'click',
-        ),
-      );
-      $form['confirm_actions']['cancel'] = array(
-        '#type' => 'submit',
-        '#value' => 'Nee, annuleren',
-        '#name' => 'cancel_delete',
-        '#ajax' => array(
-          'callback' => 'ammo_meeting_form_ajax',
-          'wrapper' => 'ammo-meeting-ajax',
-          'method' => 'replace',
-          'effect' => 'fade',
-          'event' => 'click',
-        ),
-      );
-    }
-    return $form;
-  }
-
-  if (empty($storage['meeting_id'])) {
-    $form['meetings'] = array(
-      '#title' => 'Bestaande bijeenkomsten',
-      '#type' => 'fieldset',
-    );
-
-    // Editing existing meeting.
-    $meetings = entity_load('meeting');
-    foreach ($meetings as $key => $meeting) {
-      $form['meetings'][$key]['delete'] = array(
-        '#type' => 'submit',
-        '#value' => 'Verwijderen',
-        '#name' => 'delete_' . $key,
-        '#ajax' => array(
-          'callback' => 'ammo_meeting_form_ajax',
-          'wrapper' => 'ammo-meeting-ajax',
-          'method' => 'replace',
-          'effect' => 'fade',
-          'event' => 'click',
-        ),
-        '#prefix' => '<p>',
-      );
-      $form['meetings'][$key]['edit'] = array(
-        '#type' => 'submit',
-        '#value' => 'Bewerk',
-        '#name' => 'edit_' . $key,
-        '#ajax' => array(
-          'callback' => 'ammo_meeting_form_ajax',
-          'wrapper' => 'ammo-meeting-ajax',
-          'method' => 'replace',
-          'effect' => 'fade',
-          'event' => 'click',
-        ),
-        '#suffix' => $meeting->title.'</p>',
-      );
-    }
-  }
-
-  $form['form_title'] = array(
-    '#type' => 'item',
-    '#markup' => '<h2>Voeg een bijeenkomst toe</h2>',
-  );
+  $form['#title'] = 'Voeg een bijeenkomst toe';
 
   $form['title'] = array(
     '#type' => 'textfield',
@@ -154,155 +124,226 @@ function ammo_meeting_form($form, &$form_state) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Indienen',
-    '#name' => 'submit',
-    '#ajax' => array(
-      'callback' => 'ammo_meeting_form_ajax',
-      'wrapper' => 'ammo-meeting-ajax',
-      'method' => 'replace',
-      'effect' => 'fade',
-      'event' => 'click',
-    ),
+    '#value' => 'Bijeenkomst toevoegen',
   );
-
-  // Set defaults.
-  if (!empty($storage['meeting'])) {
-    unset($form_state['input']);
-    $meeting = $storage['meeting'];
-    $form['form_title']['#markup'] = 'Bewerk bijeenkomst';
-    $form['title']['#default_value'] = $meeting->title;
-    $form['description']['#default_value'] = $meeting->description;
-    $form['email']['#default_value'] = $meeting->email;
-    $date = new DateTime($meeting->date);
-    $form['date']['#default_value'] = $date->format('Y-m-d');;
-    $date = new DateTime($meeting->withdrawal_closing_date);
-    $form['withdrawal_closing_date']['#default_value'] = $date->format('Y-m-d H:i');
-    $date = new DateTime($meeting->submission_closing_date);
-    $form['submission_closing_date']['#default_value'] = $date->format('Y-m-d H:i');
-    $form['hide_state']['#default_value'] = $meeting->hide_state;
-    $form['hide_advice']['#default_value'] = $meeting->hide_advice;
-    $form['hide_meeting']['#default_value'] = $meeting->hide_meeting;
-    $form['no_motions']['#default_value'] = $meeting->no_motions;
-    $form['admin_owner']['#default_value'] = $meeting->admin_owner;
-    $form['admin_owner']['#disabled'] = TRUE;
-  }
   return $form;
 }
 
 function ammo_meeting_form_validate($form, &$form_state) {
   $values = $form_state['values'];
-  $storage = &$form_state['storage'];
-  $trigger = $form_state['triggering_element']['#name'];
-
-  $form_state['storage']['validated'] = 'YES';
-
-  switch ($trigger) {
-    // Save meeting.
-    case 'submit':
-      // Validate form values.
-      $error = FALSE;
-      if (empty($values['title'])) {
-        $form['title']['#prefix'] = ammo_error('Vul een titel in.');
-        $error = TRUE;
-      }
-      if (empty($values['date'])) {
-        form_set_error('date', 'Kies een datum.');
-      }
-      if (empty($values['submission_closing_date'])) {
-        form_set_error('submission_closing_date', 'Kies een laatste inleverdatum.');
-        $error = TRUE;
-      }
-      if (empty($values['withdrawal_closing_date'])) {
-        form_set_error('withdrawal_closing_date', 'Kies een laatste intrekdatum.');
-        $error = TRUE;
-      }
-      if (empty($values['email']) || !valid_email_address($values['email'])) {
-        form_set_error('email', 'Vul een geldig e-mailadres in.');
-        $error = TRUE;
-      }
-      if (empty($storage['meeting_id'])) {
-        // New meeting.
-        $unique_title = ammo_entity_check_title('meeting', $values['title']);
-        if ($unique_title === FALSE) {
-          form_set_error('title', 'Titel is reeds in gebruik.');
-          $error = TRUE;
-        }
-      }
-      break;
+  
+  if (empty($values['title'])) {
+    form_set_error('title', 'Vul een titel in.');
+  }
+  if (empty($values['date'])) {
+    form_set_error('date', 'Kies een datum.');
+  }
+  if (empty($values['submission_closing_date'])) {
+    form_set_error('submission_closing_date', 'Kies een laatste inleverdatum.');
+  }
+  if (empty($values['withdrawal_closing_date'])) {
+    form_set_error('withdrawal_closing_date', 'Kies een laatste intrekdatum.');
+  }
+  if (empty($values['email']) || !valid_email_address($values['email'])) {
+    form_set_error('email', 'Vul een geldig e-mailadres in.');
+  }
+  
+  // Check if title is unique for new meeting
+  $unique_title = ammo_entity_check_title('meeting', $values['title']);
+  if ($unique_title === FALSE) {
+    form_set_error('title', 'Titel is reeds in gebruik.');
   }
 }
 
 function ammo_meeting_form_submit($form, &$form_state) {
-  $storage = &$form_state['storage'];
   $values = $form_state['values'];
-  $trigger = $form_state['triggering_element']['#name'];
-
-  // Check if delete meeting button was clicked.
-  $pattern = '/^delete_(\d+)$/';
-  if (preg_match($pattern, $trigger, $matches)) {
-    $storage['confirm_delete_id'] = $matches[1];
-    $storage['meeting_id'] = NULL;
-    unset($storage['meeting']);
-    unset($form_state['input']);
+  
+  $entity_values = array(
+    'title' => $values['title'],
+    'description' => $values['description'],
+    'date' => $values['date'],
+    'submission_closing_date' => $values['submission_closing_date'],
+    'withdrawal_closing_date' => $values['withdrawal_closing_date'],
+    'email' => $values['email'],
+    'no_member_owners' => 1,
+    'hide_state' => $values['hide_state'],
+    'hide_advice' => $values['hide_advice'],
+    'hide_meeting' => $values['hide_meeting'],
+    'no_motions' => $values['no_motions'],
+    'admin_owner' => $values['admin_owner'],
+  );
+  
+  $saved = ammo_save_entity('meeting', $entity_values, NULL);
+  
+  if ($saved) {
+    drupal_set_message('Bijeenkomst is aangemaakt.');
+    $form_state['redirect'] = 'admin/ammo/meeting';
+  } else {
+    drupal_set_message('Bijeenkomst is niet opgeslagen.', 'error');
   }
-
-  // Check if edit meeting button was clicked.
-  $pattern = '/^edit_(\d+)$/';
-  if (preg_match($pattern, $trigger, $matches)) {
-    $meeting = entity_load_single('meeting', $matches[1]);
-    $storage['meeting'] = $meeting;
-    $storage['meeting_id'] = $meeting->id;
-  }
-
-  switch ($trigger) {
-    case 'confirm_delete':
-      if (!empty($storage['confirm_delete_id'])) {
-        $result = entity_delete('meeting', $storage['confirm_delete_id']);
-        if (FALSE === $result) {
-          drupal_set_message('Verwijderen bijeenkomst is mislukt.', 'error');
-        }
-        else {
-          drupal_set_message('Bijeenkomst is verwijderd');
-        }
-        unset($storage['confirm_delete_id']);
-        $form_state['input'] = array();
-      }
-      break;
-
-    case 'cancel_delete':
-      unset($storage['confirm_delete_id']);
-      break;
-    // Save meeting.
-    case 'submit':
-      // Save meeting.
-      $meeting_id = isset($storage['meeting_id']) ? $storage['meeting_id'] : NULL;
-      $saved = ammo_save_entity('meeting', array(
-        'title' => $values['title'],
-        'description' => $values['description'],
-        'date' => $values['date'],
-        'submission_closing_date' => $values['submission_closing_date'],
-        'withdrawal_closing_date' => $values['withdrawal_closing_date'],
-        'email' => $values['email'],
-        'no_member_owners' => 1,
-        'hide_state' => $values['hide_state'],
-        'hide_advice' => $values['hide_advice'],
-        'hide_meeting' => $values['hide_meeting'],
-        'no_motions' => $values['no_motions'],
-        'admin_owner' => $values['admin_owner'],
-      ), $meeting_id);
-      if ($saved) {
-        drupal_set_message('Bijeenkomst is opgeslagen.');
-        unset($form_state['input']);
-        unset($form_state['storage']);
-      }
-      else {
-        drupal_set_message('Bijeenkomst is niet opgeslagen.', 'error');
-      }
-      break;
-  }
-  $form_state['rebuild'] = TRUE;
 }
 
 function ammo_meeting_form_ajax($form, &$form_state) {
   return $form;
+}
+
+function ammo_meeting_edit_form($form, &$form_state, $meeting) {
+  $form = array();
+  
+  $form['#title'] = 'Bewerk bijeenkomst: ' . check_plain($meeting->title);
+  $form_state['meeting'] = $meeting;
+
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Titel',
+    '#default_value' => $meeting->title,
+    '#required' => TRUE,
+  );
+
+  $form['description'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Beschrijving',
+    '#default_value' => $meeting->description,
+  );
+
+  $form['email'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Contact e-mailadres',
+    '#default_value' => $meeting->email,
+    '#required' => TRUE,
+  );
+
+  $date = new DateTime($meeting->date);
+  $form['date'] = array(
+    '#title' => 'Datum evenement',
+    '#type' => 'date_popup',
+    '#date_format' => 'd-m-Y',
+    '#default_value' => $date->format('Y-m-d'),
+    '#required' => TRUE,
+  );
+
+  $submission_date = new DateTime($meeting->submission_closing_date);
+  $form['submission_closing_date'] = array(
+    '#title' => 'Uiterste inlever/wijzigingsdatum',
+    '#description' => 'Na deze datum kunnen er geen nieuwe wijzigingsvoorstellen en moties meer worden ingeleverd, en kunnen bestaande wijzigingsvoorstellen en moties niet meer worden gewijzigd.',
+    '#type' => 'date_popup',
+    '#date_format' => 'd-m-Y H:i',
+    '#default_value' => $submission_date->format('Y-m-d H:i'),
+    '#required' => TRUE,
+  );
+
+  $withdrawal_date = new DateTime($meeting->withdrawal_closing_date);
+  $form['withdrawal_closing_date'] = array(
+    '#title' => 'Uiterste intrek/ondersteuningsdatum',
+    '#type' => 'date_popup',
+    '#date_format' => 'd-m-Y H:i',
+    '#default_value' => $withdrawal_date->format('Y-m-d H:i'),
+    '#required' => TRUE,
+  );
+
+  $form['hide_state'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Verberg status.',
+    '#default_value' => $meeting->hide_state,
+  );
+
+  $form['hide_advice'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Verberg advies.',
+    '#default_value' => $meeting->hide_advice,
+  );
+
+  $form['hide_meeting'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Verberg bijeenkomst.',
+    '#default_value' => $meeting->hide_meeting,
+  );
+
+  $form['no_motions'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Geen moties.',
+    '#default_value' => $meeting->no_motions,
+  );
+
+  $form['admin_owner'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Indienen amendementen, moties en wijzigingen door beheerders namens',
+    '#default_value' => $meeting->admin_owner,
+    '#required' => TRUE,
+    '#disabled' => TRUE,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Opslaan',
+  );
+
+  return $form;
+}
+
+function ammo_meeting_edit_form_validate($form, &$form_state) {
+  $values = $form_state['values'];
+  
+  if (empty($values['title'])) {
+    form_set_error('title', 'Vul een titel in.');
+  }
+  if (empty($values['date'])) {
+    form_set_error('date', 'Kies een datum.');
+  }
+  if (empty($values['submission_closing_date'])) {
+    form_set_error('submission_closing_date', 'Kies een laatste inleverdatum.');
+  }
+  if (empty($values['withdrawal_closing_date'])) {
+    form_set_error('withdrawal_closing_date', 'Kies een laatste intrekdatum.');
+  }
+  if (empty($values['email']) || !valid_email_address($values['email'])) {
+    form_set_error('email', 'Vul een geldig e-mailadres in.');
+  }
+}
+
+function ammo_meeting_edit_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+  $meeting = $form_state['meeting'];
+  
+  $entity_values = array(
+    'title' => $values['title'],
+    'description' => $values['description'],
+    'date' => $values['date'],
+    'submission_closing_date' => $values['submission_closing_date'],
+    'withdrawal_closing_date' => $values['withdrawal_closing_date'],
+    'email' => $values['email'],
+    'no_member_owners' => 1,
+    'hide_state' => $values['hide_state'],
+    'hide_advice' => $values['hide_advice'],
+    'hide_meeting' => $values['hide_meeting'],
+    'no_motions' => $values['no_motions'],
+    'admin_owner' => $values['admin_owner'],
+  );
+
+  $saved = ammo_save_entity('meeting', $entity_values, $meeting->id);
+
+  if ($saved) {
+    drupal_set_message('Bijeenkomst is opgeslagen.');
+    $form_state['redirect'] = 'admin/ammo/meeting';
+  } else {
+    drupal_set_message('Bijeenkomst is niet opgeslagen.', 'error');
+  }
+}
+
+function ammo_meeting_delete_confirm_form($form, &$form_state, $meeting) {
+  $form['#meeting'] = $meeting;
+  return confirm_form($form,
+    'Bijeenkomst "' . $meeting->title . '" verwijderen',
+    'admin/ammo/meeting',
+    'Let op! Weet je zeker dat je de bijeenkomst "' . $meeting->title . '" wilt verwijderen? Je bent dan ook de onderliggende documenten en voorstellen kwijt! Dit kan niet ongedaan worden gemaakt.',
+    'Bijeenkomst definitief verwijderen',
+    'Annuleren'
+  );
+}
+
+function ammo_meeting_delete_confirm_form_submit($form, &$form_state) {
+  $meeting = $form['#meeting'];
+  entity_delete('meeting', $meeting->id);
+  drupal_set_message('Bijeenkomst "' . $meeting->title . '" is verwijderd.');
+  $form_state['redirect'] = 'admin/ammo/meeting';
 }
