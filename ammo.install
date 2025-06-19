@@ -414,3 +414,31 @@ function ammo_update_7008() {
     db_add_field('ammo_meetings', 'admin_owner', $spec);
   }
 }
+
+/**
+ * Convert AMMO tables to utf8mb4 charset to support emoticons and 4-byte UTF-8 characters.
+ */
+function ammo_update_7009() {
+  // List of AMMO tables to convert
+  $tables = array(
+    'ammo_meetings',
+    'ammo_documents', 
+    'ammo_amendments',
+    'ammo_motions',
+    'ammo_contact_relations',
+  );
+  
+  // Convert each table to utf8mb4
+  foreach ($tables as $table) {
+    if (db_table_exists($table)) {
+      // Use raw SQL for charset conversion as Drupal's schema API doesn't support this
+      db_query("ALTER TABLE {{$table}} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+      
+      // Log the conversion
+      watchdog('ammo', 'Converted table @table to utf8mb4 charset to support emoticons.', 
+        array('@table' => $table), WATCHDOG_INFO);
+    }
+  }
+  
+  return t('Converted AMMO tables to utf8mb4 charset to support emoticons and 4-byte UTF-8 characters. IMPORTANT: You must also add the following lines to your database configuration in sites/default/settings.php or sites/default/settings.ddev.php: <br/><code>$databases[\'default\'][\'default\'][\'charset\'] = \'utf8mb4\';<br/>$databases[\'default\'][\'default\'][\'collation\'] = \'utf8mb4_unicode_ci\';</code>');
+}

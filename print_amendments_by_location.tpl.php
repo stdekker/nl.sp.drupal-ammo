@@ -1,5 +1,21 @@
 <html>
-<meta http-equiv="Content-Type" content="text/html">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+body {
+  font-family: Arial;
+  line-height: 1.4;
+}
+h2 {
+  font-family: Arial, sans-serif;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+p {
+  margin-bottom: 0.5em;
+}
+</style>
+</head>
 <body>
 <?php foreach ($meeting['documents'] as $document) : ?>
   <h2><?php print $document['title']; ?></h2>
@@ -48,7 +64,9 @@
           <?php endif; ?>
           <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
         <?php endif; ?>
-        <br style="page-break-before: always">
+        <?php if ($variables['values']['pagebreaks']) : ?>
+          <br style="page-break-before: always">
+        <?php endif; ?>
       <?php endforeach; ?>
     <?php endforeach; ?>
   <?php endforeach; ?>

@@ -65,21 +65,7 @@ function ammo_print_form($form, &$form_state) {
       break;
     }
 
-    $form['writerordoc'] = array(
-      '#type' => 'radios',
-      '#title' => 'Bestand voor',
-      '#name' => 'writerordoc',
-      '#required' => TRUE,
-      '#options' => array(
-        'writer' => 'Libreoffice writer',
-        'doc' => 'Mircosoft word',
-      ),
-      '#default_value' => 'writer',
-      '#ajax' => array(
-        'wrapper' => 'ajax-print-form-wrapper',
-        'callback' => 'ammo_print_form_ajax_callback',
-      ),
-    );
+
   }
 
   if (!empty($form_state['values']['type'])) {
@@ -87,12 +73,18 @@ function ammo_print_form($form, &$form_state) {
       '#type' => 'checkbox',
       '#title' => 'Ruimte voor notities toevoegen',
     );
+    
+    $form['pagebreaks'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Pagina-einden tussen wijzigingsvoorstellen',
+      '#default_value' => 1,
+    );
   }
 
   if (!empty($form_state['values']['type'])) {
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => 'Print',
+      '#value' => 'Download print bestand',
       '#name' => 'action_button',
       '#id' => 'action_button',
       '#validate' => array('ammo_print_form_validate'),
@@ -107,8 +99,32 @@ function ammo_print_form_validate($form, &$form_state) {
 }
 
 function ammo_print_form_submit($form, &$form_state) {
-  header('Content-type: application/vnd.ms-word');
-  header('Content-Disposition: attachement; filename="ammo.doc";');
+  // Get meeting information to build filename
+  $meeting = entity_load_single('meeting', $form_state['values']['meeting']);
+  $meeting_name = isset($meeting->title) ? $meeting->title : 'onbekend';
+  
+  // Get content type name
+  $content_type = '';
+  switch ($form_state['values']['type']) {
+    case 'amendments':
+      $content_type = 'wijzigingsvoorstellen';
+      break;
+    case 'motions':
+      $content_type = 'moties';
+      break;
+  }
+  
+  // Generate date/time string
+  $date_time = date('Y-m-d--H-i');
+  
+  // Sanitize meeting name for filename
+  $sanitized_meeting_name = ammo_sanitize_filename($meeting_name);
+  
+  // Build filename
+  $filename = 'ammo-' . $sanitized_meeting_name . '-' . $content_type . '-' . $date_time . '.docx';
+  
+  header('Content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  header('Content-Disposition: attachement; filename="' . $filename . '";');
   // open the "output" stream
   $f = fopen('php://output', 'w');
 
@@ -135,9 +151,8 @@ function ammo_print_form_submit($form, &$form_state) {
     break;
   }
 
-  if ($form_state['values']['writerordoc'] == 'doc') {
-    $content = ammo_encodeToIso($content);
-  }
+  // UTF-8 encoding is now fully supported by modern Word versions
+  // No longer converting to ISO as it causes issues with emoji and special characters
 
   fputs($f, $content);
   fclose($f);
@@ -148,6 +163,29 @@ function ammo_print_form_ajax_callback($form, &$form_state) {
   return $form;
 }
 
-function ammo_encodeToIso($string) {
-  return mb_convert_encoding($string, "ISO-8859-1", mb_detect_encoding($string, "UTF-8, ISO-8859-1, ISO-8859-15", true));
+// Function removed: ammo_encodeToIso() is no longer needed
+// Modern Word versions support UTF-8 directly
+
+/**
+ * Sanitize a string for use in filenames
+ */
+function ammo_sanitize_filename($filename) {
+  // Convert to lowercase
+  $filename = strtolower($filename);
+  
+  // Replace spaces and special characters with dashes
+  $filename = preg_replace('/[^a-z0-9\-]/', '-', $filename);
+  
+  // Remove multiple consecutive dashes
+  $filename = preg_replace('/-+/', '-', $filename);
+  
+  // Remove leading and trailing dashes
+  $filename = trim($filename, '-');
+  
+  // If empty after sanitization, use 'onbekend'
+  if (empty($filename)) {
+    $filename = 'onbekend';
+  }
+  
+  return $filename;
 }

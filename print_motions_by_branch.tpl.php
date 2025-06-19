@@ -1,5 +1,22 @@
 <html>
-<meta http-equiv="Content-Type" content="text/html">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 2cm;
+  line-height: 1.4;
+}
+h1, h2 {
+  font-family: Arial, sans-serif;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+p {
+  margin-bottom: 0.5em;
+}
+</style>
+</head>
 <body>
 <?php foreach ($meeting['branches'] as $branch) : ?>
   <?php foreach ($branch['motions'] as $motion) : ?>
