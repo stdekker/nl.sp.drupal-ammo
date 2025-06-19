@@ -48,22 +48,21 @@
               endforeach;
               print theme('table', array('rows' => $rows));
             endif;
-          endif;
-
-          if (!empty($document['chapters'])):
+          endif; ?>
+          <ul class="amendments">
+          <?php if (!empty($document['chapters'])):
             foreach ($document['chapters'] as $chapter):
               $amendment_ids = $document['amendment_index'][$chapter['nr']];
               foreach ($amendment_ids as $amendment_id):
                 $amendment = $document['amendments'][$amendment_id]; ?>
-                <ul>
                   <li class="ammo-element <?php print $amendment['state']; ?>">
                     <?php print theme('amendment', array('entity_id' => $amendment['id'], 'destination' => $destination)); ?>
                   </li>
-                </ul>
               <?php endforeach;
             endforeach;
           endif;
           ?>
+        </ul>
       <?php endif; ?>
     <?php endforeach; ?>
   </div>

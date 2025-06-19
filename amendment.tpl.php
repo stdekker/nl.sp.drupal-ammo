@@ -1,8 +1,9 @@
 <?php
 global $base_url;
 
-// Format amendment ID
-$amendment_id = (!empty($chapterized_id)) ? $chapter . '.' . $chapterized_id : $chapter . '.' . $entity_id;
+// Format amendment ID with "X" fallback for empty chapter
+$chapter_display = (!empty($chapter)) ? $chapter : 'X';
+$amendment_id = (!empty($chapterized_id)) ? $chapter_display . '.' . $chapterized_id : $chapter_display . '.' . $entity_id;
 ?>
 <h3 id="amendment<?php print $entity_id; ?>"><?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)</h3>
 

@@ -63,9 +63,9 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
   else {
     $meetings = ammo_get_meetings('submit');
-    if (empty($meetings)) {
-      drupal_set_message('De termijn voor het indienen van moties is verstreken.', 'warning');
-      return;
+    if (empty($meetings) && !ammo_admin_access()) {
+      // Instead of showing a warning notice and returning, we'll show the page with info text
+      $submissions_closed = TRUE;
     }
   }
 
@@ -93,6 +93,16 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   $form['title'] = array(
     '#type' => 'item',
   );
+
+  // Handle submissions closed case
+  if (isset($submissions_closed) && $submissions_closed) {
+    $form['title']['#markup'] = '<h2>Motie indienen</h2>';
+    $form['closed_info'] = array(
+      '#type' => 'item',
+      '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van moties is verstreken. Het is niet meer mogelijk om nieuwe moties in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
+    );
+    return $form;
+  }
 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
@@ -429,7 +439,9 @@ function ammo_motion_form_submit($form, &$form_state)
       // Reset storage variable.
       $values = $form_state['values'];
       $storage = $form_state['storage'];
-      drupal_set_message('<h3>Opgeslagen</h3>' . theme('motion', array('entity_id' => $storage['motion'], 'no_links' => TRUE)));
+      $motion = entity_load_single('motion', $storage['motion']);
+      $motion_number = $motion->motion_id ?: $motion->id;
+      drupal_set_message('<h3>Motie opgeslagen</h3><p>Motie ' . $motion_number . ' is succesvol opgeslagen.</p>');
       break;
     case 6:
       $mapping = array(

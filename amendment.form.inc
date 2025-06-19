@@ -56,9 +56,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
   else {
     $meetings = ammo_get_meetings('submit');
-    if (empty($meetings)) {
-      drupal_set_message('De termijn voor het indienen van wijzigingsvoorstellen is verstreken.', 'warning');
-      return;
+    if (empty($meetings) && !ammo_admin_access()) {
+      // Instead of showing a warning notice and returning, we'll show the page with info text
+      $submissions_closed = TRUE;
     }
   }
 
@@ -83,6 +83,16 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   $form['title'] = array(
     '#type' => 'item',
   );
+
+  // Handle submissions closed case
+  if (isset($submissions_closed) && $submissions_closed) {
+    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['closed_info'] = array(
+      '#type' => 'item',
+      '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van wijzigingsvoorstellen is verstreken. Het is niet meer mogelijk om nieuwe wijzigingsvoorstellen in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
+    );
+    return $form;
+  }
 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
@@ -433,7 +443,9 @@ function ammo_amendment_form_submit($form, &$form_state)
         $amendment = ammo_store('amendment', $storage['amendment'], $mapping, $form, $form_state);
         
         // Show success message for draft
-        drupal_set_message('<h3>Concept opgeslagen</h3><p>Het wijzigingsvoorstel is opgeslagen als concept. U kunt het later nog wijzigen.</p>' . theme('amendment', array('entity_id' => $storage['amendment'], 'no_links' => TRUE)));
+        $amendment = entity_load_single('amendment', $storage['amendment']);
+        $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
+        drupal_set_message('<h3>Concept opgeslagen</h3><p>Het wijzigingsvoorstel ' . $amendment_number . ' is opgeslagen als concept. U kunt het later nog wijzigen.</p>');
         
         // Skip to end - redirect user
         ammo_ajax_redirect($form_state['storage']['destination']['destination']);
@@ -461,7 +473,9 @@ function ammo_amendment_form_submit($form, &$form_state)
       $storage = $form_state['storage'];
       
       // Show success message for definitive submission
-      drupal_set_message('<h3>Wijzigingsvoorstel ingediend</h3><p>Het wijzigingsvoorstel is definitief ingediend voor behandeling.</p>' . theme('amendment', array('entity_id' => $storage['amendment'], 'no_links' => TRUE)));
+      $amendment = entity_load_single('amendment', $storage['amendment']);
+      $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
+      drupal_set_message('<h3>Wijzigingsvoorstel ingediend</h3><p>Het wijzigingsvoorstel ' . $amendment_number . ' is definitief ingediend voor behandeling.</p>');
       break;
     case 8:
       $mapping = array(
