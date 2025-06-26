@@ -56,13 +56,29 @@ function ammo_document_form($form, &$form_state, $document = NULL) {
       $options[$meeting->id] = $meeting->title;
     }
     if (!empty($options)) {
-      $form['meeting_id'] = array(
-        '#type' => 'select',
-        '#title' => 'Bijeenkomst',
-        '#options' => $options,
-        '#required' => TRUE,
-        '#empty_option' => 'Kies een bijeenkomst',
-      );
+      if (count($options) == 1) {
+        // Only one meeting available, select it automatically
+        $meeting_keys = array_keys($options);
+        $selected_meeting = reset($meetings);
+        $form['meeting_id'] = array(
+          '#type' => 'value',
+          '#value' => $meeting_keys[0],
+        );
+        $form['selected_meeting_display'] = array(
+          '#type' => 'item',
+          '#title' => 'Bijeenkomst',
+          '#markup' => check_plain($selected_meeting->title),
+        );
+      } else {
+        // Multiple meetings, show dropdown
+        $form['meeting_id'] = array(
+          '#type' => 'select',
+          '#title' => 'Bijeenkomst',
+          '#options' => $options,
+          '#required' => TRUE,
+          '#empty_option' => 'Kies een bijeenkomst',
+        );
+      }
     } else {
         drupal_set_message('Er zijn geen bijeenkomsten gevonden. Maak eerst een bijeenkomst aan.', 'warning');
         return $form;

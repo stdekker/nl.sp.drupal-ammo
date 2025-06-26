@@ -652,15 +652,34 @@ function ammo_select_meeting_form(&$form, &$form_state, $options = array()) {
   if (empty($options)) {
     $options = ammo_get_meetings();
   }
-  $form['meeting'] = array(
-    '#type' => 'select',
-    '#title' => 'Bijeenkomst',
-    '#description' => 'Kies de bijeenkomst waar het wijzigingsvoorstel of de motie behandeld wordt.',
-    '#options' => $options,
-    '#default_value' => ammo_default($form_state, 'meeting'),
-    '#required' => true,
-    '#attributes' => array('onchange' => "jQuery('#action_button').mousedown()"),
-  );
+  
+  if (count($options) == 1) {
+    // Only one meeting available, select it automatically
+    $meeting_ids = array_keys($options);
+    $selected_meeting_id = $meeting_ids[0];
+    $selected_meeting_title = $options[$selected_meeting_id];
+    
+    $form['meeting'] = array(
+      '#type' => 'value',
+      '#value' => $selected_meeting_id,
+    );
+    $form['selected_meeting_display'] = array(
+      '#type' => 'item',
+      '#title' => 'Bijeenkomst',
+      '#markup' => check_plain($selected_meeting_title),
+    );
+  } else {
+    // Multiple meetings, show dropdown
+    $form['meeting'] = array(
+      '#type' => 'select',
+      '#title' => 'Bijeenkomst',
+      '#description' => 'Kies de bijeenkomst waar het wijzigingsvoorstel of de motie behandeld wordt.',
+      '#options' => $options,
+      '#default_value' => ammo_default($form_state, 'meeting'),
+      '#required' => true,
+      '#attributes' => array('onchange' => "jQuery('#action_button').mousedown()"),
+    );
+  }
 }
 
 function ammo_view_entity_form($type, $entity_id) {

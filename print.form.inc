@@ -5,10 +5,19 @@ function ammo_print_form($form, &$form_state) {
   $form['#suffix'] = '</div>';
 
   ammo_select_meeting_form($form, $form_state);
-  $form['meeting']['#ajax'] = array(
-    'wrapper' => 'ajax-print-form-wrapper',
-    'callback' => 'ammo_print_form_ajax_callback',
-  );
+  
+  // Only add AJAX to meeting field if it's a select dropdown (multiple meetings)
+  if (isset($form['meeting']) && $form['meeting']['#type'] == 'select') {
+    $form['meeting']['#ajax'] = array(
+      'wrapper' => 'ajax-print-form-wrapper',
+      'callback' => 'ammo_print_form_ajax_callback',
+    );
+  }
+  
+  // If there's only one meeting, automatically set it in form_state
+  if (isset($form['meeting']) && $form['meeting']['#type'] == 'value') {
+    $form_state['values']['meeting'] = $form['meeting']['#value'];
+  }
 
   if (!empty($form_state['values']['meeting'])) {
     $form['type'] = array(

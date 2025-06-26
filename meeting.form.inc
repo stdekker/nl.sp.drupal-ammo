@@ -278,6 +278,16 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#value' => 'Opslaan',
   );
 
+  $form['delete'] = array(
+    '#type' => 'submit',
+    '#value' => 'Verwijderen',
+    '#submit' => array('ammo_meeting_edit_form_delete_submit'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array(
+      'class' => array('button-danger'),
+    ),
+  );
+
   return $form;
 }
 
@@ -346,4 +356,9 @@ function ammo_meeting_delete_confirm_form_submit($form, &$form_state) {
   entity_delete('meeting', $meeting->id);
   drupal_set_message('Bijeenkomst "' . $meeting->title . '" is verwijderd.');
   $form_state['redirect'] = 'admin/ammo/meeting';
+}
+
+function ammo_meeting_edit_form_delete_submit($form, &$form_state) {
+  $meeting = $form_state['meeting'];
+  $form_state['redirect'] = 'admin/ammo/meeting/' . $meeting->id . '/delete';
 }

@@ -156,6 +156,8 @@ function ammo_menu() {
     'file' => 'print.form.inc',
   );
 
+  // TEMPORARILY DISABLED - Export menu item (keep code for later)
+  /*
   $items['admin/ammo/export'] = array(
     'title' => 'Export',
     'type' => MENU_NORMAL_ITEM,
@@ -164,6 +166,7 @@ function ammo_menu() {
     'access callback' => 'ammo_admin_access',
     'file' => 'export.form.inc',
   );
+  */
 
   $items['admin/ammo/user-section'] = array(
     'title' => 'Indienen / wijzigen',
@@ -1020,7 +1023,7 @@ function ammo_admin_overview_page() {
     'admin/ammo/meeting' => t('Bijeenkomsten'),
     'admin/ammo/document' => t('Documenten'),
     'admin/ammo/print' => t('Print'),
-    'admin/ammo/export' => t('Export'),
+    // 'admin/ammo/export' => t('Export'), // TEMPORARILY DISABLED
     'admin/ammo/user-section' => t('Indienen / wijzigen'),
   );
 
