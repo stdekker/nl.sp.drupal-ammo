@@ -352,8 +352,8 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
   $fields = [];
   $meeting_id = ammo_get_meeting_id($entity_type, $entity_id);
   $meeting = entity_load_single('meeting', $meeting_id);
-  $hide_advice = $meeting->hide_advice;
-  $hide_state = $meeting->hide_state;
+  $hide_advice = is_object($meeting) && isset($meeting->hide_advice) ? $meeting->hide_advice : FALSE;
+  $hide_state = is_object($meeting) && isset($meeting->hide_state) ? $meeting->hide_state : FALSE;
 
   if (!empty($entity_id)) {
     $original_entity = entity_load_single($entity_type, $entity_id);
@@ -996,7 +996,7 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
   // Set params.
   $params = array(
     'reply_to' => $sender_email,
-    'format' => SWIFTMAILER_FORMAT_HTML,
+    'format' => defined('SWIFTMAILER_FORMAT_HTML') ? SWIFTMAILER_FORMAT_HTML : 'text/html',
     'entity_type' => $entity_type,
     'entity_id' => $entity_id,
     'id' => $id,
