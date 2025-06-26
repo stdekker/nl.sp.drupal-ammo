@@ -97,20 +97,37 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
     $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
-    ammo_checked_form($form, $form_state, 'amendment');
-  }
-
-  if ($form_state['step'] == 2) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
     $options = ammo_get_meetings('submit');
     if (count($options) == 1) {
       $form_state['step'] ++;
       $form_state['storage']['meeting'] = key($options);
       $form_state['storage']['meeting_display_name'] = current($options);
+      
+      // Check if we should skip the confirmation step for this meeting
+      $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
+      if ($meeting && !empty($meeting->disable_confirmation_checkbox)) {
+        $form_state['step']++; // Skip step 2 (confirmation)
+      }
     }
     else {
       ammo_select_meeting_form($form, $form_state, $options);
     }
+  }
+
+  if ($form_state['step'] == 2) {
+    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    // Check if confirmation should be shown for this meeting
+    if (isset($form_state['storage']['meeting'])) {
+      $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
+      if ($meeting && !empty($meeting->disable_confirmation_checkbox)) {
+        // Skip this step - go directly to next step
+        $form_state['step']++;
+        $form_state['active_steps'][$form_state['step'] - 1] = $form_state['step'] - 1;
+        $form_state['rebuild'] = TRUE;
+        return $form;
+      }
+    }
+    ammo_checked_form($form, $form_state, 'amendment');
   }
 
   if ($form_state['step'] == 3) {
@@ -174,6 +191,17 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
 
   if ($form_state['step'] == 6) {
     $form['title']['#markup'] = '<h2>Wijzigingsvoorstel bewerken</h2>';
+    
+    // Show selected meeting, document and branch info
+    $branch_info = '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '<br/>';
+    $branch_info .= '<strong>Document:</strong> ' . check_plain($form_state['storage']['document_display_name']) . '<br/>';
+    $branch_info .= '<strong>Afdeling:</strong> ' . check_plain($form_state['storage']['branch_display_name']) . '</p>';
+    
+    $form['info_display'] = array(
+      '#type' => 'item',
+      '#markup' => $branch_info,
+    );
+    
     $form['chapter'] = array(
       '#type' => 'textfield',
       '#title' => 'Hoofdstuk nr.',
@@ -341,6 +369,15 @@ function ammo_amendment_form_validate($form, &$form_state) {
 
   // First we set up a switch for each of our three steps
   switch($step) {
+  case 1:
+    // Meeting selection - no validation needed as dropdown is required
+    break;
+  case 2:
+    // Only validate the confirmation checkbox if it exists in the form
+    if (isset($form['checked']) && empty($values['checked'])) {
+      form_set_error('checked', 'U moet bevestigen dat u hebt gecontroleerd dat er niet al een vergelijkbaar wijzigingsvoorstel is ingediend.');
+    }
+    break;
   case 6:
     if (!preg_match('/^[0-9][0-9]*$/', $values['chapter'])) {
       form_set_error('chapter', 'Hoofdstuk nr. moet een getal zijn.');
@@ -384,9 +421,18 @@ function ammo_amendment_form_submit($form, &$form_state)
   switch ($trigger) {
   case 'action_button':
     switch ($step) {
-    case 2:
+    case 1:
       $form_state['storage']['meeting'] = $values['meeting'];
       $form_state['storage']['meeting_display_name'] = $form['meeting']['#options'][$values['meeting']];
+      
+      // Check if we should skip the confirmation step for this meeting
+      $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
+      if ($meeting && !empty($meeting->disable_confirmation_checkbox)) {
+        $form_state['step']++; // This will make it skip step 2 in the normal increment logic
+      }
+      break;
+    case 2:
+      // Confirmation step - no special processing needed, just continue
       break;
     case 3:
       $form_state['storage']['document'] = $values['document'];

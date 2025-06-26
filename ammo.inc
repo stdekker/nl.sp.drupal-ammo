@@ -578,6 +578,9 @@ function ammo_afdelingen_access($admin_owner = NULL) {
 }
 
 function ammo_checked_form(&$form, &$form_state, $type) {
+  // This function is now only called when the confirmation should be shown
+  // (after meeting selection and verification that the setting is not disabled)
+  
   $link1 = l('gecontroleerd', 'ammo/' . $type . 's', array('attributes' => array('target' => '_blank')));
   $link2 = l('overzicht', 'ammo/' . $type . 's');
   $text1 = ($type == 'amendment') ? 'vergelijkbaar wijzigingsvoorstel' : 'vergelijkbare motie';
@@ -1018,7 +1021,7 @@ function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeti
   $meeting = entity_load_single('meeting', $meeting_id);
   global $language;
   $sender_email = ammo_mailadress($meeting_id);
-  $relations = ammo_get_related_contacts($entity_id, $entity_type);
+  $relations = ammo_get_related_contacts($entity_id, $entity_type, 'owner', 'branch');
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email);
   $params['differences'] = $differences;
   drupal_mail('ammo', 'change_message', $sender_email, $language, $params, $sender_email, TRUE);

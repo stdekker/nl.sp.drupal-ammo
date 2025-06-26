@@ -67,6 +67,12 @@ function ammo_schema() {
         'type' => 'varchar',
         'length' => '255',
       ),
+      'disable_confirmation_checkbox' => array(
+        'description' => 'Disable the confirmation checkbox at the start of amendment forms.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 0,
+      ),
     ),
     'primary key' => array(
       'id',
@@ -441,4 +447,15 @@ function ammo_update_7009() {
   }
   
   return t('Converted AMMO tables to utf8mb4 charset to support emoticons and 4-byte UTF-8 characters. IMPORTANT: You must also add the following lines to your database configuration in sites/default/settings.php or sites/default/settings.ddev.php: <br/><code>$databases[\'default\'][\'default\'][\'charset\'] = \'utf8mb4\';<br/>$databases[\'default\'][\'default\'][\'collation\'] = \'utf8mb4_unicode_ci\';</code>');
+}
+
+/**
+ * Add disable_confirmation_checkbox field to {ammo_meetings} table.
+ */
+function ammo_update_7010() {
+  $schema = ammo_schema();
+  if (!db_field_exists('ammo_meetings', 'disable_confirmation_checkbox')) {
+    $spec = $schema['ammo_meetings']['fields']['disable_confirmation_checkbox'];
+    db_add_field('ammo_meetings', 'disable_confirmation_checkbox', $spec);
+  }
 }

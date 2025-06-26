@@ -35,6 +35,9 @@ function ammo_meeting_list_page() {
     if ($meeting->no_motions) {
       $settings[] = 'Geen moties';
     }
+    if ($meeting->disable_confirmation_checkbox) {
+      $settings[] = 'Bevestiging uitgeschakeld';
+    }
     
     $settings_text = !empty($settings) ? implode(', ', $settings) : 'Standaard instellingen';
     
@@ -112,6 +115,13 @@ function ammo_meeting_form($form, &$form_state) {
     '#title' => 'Geen moties.',
   );
 
+  $form['disable_confirmation_checkbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Uitschakelen bevestiging wijzigingsvoorstellen.',
+    '#description' => 'Schakel de bevestiging "Ik heb gecontroleerd dat er niet al een vergelijkbaar wijzigingsvoorstel is ingediend." uit bij het start van het indienen van wijzigingsvoorstellen.',
+    '#default_value' => 0,
+  );
+
   $form['admin_owner'] = array(
     '#type' => 'textfield',
     '#title' => 'Indienen amendementen, moties en wijzigingen door beheerders namens',
@@ -170,6 +180,7 @@ function ammo_meeting_form_submit($form, &$form_state) {
     'hide_advice' => $values['hide_advice'],
     'hide_meeting' => $values['hide_meeting'],
     'no_motions' => $values['no_motions'],
+    'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
     'admin_owner' => $values['admin_owner'],
   );
   
@@ -265,6 +276,13 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#default_value' => $meeting->no_motions,
   );
 
+  $form['disable_confirmation_checkbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Uitschakelen bevestiging wijzigingsvoorstellen.',
+    '#description' => 'Schakel de bevestiging "Ik heb gecontroleerd dat er niet al een vergelijkbaar wijzigingsvoorstel is ingediend." uit bij het start van het indienen van wijzigingsvoorstellen.',
+    '#default_value' => $meeting->disable_confirmation_checkbox,
+  );
+
   $form['admin_owner'] = array(
     '#type' => 'textfield',
     '#title' => 'Indienen amendementen, moties en wijzigingen door beheerders namens',
@@ -327,6 +345,7 @@ function ammo_meeting_edit_form_submit($form, &$form_state) {
     'hide_advice' => $values['hide_advice'],
     'hide_meeting' => $values['hide_meeting'],
     'no_motions' => $values['no_motions'],
+    'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
     'admin_owner' => $values['admin_owner'],
   );
 
