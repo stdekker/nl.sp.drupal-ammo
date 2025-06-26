@@ -348,14 +348,18 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
   global $base_url;
   $states = ammo_states();
   $advices = $entity_type == 'amendment' ? ammo_amendment_advice() : ammo_motion_advice();
-  $values = $form_state['values'];
+  $values = isset($form_state['values']) ? $form_state['values'] : array();
   $fields = [];
   $meeting_id = ammo_get_meeting_id($entity_type, $entity_id);
-  $meeting = entity_load_single('meeting', $meeting_id);
+  $meeting = NULL;
+  if (!empty($meeting_id) && is_numeric($meeting_id)) {
+    $meeting = entity_load_single('meeting', $meeting_id);
+  }
   $hide_advice = is_object($meeting) && isset($meeting->hide_advice) ? $meeting->hide_advice : FALSE;
   $hide_state = is_object($meeting) && isset($meeting->hide_state) ? $meeting->hide_state : FALSE;
 
-  if (!empty($entity_id)) {
+  $original_entity = NULL;
+  if (!empty($entity_id) && is_numeric($entity_id)) {
     $original_entity = entity_load_single($entity_type, $entity_id);
   }
   $differences = array();
@@ -366,9 +370,10 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
     }
     if (!empty($original_entity)) {
       // Existing entity, check if there are changes.
-      if ($original_entity->$database_field != $form_state['storage'][$form_field]) {
+      $storage_value = isset($form_state['storage'][$form_field]) ? $form_state['storage'][$form_field] : '';
+      if ($original_entity->$database_field != $storage_value) {
         // Store all changed fields to save in database.
-        $fields[$database_field] = $form_state['storage'][$form_field];
+        $fields[$database_field] = $storage_value;
 
         // Skip differences for advice when hide advice is set.
         if (in_array($database_field, ['advice', 'advice_supplement'])) {
@@ -394,24 +399,24 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
             // Store diffline.
             switch ($diff_data['type']) {
               case 'text':
-                $differences[$database_field]['diff'] = ammo_diffline($original_entity->$database_field, $form_state['values'][$form_field]);
+                $differences[$database_field]['diff'] = ammo_diffline($original_entity->$database_field, isset($values[$form_field]) ? $values[$form_field] : '');
                 break;
 
               case 'value':
                 switch ($form_field) {
                   case 'state':
                     $original = $original_entity->$database_field ? $states[$original_entity->$database_field] : '';
-                    $new = $states[$form_state['values'][$form_field]];
+                    $new = isset($values[$form_field]) && isset($states[$values[$form_field]]) ? $states[$values[$form_field]] : '';
                     break;
 
                   case 'advice':
                     $original = $original_entity->$database_field ? $advices[$original_entity->$database_field] : '';
-                    $new = $advices[$form_state['values'][$form_field]];
+                    $new = isset($values[$form_field]) && isset($advices[$values[$form_field]]) ? $advices[$values[$form_field]] : '';
                     break;
 
                   default:
                     $original = $original_entity->$database_field ? $original_entity->$database_field : '';
-                    $new = $form_state['values'][$form_field];
+                    $new = isset($values[$form_field]) ? $values[$form_field] : '';
                     break;
                 }
                 $differences[$database_field]['diff'] = $original . ' → ' . $new;
@@ -424,7 +429,7 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
     // If new entity.
     else {
       // Store all fields.
-      $fields[$database_field] = $form_state['storage'][$form_field];
+      $fields[$database_field] = isset($form_state['storage'][$form_field]) ? $form_state['storage'][$form_field] : '';
     }
   }
 
@@ -469,7 +474,10 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
       global $language;
       // Send mails if ammo values where changed.
       if (!empty($differences)) {
-        ammo_changes_update_mail($entity_type, $entity->id, $differences, $form_state['storage']['meeting']);
+        $meeting_id = isset($form_state['storage']['meeting']) ? $form_state['storage']['meeting'] : NULL;
+        if (!empty($meeting_id) && is_numeric($meeting_id)) {
+          ammo_changes_update_mail($entity_type, $entity->id, $differences, $meeting_id);
+        }
       }
     }
   }
@@ -968,8 +976,17 @@ function ammo_diffline($line1, $line2)
 }
 
 function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $owner = NULL) {
+  if (empty($entity_id) || !is_numeric($entity_id) || empty($meeting_id) || !is_numeric($meeting_id)) {
+    return array();
+  }
+  
   $entity = entity_load_single($entity_type, $entity_id);
   $meeting = entity_load_single('meeting', $meeting_id);
+  
+  if (empty($entity) || empty($meeting)) {
+    return array();
+  }
+  
   $title = $meeting->title;
   // Get first owner.
   if (ammo_admin_access() && !empty($meeting->admin_owner)) {
@@ -981,8 +998,12 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
   }
   switch ($entity_type) {
     case 'amendment':
-      $document = entity_load_single('document', $entity->document_id);
-      $title = $title . ': ' . $document->title;
+      if (!empty($entity->document_id) && is_numeric($entity->document_id)) {
+        $document = entity_load_single('document', $entity->document_id);
+        if (!empty($document)) {
+          $title = $title . ': ' . $document->title;
+        }
+      }
       $id = $entity->chapter . '.' . $entity->chapterized_id;
       break;
 
@@ -996,7 +1017,6 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
   // Set params.
   $params = array(
     'reply_to' => $sender_email,
-    'format' => defined('SWIFTMAILER_FORMAT_HTML') ? SWIFTMAILER_FORMAT_HTML : 'text/html',
     'entity_type' => $entity_type,
     'entity_id' => $entity_id,
     'id' => $id,
@@ -1006,10 +1026,14 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
     'first_owner' => $first_owner,
   );
   if ($entity_type == 'amendment') {
-    $document = entity_load_single('document', $entity->document_id);
     $params['chapter'] = $entity->chapter;
     $params['chapterized_id'] = $entity->chapterized_id;
-    $params['document_title'] = $document->title;
+    if (!empty($entity->document_id) && is_numeric($entity->document_id)) {
+      $document = entity_load_single('document', $entity->document_id);
+      if (!empty($document)) {
+        $params['document_title'] = $document->title;
+      }
+    }
   }
   if (!empty($owner)) {
     $params['branch_display_name'] = $owner->branch_display_name;
@@ -1215,10 +1239,22 @@ function ammo_passed_date($meeting_id, $date_type) {
  */
 function ammo_get_meeting_id($entity_type, $entity_id) {
   // Get meeting_id to check dates.
-  $entity = entity_load_single($entity_type, $entity_id);
-  if ($entity_type == 'amendment' && !empty($entity->document_id)) {
-    $entity = entity_load_single('document', $entity->document_id);
+  if (empty($entity_id) || !is_numeric($entity_id)) {
+    return FALSE;
   }
+  
+  $entity = entity_load_single($entity_type, $entity_id);
+  if (empty($entity)) {
+    return FALSE;
+  }
+  
+  if ($entity_type == 'amendment' && !empty($entity->document_id) && is_numeric($entity->document_id)) {
+    $entity = entity_load_single('document', $entity->document_id);
+    if (empty($entity)) {
+      return FALSE;
+    }
+  }
+  
   if (!empty($entity->meeting_id)) {
     return $entity->meeting_id;
   }
