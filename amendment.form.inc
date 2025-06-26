@@ -158,11 +158,15 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $options = ammo_afdelingen_access($meeting->admin_owner);
     if (empty($options)) {
       $options = array();
+      // Show message that no branches are available
+      drupal_set_message('Geen afdelingen beschikbaar voor dit evenement. Neem contact op met de beheerder.', 'warning');
+      return $form;
     }
     if (count($options) == 1) {
-      $form_state['step'] ++;
+      $form_state['step'] += 2; // Skip both branch selection and owner selection steps
       $form_state['storage']['branch_id'] = key($options);
       $form_state['storage']['branch_display_name'] = current($options);
+      
       // Save new amendment.
       $form_state['storage']['state'] = 'concept';
       $mapping = array(
@@ -172,6 +176,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       $new_amendment = ammo_store('amendment', NULL, $mapping, $form, $form_state);
       $form_state['storage']['amendment'] = $new_amendment->id;
       $form_state['storage']['new'] = TRUE;
+      
+      // Auto-set as owner since there's only one branch
+      $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
     }
     else {
       ammo_select_afdeling_form($form, $form_state, 'amendment', $options);
