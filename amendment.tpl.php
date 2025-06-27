@@ -5,7 +5,7 @@ global $base_url;
 $chapter_display = (!empty($chapter)) ? $chapter : 'X';
 $amendment_id = (!empty($chapterized_id)) ? $chapter_display . '.' . $chapterized_id : $chapter_display . '.' . $entity_id;
 ?>
-<h3 id="amendment<?php print $entity_id; ?>"><?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)</h3>
+<h3 id="amendment<?php print $entity_id; ?>">Voorstel <?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)</h3>
 
 <?php
 // Process owners - always use h4 heading for consistency

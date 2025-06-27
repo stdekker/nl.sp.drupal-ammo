@@ -196,7 +196,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     $default = (empty($ammo_default)) ? 'Overwegende dat' : $ammo_default;
     $form['consideration_opening'] = array(
       '#type' => 'textfield',
-      '#title' => '',
+      '#title' => 'Aanleiding / context',
       '#description' => 'Vul hier de openingstekst van de overweging in (Bijv. &lsquo;Omdat&rsquo;',
       '#default_value' => $default,
       '#size' => 50,
@@ -206,16 +206,16 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     $form['consideration_text'] = array(
       '#type' => 'textarea',
       '#title' => '',
-      '#description' => 'Vul hier de inhoud van de overweging, de reden van de motie, de context, in.',
+      '#description' => 'Vul hier de aanleiding van de motie in.',
       '#default_value' => ammo_default($form_state, 'consideration_text'),
     );
 
     $ammo_default = ammo_default($form_state, 'follow_up_opening');
-    $default = (empty($ammo_default)) ? 'Verzoekt ' . $form_state['storage']['branch_display_name'] : $ammo_default;
+    $default = (empty($ammo_default)) ? 'Verzoekt het congres' : $ammo_default;
     $form['follow_up_opening'] = array(
       '#type' => 'textfield',
-      '#title' => '',
-      '#description' => 'Vul hier de openingstekst van het vervolg in (Bijv. &lsquo;Verzoekt&rsquo;',
+      '#title' => 'Oproep',
+      '#description' => 'Vul hier de openingstekst van het vervolg in (Bijv. &lsquo;Verzoekt het congres&rsquo;)',
       '#default_value' => $default,
       '#size' => 50,
       '#maxlength' => 80,
@@ -224,7 +224,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     $form['follow_up_text'] = array(
       '#type' => 'textarea',
       '#title' => '',
-      '#description' => 'Vul hier de actie van de motie in, wat moet er gebeuren.',
+      '#description' => 'Vul hier in wat er moet er gebeuren',
       '#default_value' => ammo_default($form_state, 'follow_up_text'),
     );
 

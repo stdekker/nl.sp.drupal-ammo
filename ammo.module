@@ -714,18 +714,16 @@ function template_preprocess_overview_motions(&$variables) {
     foreach ($motions_results as $motion) {
       $owners_member = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'member');
       $owners_branch = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'branch');
-      $first_owner = ammo_get_first_owner('motion', $motion->id);
-      if (!empty($first_owner)) {
-        $data['meeting']['branches'][$first_owner['branch_id']]['info'] = $first_owner;
-        $data['meeting']['branches'][$first_owner['branch_id']]['motions'][$motion->id] = array(
-          'id' => $motion->id,
-          'owners_member' => $owners_member,
-          'owners_branch' => $owners_branch,
-          'state' => $motion->state,
-          'motion_id' => $motion->motion_id,
-        );
-        $data['meeting']['branch_index'][$first_owner['branch_id']] = $first_owner['branch_display_name'];
-      }
+      
+      // Store motions in a simple flat array ordered by motion_id
+      $data['meeting']['motions'][$motion->id] = array(
+        'id' => $motion->id,
+        'owners_member' => $owners_member,
+        'owners_branch' => $owners_branch,
+        'state' => $motion->state,
+        'motion_id' => $motion->motion_id,
+      );
+      
       // Store totals.
       if (empty($data['meeting']['motion_totals'])) {
         $states = array_keys(ammo_states());
@@ -734,15 +732,6 @@ function template_preprocess_overview_motions(&$variables) {
         }
       }
       $data['meeting']['motion_totals'][$motion->state]++;
-    }
-    // Reorder branch index alphabetically.
-    if (!empty($data['meeting']['branch_index'])) {
-      asort($data['meeting']['branch_index']);
-      if (isset($data['meeting']['branch_index'][0])) {
-        $admin_owner = $data['meeting']['branch_index'][0];
-        unset($data['meeting']['branch_index'][0]);
-        $data['meeting']['branch_index'] = array(0 => $admin_owner) + $data['meeting']['branch_index'];
-      }
     }
     $variables = $variables + $data;
   }

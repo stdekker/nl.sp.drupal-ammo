@@ -1,5 +1,5 @@
 <?php global $base_url; ?>
-<h3 id="motion<?php print $entity_id; ?>">Motie nr. <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?></h3>
+<h3 id="motion<?php print $entity_id; ?>">Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?></h3>
 <?php //print '<p>' . $meeting_title . ' van de SP, in vergadering bijeen op ' . $meeting_date . '.</p>'; ?>
 
 <h4>Indiener(s):</h4>
@@ -89,7 +89,6 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 <?php if (empty($no_links)) : ?>
   <?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>
   <ul class="ammo-list">
-    <li><a href="#inhoud">^</a></li>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
       <?php if ($edit_access) : ?>
         <li><?php print l('bewerk motie', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>

@@ -1,4 +1,4 @@
-<h2 id="inhoud">Overzicht alle ingediende wijzigingsvoorstelen</h2>
+<h2 id="inhoud">Ingediende wijzigingsvoorstelen</h2>
 
 <?php if (!empty($meeting['documents']) && empty($meeting['hide'])) : ?>
   <div class="first navigation">
