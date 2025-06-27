@@ -494,7 +494,7 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
   if ($entity) {
     // Check access.
     $first_owner = ammo_get_first_owner($type, $entity->id);
-    $edit_access = empty($first_owner) ? FALSE : ammo_edit_access($meeting_id, $first_owner['branch_id']);
+    $edit_access = empty($first_owner) ? FALSE : ammo_edit_access($meeting_id, $first_owner['branch_id'], $type, $entity_id);
     if ($edit_access) {
       $storage['branch_id'] = $first_owner['branch_id'];
       $storage['branch_display_name'] = $first_owner['branch_display_name'];
@@ -756,13 +756,35 @@ function ammo_withdraw_access($meeting_id) {
   return FALSE;
 }
 
-function ammo_edit_access($meeting_id, $branch_id) {
+function ammo_vote_request_access($meeting_id, $status) {
+  if (ammo_passed_date($meeting_id, 'withdraw')) {
+    return FALSE;
+  }
+  if (!ammo_add_access()) {
+    return FALSE;
+  }
+  // Vote requests can only be given when status is not 'concept' and not 'submitted'
+  $allowed_statuses = array('accepted', 'rejected', 'withdrawn', 'invalid', 'blocked');
+  return in_array($status, $allowed_statuses);
+}
+
+function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_id = NULL) {
   if (ammo_admin_access()) {
     return TRUE;
   }
   if (ammo_passed_date($meeting_id, 'submit')) {
     return FALSE;
   }
+  
+  // Check if proposal has been submitted (no longer a draft)
+  if (!empty($entity_type) && !empty($entity_id)) {
+    $entity = entity_load_single($entity_type, $entity_id);
+    if (!empty($entity) && !empty($entity->state) && $entity->state !== 'concept') {
+      // Only ammo admins can edit submitted proposals
+      return FALSE;
+    }
+  }
+  
   if (ammo_access($branch_id)) {
     return TRUE;
   }
@@ -1102,6 +1124,35 @@ function ammo_delete_mail($entity_type, $entity_id, $meeting_id, $mail_text) {
   }
 }
 
+function ammo_vote_request_mail($entity_type, $entity_id, $vote_request, $meeting_id) {
+  global $language;
+  $sender_email = ammo_mailadress($meeting_id);
+  $relations = ammo_get_related_contacts($entity_id, $entity_type);
+  $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $vote_request);
+  drupal_mail('ammo', 'vote_request', $sender_email, $language, $params, $sender_email, TRUE);
+  foreach ($relations as $relation) {
+    if (!empty($relation['contact_email'])) {
+      drupal_mail('ammo', 'vote_request', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+    }
+  }
+}
+
+function ammo_vote_request_withdraw_mail($entity_type, $entity_id, $vote_request, $meeting_id) {
+  global $language;
+  $sender_email = ammo_mailadress($meeting_id);
+  $relations = ammo_get_related_contacts($entity_id, $entity_type);
+  $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $vote_request);
+  drupal_mail('ammo', 'vote_request_withdraw', $sender_email, $language, $params, $sender_email, TRUE);
+  if (!empty($vote_request->contact_email)) {
+    drupal_mail('ammo', 'vote_request_withdraw', $vote_request->contact_email, $language, $params, $sender_email, TRUE);
+  }
+  foreach ($relations as $relation) {
+    if (!empty($relation['contact_email'])) {
+      drupal_mail('ammo', 'vote_request_withdraw', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+    }
+  }
+}
+
 function ammo_get_contact_email($contact_id) {
   $user_wrapped = ammo_get_contact($contact_id);
   if ($email = $user_wrapped->field_email_primary->value()) {
@@ -1385,4 +1436,8 @@ function ammo_cleanup_branch_name($branch_name) {
     $branch_name = substr($branch_name, 3);
   }
   return $branch_name;
+}
+
+function ammo_get_vote_requests($entity_type, $entity_id) {
+  return ammo_get_related_contacts($entity_id, $entity_type, 'vote_request', 'branch');
 }

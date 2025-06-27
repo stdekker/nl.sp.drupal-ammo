@@ -17,7 +17,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         if (
           $meeting_id &&
           isset($form_state['storage']['branch_id']) &&
-          ammo_edit_access($meeting_id, $form_state['storage']['branch_id'])
+          ammo_edit_access($meeting_id, $form_state['storage']['branch_id'], 'amendment', $form_state['storage']['amendment'])
         ) {
           $form_state['storage']['first_step'] = 5;
         }

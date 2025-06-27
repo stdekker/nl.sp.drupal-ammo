@@ -185,6 +185,15 @@ function ammo_menu() {
     'access callback' => 'user_is_logged_in',
   );
 
+  $items['ammo/vote_request/%/%/%/%'] = array(
+    'title' => 'Stemming aanvragen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_vote_request_form', 2, 3, 4, 5),
+    'file' => 'vote_request.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'user_is_logged_in',
+  );
+
   return $items;
 }
 
@@ -249,6 +258,80 @@ function ammo_view_motions_access() {
 
 function ammo_show_motions_access() {
   return ammo_show_motions();
+}
+
+/**
+ * Implements hook_mail().
+ */
+function ammo_mail($key, &$message, $params) {
+  global $base_url;
+
+  // Set reply-to header.
+  $message['headers']['Reply-To'] = $params['reply_to'];
+  $type = ($params['entity_type'] == 'amendment') ? 'Wijzigingsvoorstel' : 'Motie';
+  $message['subject'] = $type . ' nr. ' . $params['id'];
+  $path = $base_url . '/ammo/' . $params['entity_type'] . 's/' . $params['meeting_id'];
+  if ($params['entity_type'] === 'amendment') {
+    $message['subject'] .= ' ' . $params['document_title'];
+    $path .= '#' . $params['entity_type'] . $params['entity_id'];
+  };
+
+  // Create messages.
+  switch($key) {
+  case 'vote_request':
+    $message['subject'] .= ' - stemming aangevraagd door afdeling ' . $params['branch_display_name'];
+    $message['body'][] = '<h3>Stemming aangevraagd door ' . $params['branch_display_name'] . '</h3>';
+    $message['body'][] = $params['markup'];
+    break;
+    
+  case 'vote_request_withdraw':
+    $message['subject'] .= ' - stemming aanvraag ingetrokken door afdeling ' . $params['branch_display_name'];
+    $message['body'][] = '<h3>Stemming aanvraag ingetrokken door ' . $params['branch_display_name'] . '</h3>';
+    $message['body'][] = $params['markup'];
+    break;
+    
+  case 'change_message':
+    // Create messeage
+    $message['body'][] = $params['markup'];
+    $message['body'][] = '<hr /><h3>Wijzigingen</h3>';
+    $message['body'][] = '<p>Gewijzigd door ' . $params['first_owner'] . '.</p>';
+    foreach ($params['differences'] as $db_key => $values) {
+      $message['body'][] = '<p>' . $values['fieldname'] . ': ' . $values['diff'] . '</p>';
+    }
+    $message['body'][] = '<hr /><p><a href="' . $path . '">Bekijk online</a></p>';
+    break;
+  case 'withdraw_ownership':
+    // Create messeage
+    if ($params['rest']) {
+      $text = 'niet langer mede ingediend door';
+    }
+    else {
+      $text = 'ingetrokken door';
+    }
+    $message['subject'] .= ' ' . $text . ' afdeling ' . $params['branch_display_name'];
+    $message['body'][] = '<h3>' . ucfirst($text) . ' ' . $params['branch_display_name'] . '</h3>';
+    $message['body'][] = $params['markup'];
+    break;
+  case 'support':
+    // Create messeage
+    if ($params['rest']) {
+      $text = 'mede ingediend door';
+    }
+    else {
+      $text = 'ingediend door';
+    }
+    $message['subject'] .= ' ' . $text . ' afdeling ' . $params['branch_display_name'];
+    $message['body'][] = '<h3>' . ucfirst($text) . ' ' . $params['branch_display_name'] . '</h3>';
+    $message['body'][] = $params['markup'];
+    break;
+  case 'delete_message':
+    // Create messeage
+    $type = ($params['entity_type'] == 'amendment') ? 'Wijzigingsvoorstel' : 'Motie';
+    $message['subject'] .= ' is verwijderd.';
+    $message['body'][] = $params['mail_text'];
+    $message['body'][] = $params['markup'];
+    break;
+  }
 }
 
 function ammo_theme() {
@@ -358,13 +441,22 @@ function template_preprocess_amendment(&$variables) {
     $branches = ammo_get_afdelingen($contact_id);
     $supported_branches = FALSE;
     $unsupported_branches = FALSE;
+    $vote_requested_branches = FALSE;
+    $vote_unrequested_branches = FALSE;
     if (!empty($branches)) {
+      $vote_requests_branch = ammo_get_related_contacts($entity->id, 'amendment', 'vote_request', 'branch');
       foreach ($branches as $contact_id => $contact_display_name) {
         if (array_key_exists($contact_id, $owners_branch)) {
           $supported_branches = TRUE;
         }
         else {
           $unsupported_branches = TRUE;
+        }
+        if (array_key_exists($contact_id, $vote_requests_branch)) {
+          $vote_requested_branches = TRUE;
+        }
+        else {
+          $vote_unrequested_branches = TRUE;
         }
       }
     }
@@ -390,7 +482,7 @@ function template_preprocess_amendment(&$variables) {
       'meeting_date' => $meeting_date_formatted,
       'meeting_hide' => $meeting_hide,
       'support_access' => ammo_support_access($meeting->id),
-      'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id']),
+      'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'amendment', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
       'admin_access' => ammo_admin_access(),
       'superadmin_access' => ammo_superadmin_access(),
@@ -401,13 +493,17 @@ function template_preprocess_amendment(&$variables) {
       'owned_by_user' => $owned_by_user,
       'supported_branches' => $supported_branches,
       'unsupported_branches' => $unsupported_branches,
+      'vote_requested_branches' => $vote_requested_branches,
+      'vote_unrequested_branches' => $vote_unrequested_branches,
+      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state),
+      'vote_requests' => ammo_get_vote_requests('amendment', $entity->id),
       'removable_member_owners' => ammo_removable_member_owners('amendment', $entity->id),
       'hide_advice' => $hide_advice,
       'hide_state' => $hide_state,
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
       $value = nl2br(check_plain($value));
     }
     $variables = $variables + $vars;
@@ -450,15 +546,24 @@ function template_preprocess_motion(&$variables) {
     $branches = ammo_get_afdelingen($contact_id);
     $supported_branches = FALSE;
     $unsupported_branches = FALSE;
+    $vote_requested_branches = FALSE;
+    $vote_unrequested_branches = FALSE;
     if (!empty($branches)) {
       $supported_branches = FALSE;
       $unsupported_branches = FALSE;
+      $vote_requests_branch = ammo_get_related_contacts($entity->id, 'motion', 'vote_request', 'branch');
       foreach ($branches as $contact_id => $contact_display_name) {
         if (array_key_exists($contact_id, $owners_branch)) {
           $supported_branches = TRUE;
         }
         else {
           $unsupported_branches = TRUE;
+        }
+        if (array_key_exists($contact_id, $vote_requests_branch)) {
+          $vote_requested_branches = TRUE;
+        }
+        else {
+          $vote_unrequested_branches = TRUE;
         }
       }
     }
@@ -484,7 +589,7 @@ function template_preprocess_motion(&$variables) {
       'meeting_date' => $meeting_date_formatted,
       'meeting_hide' => $meeting_hide,
       'support_access' => ammo_support_access($meeting->id),
-      'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id']),
+      'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'motion', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
       'admin_access' => ammo_admin_access(),
       'superadmin_access' => ammo_superadmin_access(),
@@ -495,13 +600,17 @@ function template_preprocess_motion(&$variables) {
       'owned_by_user' => $owned_by_user,
       'supported_branches' => $supported_branches,
       'unsupported_branches' => $unsupported_branches,
+      'vote_requested_branches' => $vote_requested_branches,
+      'vote_unrequested_branches' => $vote_unrequested_branches,
+      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state),
+      'vote_requests' => ammo_get_vote_requests('motion', $entity->id),
       'removable_member_owners' => ammo_removable_member_owners('motion', $entity->id),
       'hide_state' => $hide_state,
       'hide_advice' => $hide_advice,
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
       $value = nl2br(check_plain($value));
     }
     $variables = $variables + $vars;
@@ -945,65 +1054,7 @@ function ammo_entity_info() {
   return $info;
 }
 
-function ammo_mail($key, &$message, $params) {
-  global $base_url;
 
-  // Set reply-to header.
-  $message['headers']['Reply-To'] = $params['reply_to'];
-  $type = ($params['entity_type'] == 'amendment') ? 'Wijzigingsvoorstel' : 'Motie';
-  $message['subject'] = $type . ' nr. ' . $params['id'];
-  $path = $base_url . '/ammo/' . $params['entity_type'] . 's/' . $params['meeting_id'];
-  if ($params['entity_type'] === 'amendment') {
-    $message['subject'] .= ' ' . $params['document_title'];
-    $path .= '#' . $params['entity_type'] . $params['entity_id'];
-  };
-
-
-  // Create messages.
-  switch($key) {
-  case 'change_message':
-    // Create messeage
-    $message['body'][] = $params['markup'];
-    $message['body'][] = '<hr /><h3>Wijzigingen</h3>';
-    $message['body'][] = '<p>Gewijzigd door ' . $params['first_owner'] . '.</p>';
-    foreach ($params['differences'] as $db_key => $values) {
-      $message['body'][] = '<p>' . $values['fieldname'] . ': ' . $values['diff'] . '</p>';
-    }
-    $message['body'][] = '<hr /><p><a href="' . $path . '">Bekijk online</a></p>';
-    break;
-  case 'withdraw_ownership':
-    // Create messeage
-    if ($params['rest']) {
-      $text = 'niet langer mede ingediend door';
-    }
-    else {
-      $text = 'ingetrokken door';
-    }
-    $message['subject'] .= ' ' . $text . ' afdeling ' . $params['branch_display_name'];
-    $message['body'][] = '<h3>' . ucfirst($text) . ' ' . $params['branch_display_name'] . '</h3>';
-    $message['body'][] = $params['markup'];
-    break;
-  case 'support':
-    // Create messeage
-    if ($params['rest']) {
-      $text = 'mede ingediend door';
-    }
-    else {
-      $text = 'ingediend door';
-    }
-    $message['subject'] .= ' ' . $text . ' afdeling ' . $params['branch_display_name'];
-    $message['body'][] = '<h3>' . ucfirst($text) . ' ' . $params['branch_display_name'] . '</h3>';
-    $message['body'][] = $params['markup'];
-    break;
-  case 'delete_message':
-    // Create messeage
-    $type = ($params['entity_type'] == 'amendment') ? 'Wijzigingsvoorstel' : 'Motie';
-    $message['subject'] .= ' is verwijderd.';
-    $message['body'][] = $params['mail_text'];
-    $message['body'][] = $params['markup'];
-    break;
-  }
-}
 
 function ammo_intropage() {
   $has_any_access = ammo_add_access() || ammo_view_overview_access();

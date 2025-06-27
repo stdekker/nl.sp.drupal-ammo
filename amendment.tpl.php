@@ -8,6 +8,9 @@ $amendment_id = (!empty($chapterized_id)) ? $chapter_display . '.' . $chapterize
 <h3 id="amendment<?php print $entity_id; ?>"><?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)</h3>
 
 <?php
+// Process owners - always use h4 heading for consistency
+print '<h4>Indiener(s):</h4>';
+
 // Process branch owners
 if (!empty($owners_branch)) {
   $list = array();
@@ -35,43 +38,54 @@ if (!empty($owners_member)) {
   }
   print '<p>Ondersteund door 50 leden (voldoende steun).</p>';
 } else if (!empty($owners_branch)) {
-  print '<h4>Indiener(s):</h4>';
   print '<p>' . $owners_list . '.</p>';
 }
 ?>
 
 <h4>Voorstel:</h4>
-<p class="text-limit"><?php print nl2br($amendment_text); ?></p>
+<div class="text-limit"><?php print nl2br($amendment_text); ?></div>
 
 <?php if (!empty($supplement)): ?>
-<h4>Toelichting:</h4>
-<p class="text-limit"><?php print nl2br($supplement); ?></p>
+<h4>Toelichting voorstel:</h4>
+<div class="text-limit"><?php print nl2br($supplement); ?></div>
 <?php endif; ?>
 
-<?php if (!empty($state) || !empty($advice)): ?>
+<?php if (!empty($state) && (!$hide_state || $state === 'withdrawn' || ($admin_access && empty($mail)))): ?>
+<h4>Status:</h4>
+<?php
+  $options = ammo_states();
+  print ucfirst(strtolower($options[$state]));
+  if (!empty($state_supplement)) {
+    print '<h4>Toelichting status:</h4>';
+    print '<p>' . $state_supplement . '</p>';
+  }
+?>
+<?php endif; ?>
+
+<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))): ?>
+<h4>Advies:</h4>
 <p>
 <?php
-if (!empty($state) && (!$hide_state || $state === 'withdrawn' || ($admin_access && empty($mail)))) {
-  $options = ammo_states();
-  print '<strong>Status:</strong> ' . strtolower($options[$state]);
-  if (!empty($state_supplement)) {
-    print '<br/>' . $state_supplement;
-  }
-}
-
-if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))) {
-  if (!empty($state)) {
-    print '<br/>';
-  }
   $options = ammo_amendment_advice();
-  print '<strong>Advies:</strong> ' . strtolower($options[$advice]);
+  print ucfirst(strtolower($options[$advice]));
   if (!empty($advice_supplement)) {
     print '<br/>' . $advice_supplement;
   }
-}
 ?>
 </p>
 <?php endif; ?>
+
+<?php
+// Process vote requests - only show when there are actual vote requests
+if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) {
+  print '<h4>Stemming aangevraagd door:</h4>';
+  $vote_list = array();
+  foreach ($vote_requests as $vote_request) {
+    $vote_list[] = $vote_request['contact_display_name'];
+  }
+  print '<p>' . implode(', ', $vote_list) . '.</p>';
+}
+?>
 
 <?php if (empty($no_links)): ?>
 <?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>
@@ -87,13 +101,21 @@ if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))) {
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
     <?php if ($withdraw_access): ?>
       <?php if ($unsupported_branches): ?>
-        <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
+        <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
-      <?php if ($supported_branches): ?>
-        <li><?php print l('intrekken als afdeling', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
+      <?php if ($supported_branches && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
+        <li><?php print l('voorstel intrekken', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
       <?php if ($removable_member_owners): ?>
         <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/amendment/' . $entity_id, array('query' => $dest)); ?></li>
+      <?php endif; ?>
+    <?php endif; ?>
+    <?php if ($vote_request_access): ?>
+      <?php if ($vote_unrequested_branches): ?>
+        <li><?php print l('stemming aanvragen', 'ammo/vote_request/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
+      <?php endif; ?>
+      <?php if ($vote_requested_branches): ?>
+        <li><?php print l('stemming intrekken', 'ammo/vote_request/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
     <?php endif; ?>
   <?php endif; ?>
