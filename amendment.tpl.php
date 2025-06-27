@@ -41,11 +41,11 @@ if (!empty($owners_member)) {
 ?>
 
 <h4>Voorstel:</h4>
-<p class="text-limit"><?php print $amendment_text; ?></p>
+<p class="text-limit"><?php print nl2br($amendment_text); ?></p>
 
 <?php if (!empty($supplement)): ?>
 <h4>Toelichting:</h4>
-<p class="text-limit"><?php print $supplement; ?></p>
+<p class="text-limit"><?php print nl2br($supplement); ?></p>
 <?php endif; ?>
 
 <?php if (!empty($state) || !empty($advice)): ?>

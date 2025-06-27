@@ -28,10 +28,11 @@
             var truncatedText = originalText.substring(0, maxLength);
             var remainingText = originalText.substring(maxLength);
             
-            // Create simple truncated version, we'll restore HTML on expand
-            var truncatedHtml = truncatedText + 
+            // Create proper truncated version with hideable containers
+            var truncatedHtml = 
+              '<span class="truncated-text">' + truncatedText + 
               '<span class="ellipsis">...</span>' +
-              ' <a href="#" class="read-more-link">Lees meer</a>' +
+              ' <a href="#" class="read-more-link">Lees meer</a></span>' +
               '<span class="more-text" style="display: none;">' + originalHtml + 
               ' <a href="#" class="read-less-link">Lees minder</a></span>';
             
@@ -43,18 +44,16 @@
         $(context).delegate('.read-more-link', 'click', function(e) {
           e.preventDefault();
           var $link = $(this);
-          $link.hide();
-          $link.siblings('.ellipsis').hide();
-          $link.siblings('.more-text').show();
+          $link.closest('.truncated-text').hide();
+          $link.closest('.text-limit').find('.more-text').show();
         });
         
         // Handle read less click (compatible with jQuery 1.4.4)
         $(context).delegate('.read-less-link', 'click', function(e) {
           e.preventDefault();
           var $link = $(this);
-          $link.parent('.more-text').hide();
-          $link.parent().siblings('.ellipsis').show();
-          $link.parent().siblings('.read-more-link').show();
+          $link.closest('.more-text').hide();
+          $link.closest('.text-limit').find('.truncated-text').show();
         });
 
     }
