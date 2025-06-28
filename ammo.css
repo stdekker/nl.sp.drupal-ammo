@@ -184,3 +184,64 @@ h4.inline-title {
 	font-weight: 600;
 	color: #a2a2a2;
 }
+
+.ammo-section-content .button-group {
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  width: 100%;
+}
+
+.ammo-section-content .button-group ul {
+  list-style: none;
+  flex: 1;
+  column-count: 2;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+} 
+
+.ammo-section-content .button-group ul li {
+  display: block;
+  margin: 0 0 1em 0;
+  width: 100%;
+}
+
+.ammo-section-content .button-group ul li a {
+  display: block;
+  width: 100%;
+  padding: 2em 1em;
+  text-decoration: none;
+  margin: 0;
+  text-align: center;
+  background-color: #eee;
+  color: #000;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.ammo-section-content .button-group ul li a:hover {
+  background-color: #ec123b;
+  color: #fff;
+}
+
+.ammo-section-content .button-group ul li a .ammo-button-label {
+  display: block;
+  font-size: .66em;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-top: .5em;
+}
+
+.amendments .button-group ul li a:hover {
+  background-color: #000;
+  color: #fff;
+}
+
+.motions .button-group ul li a:hover {
+  background-color: #000;
+  color: #fff;
+}
