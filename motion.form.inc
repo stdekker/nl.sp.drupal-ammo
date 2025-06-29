@@ -79,7 +79,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
 
   // Set laste page depending on permissions.
   $form_state['storage']['last_step'] = 5;
-  if (ammo_admin_access()) {
+  if (ammo_admin_access() && !empty($path_id)) {
     $form_state['storage']['last_step'] = 6;
   }
 
@@ -155,18 +155,8 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       $form_state['storage']['branch_id'] = key($options);
       $form_state['storage']['branch_display_name'] = current($options);
       
-      // Save new motion.
-      $form_state['storage']['state'] = 'concept';
-      $mapping = array(
-        'meeting_id' => 'meeting',
-        'state' => 'state',
-      );
-      $new_motion = ammo_store('motion', NULL, $mapping, $form, $form_state);
-      $form_state['storage']['motion'] = $new_motion->id;
-      $form_state['storage']['new'] = TRUE;
-      
-      // Auto-set as owner since there's only one branch
-      $entity = ammo_save_relation('owner', 'motion', $form_state['storage']['motion'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+      // Don't create entity yet - wait until user provides content in step 5
+      $form_state['storage']['single_branch_auto_selected'] = TRUE;
     }
     else {
       ammo_select_afdeling_form($form, $form_state, 'motion', $options);
@@ -430,6 +420,12 @@ function ammo_motion_form_back_submit($form, &$form_state)
 
 function ammo_motion_form_submit($form, &$form_state)
 {
+  // If validation failed, just rebuild the form and exit.
+  if (form_get_errors()) {
+    $form_state['rebuild'] = TRUE;
+    return;
+  }
+
   $values = $form_state['values'];
   $storage = $form_state['storage'];
   $trigger = $form_state['triggering_element']['#name'];
@@ -454,31 +450,48 @@ function ammo_motion_form_submit($form, &$form_state)
     case 3:
       $form_state['storage']['branch_id'] = $values['branch_id'];
       $form_state['storage']['branch_display_name'] = $form['branch_id']['#options'][$values['branch_id']];
-      // Save new motion.
-      $form_state['storage']['state'] = 'concept';
-      $mapping = array(
-        'meeting_id' => 'meeting',
-        'state' => 'state',
-      );
-      $new_motion = ammo_store('motion', NULL, $mapping, $form, $form_state);
-      $form_state['storage']['motion'] = $new_motion->id;
-      $form_state['storage']['new'] = TRUE;
+      
+      // For admins creating new proposals, skip the owner confirmation step
+      if (ammo_admin_access() && empty($path_id)) {
+        $form_state['step']++; // Skip step 4 (owner confirmation) and go directly to step 5 (content)
+        $form_state['storage']['admin_branch_selected'] = TRUE;
+      }
       break;
     case 4:
+      // Remove entity creation from here - only handle ownership confirmation
       if ($values['backed']) {
-        // Check if already set owner.
-        if (!ammo_is_related($storage['motion'], 'motion', 'owner', 'branch', $storage['branch_id'])) {
-          // Set owner.
-          $entity = ammo_save_relation('owner', 'motion', $storage['motion'], $storage['branch_id'], 'branch', $storage['branch_display_name'], $storage['branch_id'], $storage['branch_display_name']);
-        }
+        // Store ownership decision, entity will be created later when we have content
+        $form_state['storage']['ownership_confirmed'] = TRUE;
       }
       $form_state['storage']['new'] = FALSE;
       break;
     case 5:
-      if ($storage['state'] === 'concept') {
-        $form_state['storage']['state'] = 'submitted';
-        $form_state['values']['state'] = 'submitted';
+      // Create motion entity now that we have valid content to save
+      if (empty($storage['motion'])) {
+        $form_state['storage']['state'] = 'concept';
+        $mapping = array(
+          'meeting_id' => 'meeting',
+          'state' => 'state',
+        );
+        $new_motion = ammo_store('motion', NULL, $mapping, $form, $form_state);
+        $form_state['storage']['motion'] = $new_motion->id;
+        $form_state['storage']['new'] = TRUE;
+        
+        // Update $storage reference after creating entity
+        $storage = $form_state['storage'];
+        
+        // Set ownership based on how branch was selected
+        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+          $entity = ammo_save_relation('owner', 'motion', $form_state['storage']['motion'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+        } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
+          $entity = ammo_save_relation('owner', 'motion', $form_state['storage']['motion'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+        }
       }
+      
+      // Save as submitted
+      $form_state['storage']['state'] = 'submitted';
+      $form_state['values']['state'] = 'submitted';
+      
       $mapping = array(
         'consideration_opening' => 'consideration_opening',
         'consideration_body' => 'consideration_text',
@@ -493,7 +506,7 @@ function ammo_motion_form_submit($form, &$form_state)
       $storage = $form_state['storage'];
       $motion = entity_load_single('motion', $storage['motion']);
       $motion_number = $motion->motion_id ?: $motion->id;
-      drupal_set_message('<h3>Motie opgeslagen</h3><p>Motie ' . $motion_number . ' is succesvol opgeslagen.</p>');
+      drupal_set_message('<p>Motie ' . $motion_number . ' is succesvol opgeslagen. E-mail is verzonden.</p>');
       break;
     case 6:
       $mapping = array(

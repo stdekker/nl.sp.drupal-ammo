@@ -6,8 +6,8 @@ function ammo_document_list_page() {
   $output = '';
 
   if (empty($meetings)) {
-    $output .= '<p>Er zijn geen bijeenkomsten gevonden. Maak eerst een bijeenkomst aan.</p>';
-    return $output;
+    $output .= '<p>Er zijn geen bijeenkomsten gevonden. Maak eerst ' . l('een bijeenkomst', 'admin/ammo/meeting/add') . ' aan.</p>';
+    print $output;
   }
 
   // Group documents by meeting

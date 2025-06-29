@@ -1072,7 +1072,6 @@ function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeti
   $params['differences'] = $differences;
   drupal_mail('ammo', 'change_message', $sender_email, $language, $params, $sender_email, TRUE);
   if (!empty($differences)) {
-    drupal_set_message('Er is wordt een e-mail met de wijzigingen verzonden.');
     foreach ($relations as $relation) {
       if (!empty($relation['contact_email'])) {
         drupal_mail('ammo', 'change_message', $relation['contact_email'], $language, $params, $sender_email, TRUE);

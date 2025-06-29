@@ -69,7 +69,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
 
   // Set laste page depending on permissions.
   $form_state['storage']['last_step'] = 7; // Add confirmation step
-  if (ammo_admin_access()) {
+  if (ammo_admin_access() && !empty($path_id)) {
     $form_state['storage']['last_step'] = 8; // Admin advice step moves to 8
   }
 
@@ -167,18 +167,8 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       $form_state['storage']['branch_id'] = key($options);
       $form_state['storage']['branch_display_name'] = current($options);
       
-      // Save new amendment.
-      $form_state['storage']['state'] = 'concept';
-      $mapping = array(
-        'document_id' => 'document',
-        'state' => 'state',
-      );
-      $new_amendment = ammo_store('amendment', NULL, $mapping, $form, $form_state);
-      $form_state['storage']['amendment'] = $new_amendment->id;
-      $form_state['storage']['new'] = TRUE;
-      
-      // Auto-set as owner since there's only one branch
-      $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+      // Don't create entity yet - wait until user provides content in step 6
+      $form_state['storage']['single_branch_auto_selected'] = TRUE;
     }
     else {
       ammo_select_afdeling_form($form, $form_state, 'amendment', $options);
@@ -222,7 +212,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $form['line'] = array(
       '#type' => 'textfield',
       '#title' => 'Regel nummer (begin)',
-      '#description' => 'Het regelnummer waar de tekst die geamendeerd wordt begint, of het regelnummer vanaf waar tekst moet worden toegevoegd.',
+      '#description' => 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.',
       '#default_value' => ammo_default($form_state, 'line'),
     );
     $form['amendment_text'] = array(
@@ -420,6 +410,12 @@ function ammo_amendment_form_back_submit($form, &$form_state)
 
 function ammo_amendment_form_submit($form, &$form_state)
 {
+  // If validation failed, just rebuild the form and exit.
+  if (form_get_errors()) {
+    $form_state['rebuild'] = TRUE;
+    return;
+  }
+
   $values = $form_state['values'];
   $storage = $form_state['storage'];
   $trigger = $form_state['triggering_element']['#name'];
@@ -448,30 +444,23 @@ function ammo_amendment_form_submit($form, &$form_state)
     case 4:
       $form_state['storage']['branch_id'] = $values['branch_id'];
       $form_state['storage']['branch_display_name'] = $form['branch_id']['#options'][$values['branch_id']];
-      // Save new amendment.
-      $form_state['storage']['state'] = 'concept';
-      $mapping = array(
-        'document_id' => 'document',
-        'state' => 'state',
-      );
-      $new_amendment = ammo_store('amendment', NULL, $mapping, $form, $form_state);
-      $form_state['storage']['amendment'] = $new_amendment->id;
-      $form_state['storage']['new'] = TRUE;
+      
+      // For admins creating new proposals, skip the owner confirmation step
+      if (ammo_admin_access() && empty($path_id)) {
+        $form_state['step']++; // Skip step 5 (owner confirmation) and go directly to step 6 (content)
+        $form_state['storage']['admin_branch_selected'] = TRUE;
+      }
       break;
     case 5:
+      // Remove entity creation from here - only handle ownership confirmation
       if ($values['backed']) {
-        // Check if already set owner.
-        if (!ammo_is_related($storage['amendment'], 'amendment', 'owner', 'branch', $storage['branch_id'])) {
-          // Set owner.
-          $type = 'branch';
-          $display_name = $storage['branch_display_name'];
-          $entity = ammo_save_relation('owner', 'amendment', $storage['amendment'], $storage['branch_id'], $type, $display_name, $storage['branch_id'], $storage['branch_display_name']);
-        }
+        // Store ownership decision, entity will be created later when we have content
+        $form_state['storage']['ownership_confirmed'] = TRUE;
       }
       $form_state['storage']['new'] = FALSE;
       break;
     case 6:
-      // Store form data
+      // Store form data first
       $form_state['storage']['chapter'] = $values['chapter'];
       $form_state['storage']['page'] = $values['page'];
       $form_state['storage']['line'] = $values['line'];
@@ -479,9 +468,31 @@ function ammo_amendment_form_submit($form, &$form_state)
       $form_state['storage']['supplement'] = $values['supplement'];
       $form_state['storage']['submission_type'] = $values['submission_type'];
       
-      // If saving as draft, save directly without confirmation step
+      // If saving as draft, create entity and save
       if ($values['submission_type'] === 'draft') {
-        // Keep as concept (draft)
+        // Create amendment entity if it doesn't exist yet
+        if (empty($storage['amendment'])) {
+          $form_state['storage']['state'] = 'concept';
+          $mapping = array(
+            'document_id' => 'document',
+            'state' => 'state',
+          );
+          $new_amendment = ammo_store('amendment', NULL, $mapping, $form, $form_state);
+          $form_state['storage']['amendment'] = $new_amendment->id;
+          $form_state['storage']['new'] = TRUE;
+          
+          // Update $storage reference after creating entity
+          $storage = $form_state['storage'];
+          
+          // Set ownership based on how branch was selected
+          if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+            $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+          } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
+            $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+          }
+        }
+        
+        // Save as concept (draft)
         $form_state['storage']['state'] = 'concept';
         $form_state['values']['state'] = 'concept';
         
@@ -498,20 +509,42 @@ function ammo_amendment_form_submit($form, &$form_state)
         // Show success message for draft
         $amendment = entity_load_single('amendment', $storage['amendment']);
         $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
-        drupal_set_message('<h3>Concept opgeslagen</h3><p>Het wijzigingsvoorstel ' . $amendment_number . ' is opgeslagen als concept. U kunt het later nog wijzigen.</p>');
+        drupal_set_message('<p>Het wijzigingsvoorstel ' . $amendment_number . ' is opgeslagen als concept. U kunt het later nog wijzigen.</p>');
         
         // Skip to end - redirect user
         ammo_ajax_redirect($form_state['storage']['destination']['destination']);
         return;
       }
-      // For definitive submission, continue to confirmation step
+      // For definitive submission, continue to confirmation step (entity created in step 7)
       break;
     case 7:
-      // Confirmation step - save definitive submission (drafts are handled in step 6)
-      if ($storage['state'] === 'concept') {
-        $form_state['storage']['state'] = 'submitted';
-        $form_state['values']['state'] = 'submitted';
+      // Confirmation step - create entity and save definitive submission
+      // Create amendment entity if it doesn't exist yet
+      if (empty($storage['amendment'])) {
+        $form_state['storage']['state'] = 'concept';
+        $mapping = array(
+          'document_id' => 'document',
+          'state' => 'state',
+        );
+        $new_amendment = ammo_store('amendment', NULL, $mapping, $form, $form_state);
+        $form_state['storage']['amendment'] = $new_amendment->id;
+        $form_state['storage']['new'] = TRUE;
+        
+        // Update $storage reference after creating entity
+        $storage = $form_state['storage'];
+        
+        // Set ownership based on how branch was selected
+        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+          $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+        } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
+          $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
+        }
       }
+      
+      // Save as submitted
+      $form_state['storage']['state'] = 'submitted';
+      $form_state['values']['state'] = 'submitted';
+      
       $mapping = array(
         'chapter' => 'chapter',
         'page' => 'page',
@@ -528,7 +561,7 @@ function ammo_amendment_form_submit($form, &$form_state)
       // Show success message for definitive submission
       $amendment = entity_load_single('amendment', $storage['amendment']);
       $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
-      drupal_set_message('<h3>Wijzigingsvoorstel ingediend</h3><p>Het wijzigingsvoorstel ' . $amendment_number . ' is definitief ingediend voor behandeling.</p>');
+      drupal_set_message('<p>Het wijzigingsvoorstel ' . $amendment_number . ' is definitief ingediend voor behandeling. E-mail is verzonden.</p>');
       break;
     case 8:
       $mapping = array(
