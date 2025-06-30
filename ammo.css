@@ -27,7 +27,8 @@ ul.ammo-list li {
 
 
 li.withdrawn,
-li.invalid {
+li.invalid,
+li.blocked {
   background-color: #eee;
   color: #888;
 }
@@ -87,7 +88,10 @@ a.text-limit-toggle:link {
 
 .withdrawn a.text-limit-toggle,
 .withdrawn a.text-limit-toggle:visited,
-.withdrawn a.text-limit-toggle:link {
+.withdrawn a.text-limit-toggle:link,
+.blocked a.text-limit-toggle,
+.blocked a.text-limit-toggle:visited,
+.blocked a.text-limit-toggle:link {
 	text-decoration: none;
 	color: #aaa;
 }

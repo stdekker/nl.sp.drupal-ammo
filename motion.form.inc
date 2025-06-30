@@ -232,6 +232,19 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       '#markup' => theme('motion', array('entity_id' => $form_state['storage']['motion'], 'no_links' => TRUE)),
     );
 
+    $form['state'] = array(
+      '#type' => 'select',
+      '#title' => 'Status',
+      '#options' => ammo_states(),
+      '#empty_option' => 'kies:',
+      '#default_value' => ammo_default($form_state, 'state'),
+    );
+    $form['state_supplement'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Toelichting statuswijziging',
+      '#default_value' => ammo_default($form_state, 'state_supplement'),
+    );
+
     $form['advice'] = array(
       '#type' => 'select',
       '#title' => 'Advies',
@@ -304,19 +317,6 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       '#type' => 'textarea',
       '#title' => 'Toelichting',
       '#default_value' => ammo_default($form_state, 'advice_supplement'),
-    );
-
-    $form['state'] = array(
-      '#type' => 'select',
-      '#title' => 'Status',
-      '#options' => ammo_states(),
-      '#empty_option' => 'kies:',
-      '#default_value' => ammo_default($form_state, 'state'),
-    );
-    $form['state_supplement'] = array(
-      '#type' => 'textarea',
-      '#title' => 'Toelichting statuswijziging',
-      '#default_value' => ammo_default($form_state, 'state_supplement'),
     );
   }
 

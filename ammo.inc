@@ -27,6 +27,7 @@ function ammo_states() {
     'withdrawn' => 'Ingetrokken',
     'invalid' => 'Ongeldig',
     'blocked' => 'Verwijderd',
+    'spelling_grammar' => 'Tekstuele wijziging',
   );
 }
 

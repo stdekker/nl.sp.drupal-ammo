@@ -62,6 +62,18 @@ if (!empty($owners_member)) {
 ?>
 <?php endif; ?>
 
+<?php
+// Process vote requests - only show when there are actual vote requests
+if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) {
+  print '<h4>Stemming aangevraagd door:</h4>';
+  $vote_list = array();
+  foreach ($vote_requests as $vote_request) {
+    $vote_list[] = $vote_request['contact_display_name'];
+  }
+  print '<p>' . implode(', ', $vote_list) . '.</p>';
+}
+?>
+
 <?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))): ?>
 <h4>Advies:</h4>
 <p>
@@ -74,18 +86,6 @@ if (!empty($owners_member)) {
 ?>
 </p>
 <?php endif; ?>
-
-<?php
-// Process vote requests - only show when there are actual vote requests
-if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) {
-  print '<h4>Stemming aangevraagd door:</h4>';
-  $vote_list = array();
-  foreach ($vote_requests as $vote_request) {
-    $vote_list[] = $vote_request['contact_display_name'];
-  }
-  print '<p>' . implode(', ', $vote_list) . '.</p>';
-}
-?>
 
 <?php if (empty($no_links)): ?>
 <?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>
@@ -103,7 +103,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
-    <?php if ($withdraw_access && $state !== 'withdrawn'): ?>
+    <?php if ($withdraw_access && $state !== 'withdrawn' && $state !== 'spelling_grammar'): ?>
       <?php if ($unsupported_branches): ?>
         <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
