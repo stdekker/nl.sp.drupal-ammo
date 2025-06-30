@@ -91,13 +91,17 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
   <ul class="ammo-list">
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
       <?php if ($edit_access) : ?>
-        <li><?php print l('bewerk motie', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>
+        <li>Bewerken:</li>
+        <li><?php print l('inhoud', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
       <?php if (($admin_access && $support_access) || $superadmin_access) : ?>
-        <li><?php print l('bewerk advies', 'ammo/motion/advice/' . $entity_id, array('query' => $dest))?></li>
+        <li><?php print l('status/advies', 'ammo/motion/advice/' . $entity_id, array('query' => $dest))?></li>
+      <?php endif; ?>
+      <?php if ($admin_access) : ?>
+        <li><?php print l('indieners', 'ammo/motion/ownership/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
       <?php if ($superadmin_access) : ?>
-        <li><?php print l('verwijder', 'ammo/motion/delete/' . $entity_id, array('query' => $dest))?></li>
+        <li><?php print l('verwijderen', 'ammo/motion/delete/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
     <?php endif; ?>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>

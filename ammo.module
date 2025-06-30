@@ -194,6 +194,25 @@ function ammo_menu() {
     'access callback' => 'user_is_logged_in',
   );
 
+  // Add admin ownership management routes
+  $items['ammo/amendment/ownership/%'] = array(
+    'title' => 'Eigenaarschap beheren',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_amendment_ownership_form', 3),
+    'file' => 'ownership.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_admin_access',
+  );
+
+  $items['ammo/motion/ownership/%'] = array(
+    'title' => 'Eigenaarschap beheren',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_motion_ownership_form', 3),
+    'file' => 'ownership.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_admin_access',
+  );
+
   return $items;
 }
 

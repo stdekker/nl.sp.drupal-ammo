@@ -38,7 +38,7 @@ if (!empty($owners_member)) {
   }
   print '<p>Ondersteund door 50 leden (voldoende steun).</p>';
 } else if (!empty($owners_branch)) {
-  print '<p>' . $owners_list . '.</p>';
+  print '<p>' . $owners_list . '</p>';
 }
 ?>
 
@@ -92,10 +92,14 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 <ul class="ammo-list">
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
     <?php if ($edit_access): ?>
-      <li><?php print l('bewerk voorstel', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
+      <li>Bewerken:</li>
+      <li><?php print l('inhoud', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
     <?php if (($admin_access && $support_access) || $superadmin_access): ?>
-      <li><?php print l('bewerk advies', 'ammo/amendment/advice/' . $entity_id, array('query' => $dest)); ?></li>
+      <li><?php print l('status/advies', 'ammo/amendment/advice/' . $entity_id, array('query' => $dest)); ?></li>
+    <?php endif; ?>
+    <?php if ($admin_access): ?>
+      <li><?php print l('indieners', 'ammo/amendment/ownership/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>

@@ -245,3 +245,53 @@ h4.inline-title {
   background-color: #000;
   color: #fff;
 }
+
+/* Ownership management form styles */
+.current-ownership {
+  background-color: #f9f9f9;
+  padding: 1em;
+  border-radius: 5px;
+  margin-bottom: 1em;
+}
+
+.current-ownership p {
+  margin: 0.5em 0;
+}
+
+.current-ownership ul {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.current-ownership strong {
+  color: #333;
+}
+
+.ownership-form fieldset {
+  margin-bottom: 1.5em;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 1em;
+}
+
+.ownership-form .form-checkboxes {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  border-radius: 3px;
+}
+
+.ownership-form .form-checkboxes .form-item {
+  margin: 0.25em 0;
+}
+
+.ownership-form .form-actions {
+  margin-top: 1.5em;
+  padding-top: 1em;
+  border-top: 1px solid #ddd;
+}
+
+.ownership-form .form-actions .button {
+  margin-right: 1em;
+}
