@@ -15,15 +15,15 @@
   <?php foreach ($owners_member as $owner_member) : $list[] = $owner_member['contact_display_name']; endforeach; ?>
   <?php $last = array_pop($list); ?>
   <?php if (count($list) === 0) : $members_list = $last; else : $members_list = implode(', ', $list) . ' en ' . $last; endif; ?>
-  <p>Ingediend door <?php print $members_list; ?>.</p>
+  <p><?php print $members_list; ?>.</p>
   <?php $number = count($backers) + count($owners_member); ?>
   <?php if (!empty($owners_branch)) : ?>
-    <p>Mede ingediend door <?php print $owners_list; ?>.</p>
+    <p>Ondersteund door <?php print $owners_list; ?>.</p>
   <?php endif; ?>
 	<p>Ondersteund door 50 leden (voldoende steun).</p>
 <?php else: ?>
   <?php if (!empty($owners_branch)) : ?>
-    <p>Ingediend door <?php print $owners_list; ?>.</p>
+    <p><?php print $owners_list; ?></p>
   <?php endif; ?>
 <?php endif; ?>
 </div>
@@ -101,7 +101,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
     <?php endif; ?>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
-      <?php if ($withdraw_access) : ?>
+      <?php if ($withdraw_access && $state !== 'withdrawn') : ?>
         <?php if ($unsupported_branches) : ?>
           <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>

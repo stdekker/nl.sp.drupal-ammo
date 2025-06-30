@@ -288,13 +288,32 @@ function ammo_support_form_submit($form, &$form_state) {
         if ($key == $value) {
           $remove_id = ammo_is_related($entity_id, $target_type, 'owner', $contact_type, $value);
           $owner = entity_load_single('contact_relation', $remove_id);
-          $result = entity_delete('contact_relation', $remove_id);
-          if ($result !== FALSE) {
-            drupal_set_message('U bent niet langer (mede) indiener.');
-            ammo_withdraw_mail($target_type, $entity_id, $owner, $meeting_id);
-          }
-          else {
-            drupal_set_message('Er is een fout opgetreden.' , 'error');
+          
+          // Check if this is the first/primary owner
+          $first_owner = ammo_get_first_owner($target_type, $entity_id);
+          $is_primary_owner = (!empty($first_owner) && $first_owner['contact_id'] == $value);
+          
+          if ($is_primary_owner) {
+            // Primary owner is withdrawing - set status to withdrawn but keep ownership visible
+            $entity->state = 'withdrawn';
+            $result = entity_save($target_type, $entity);
+            if ($result) {
+              drupal_set_message('Het voorstel is ingetrokken.');
+              ammo_withdraw_mail($target_type, $entity_id, $owner, $meeting_id);
+            }
+            else {
+              drupal_set_message('Er is een fout opgetreden.' , 'error');
+            }
+          } else {
+            // Co-supporter is withdrawing - remove their ownership relation
+            $result = entity_delete('contact_relation', $remove_id);
+            if ($result !== FALSE) {
+              drupal_set_message('U bent niet langer (mede) indiener.');
+              ammo_withdraw_mail($target_type, $entity_id, $owner, $meeting_id);
+            }
+            else {
+              drupal_set_message('Er is een fout opgetreden.' , 'error');
+            }
           }
         }
       }
@@ -317,10 +336,13 @@ function ammo_support_form_submit($form, &$form_state) {
     }
     break;
   }
-  $owners = ammo_get_related_contacts($entity_id, $target_type, 'owner');
-  if (empty($owners)) {
-    $entity->state = 'withdrawn';
-    entity_save($target_type, $entity);
+  // Only check for empty owners if entity is not already withdrawn
+  if ($entity->state !== 'withdrawn') {
+    $owners = ammo_get_related_contacts($entity_id, $target_type, 'owner');
+    if (empty($owners)) {
+      $entity->state = 'withdrawn';
+      entity_save($target_type, $entity);
+    }
   }
   $form_state['redirect'] = ammo_get_destination();
 }

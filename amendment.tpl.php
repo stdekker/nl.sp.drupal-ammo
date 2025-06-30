@@ -99,7 +99,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
-    <?php if ($withdraw_access): ?>
+    <?php if ($withdraw_access && $state !== 'withdrawn'): ?>
       <?php if ($unsupported_branches): ?>
         <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>

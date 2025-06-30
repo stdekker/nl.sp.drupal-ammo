@@ -639,7 +639,7 @@ function template_preprocess_overview_amendments(&$variables) {
         'description' => check_plain($document->description),
         'meeting_id' => check_plain($document->meeting_id),
       );
-      $amendments_results = db_query("SELECT id, chapter, page, state, chapterized_id FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'blocked' AND state != 'withdrawn' ORDER BY chapter, page, line, chapterized_id", array(":document_id" => $document->id));
+      $amendments_results = db_query("SELECT id, chapter, page, state, chapterized_id FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'blocked' ORDER BY chapter, page, line, chapterized_id", array(":document_id" => $document->id));
       foreach ($amendments_results as $amendment) {
         // Skip concept amendments unless user is owner or has admin access
         if ($amendment->state === 'concept') {
@@ -710,7 +710,7 @@ function template_preprocess_overview_motions(&$variables) {
       'hide' => $meeting->hide_meeting,
       'admin_access' => ammo_admin_access(),
     );
-    $motions_results = db_query("SELECT id, state, motion_id FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept' AND state != 'blocked' AND state != 'withdrawn' ORDER BY motion_id", array(":meeting_id" => $meeting->id));
+    $motions_results = db_query("SELECT id, state, motion_id FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept' AND state != 'blocked' ORDER BY motion_id", array(":meeting_id" => $meeting->id));
     foreach ($motions_results as $motion) {
       $owners_member = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'member');
       $owners_branch = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'branch');
