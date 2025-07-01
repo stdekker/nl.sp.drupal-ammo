@@ -54,7 +54,7 @@ if (!empty($owners_member)) {
 <h4>Status:</h4>
 <?php
   $options = ammo_states();
-  print ucfirst(strtolower($options[$state]));
+  print $options[$state];
   if (!empty($state_supplement)) {
     print '<h4>Toelichting status:</h4>';
     print '<p>' . $state_supplement . '</p>';

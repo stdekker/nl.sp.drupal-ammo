@@ -6,8 +6,8 @@ function ammo_document_list_page() {
   $output = '';
 
   if (empty($meetings)) {
-    $output .= '<p>Er zijn geen bijeenkomsten gevonden. Maak eerst ' . l('een bijeenkomst', 'admin/ammo/meeting/add') . ' aan.</p>';
-    print $output;
+    $output .= '<p>Er zijn geen bijeenkomsten gevonden. Maak eerst <a href="/admin/ammo/meeting/add">een bijeenkomst</a> aan.</p>';
+    return $output;
   }
 
   // Group documents by meeting
@@ -104,6 +104,60 @@ function ammo_document_form($form, &$form_state, $document = NULL) {
     '#default_value' => $document ? $document->description : '',
   );
 
+  // Validation ranges fieldset
+  $form['validation_ranges'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Validatie instellingen',
+    '#description' => 'Stel de toegestane waarden in voor hoofdstukken, pagina\'s en regelnummers bij wijzigingsvoorstellen.',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['validation_ranges']['chapter_min'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Minimum hoofdstuk',
+    '#default_value' => $document ? $document->chapter_min : '1',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#description' => 'Het laagste toegestane hoofdstuknummer bij wijzigingsvoorstellen. Bijvoorbeeld: 1 voor hoofdstuk 1 als minimum.',
+  );
+  
+  $form['validation_ranges']['chapter_max'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Maximum hoofdstuk',
+    '#default_value' => $document ? $document->chapter_max : '',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#description' => 'Het hoogste toegestane hoofdstuknummer bij wijzigingsvoorstellen. Bijvoorbeeld: 7 voor een bereik van hoofdstuk 1-7.',
+  );
+
+  $form['validation_ranges']['page_min'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Minimum pagina',
+    '#default_value' => $document ? $document->page_min : '1',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#description' => 'Het laagste toegestane paginanummer bij wijzigingsvoorstellen. Bijvoorbeeld: 1 voor pagina 1 als minimum.',
+  );
+  
+  $form['validation_ranges']['page_max'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Maximum pagina',
+    '#default_value' => $document ? $document->page_max : '',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#description' => 'Het hoogste toegestane paginanummer bij wijzigingsvoorstellen. Bijvoorbeeld: 123 voor een bereik van pagina 1-123.',
+  );
+
+  $form['validation_ranges']['line_max'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Maximum regelnummer',
+    '#default_value' => $document ? $document->line_max : '',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#description' => 'Het hoogste toegestane regelnummer bij wijzigingsvoorstellen. Bijvoorbeeld: 500 als maximum regelnummer per pagina.',
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Opslaan',
@@ -114,8 +168,44 @@ function ammo_document_form($form, &$form_state, $document = NULL) {
 
 function ammo_document_form_validate($form, &$form_state) {
   $values = $form_state['values'];
+  
   if (empty($values['title'])) {
     form_set_error('title', 'Vul een titel in.');
+  }
+  
+  // Validate chapter range
+  if (!empty($values['chapter_min']) && !preg_match('/^[0-9]+$/', $values['chapter_min'])) {
+    form_set_error('chapter_min', 'Minimum hoofdstuk moet een geldig getal zijn.');
+  }
+  
+  if (!empty($values['chapter_max']) && !preg_match('/^[0-9]+$/', $values['chapter_max'])) {
+    form_set_error('chapter_max', 'Maximum hoofdstuk moet een geldig getal zijn.');
+  }
+  
+  if (!empty($values['chapter_min']) && !empty($values['chapter_max'])) {
+    if ((int)$values['chapter_min'] > (int)$values['chapter_max']) {
+      form_set_error('chapter_max', 'Maximum hoofdstuk moet groter zijn dan minimum hoofdstuk.');
+    }
+  }
+  
+  // Validate page range
+  if (!empty($values['page_min']) && !preg_match('/^[0-9]+$/', $values['page_min'])) {
+    form_set_error('page_min', 'Minimum pagina moet een geldig getal zijn.');
+  }
+  
+  if (!empty($values['page_max']) && !preg_match('/^[0-9]+$/', $values['page_max'])) {
+    form_set_error('page_max', 'Maximum pagina moet een geldig getal zijn.');
+  }
+  
+  if (!empty($values['page_min']) && !empty($values['page_max'])) {
+    if ((int)$values['page_min'] > (int)$values['page_max']) {
+      form_set_error('page_max', 'Maximum pagina moet groter zijn dan minimum pagina.');
+    }
+  }
+  
+  // Validate line maximum
+  if (!empty($values['line_max']) && !preg_match('/^[0-9]+$/', $values['line_max'])) {
+    form_set_error('line_max', 'Maximum regelnummer moet een geldig getal zijn.');
   }
 }
 
@@ -127,6 +217,11 @@ function ammo_document_form_submit($form, &$form_state) {
     'meeting_id' => $values['meeting_id'],
     'title' => $values['title'],
     'description' => $values['description'],
+    'chapter_min' => !empty($values['chapter_min']) ? (int)$values['chapter_min'] : 1,
+    'chapter_max' => !empty($values['chapter_max']) ? (int)$values['chapter_max'] : NULL,
+    'page_min' => !empty($values['page_min']) ? (int)$values['page_min'] : 1,
+    'page_max' => !empty($values['page_max']) ? (int)$values['page_max'] : NULL,
+    'line_max' => !empty($values['line_max']) ? (int)$values['line_max'] : NULL,
   );
   
   $document_id = $document ? $document->id : NULL;

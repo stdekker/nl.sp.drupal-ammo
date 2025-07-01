@@ -1441,3 +1441,109 @@ function ammo_cleanup_branch_name($branch_name) {
 function ammo_get_vote_requests($entity_type, $entity_id) {
   return ammo_get_related_contacts($entity_id, $entity_type, 'vote_request', 'branch');
 }
+
+/**
+ * Validates amendment values against document validation ranges.
+ *
+ * @param int $document_id
+ *   The document ID to check ranges against.
+ * @param int $chapter
+ *   The chapter number to validate.
+ * @param int $page  
+ *   The page number to validate.
+ * @param int $line
+ *   The line number to validate.
+ *
+ * @return array
+ *   Array of validation errors. Empty array if all values are valid.
+ */
+function ammo_validate_document_ranges($document_id, $chapter, $page, $line) {
+  $errors = array();
+  
+  if (empty($document_id) || !is_numeric($document_id)) {
+    return $errors;
+  }
+  
+  $document = entity_load_single('document', $document_id);
+  if (!$document) {
+    return $errors;
+  }
+  
+  // Validate chapter range
+  if (!empty($document->chapter_min) && $chapter < $document->chapter_min) {
+    $errors['chapter'] = 'Hoofdstuk nr. moet minimaal ' . $document->chapter_min . ' zijn.';
+  }
+  if (!empty($document->chapter_max) && $chapter > $document->chapter_max) {
+    $errors['chapter'] = 'Hoofdstuk nr. mag maximaal ' . $document->chapter_max . ' zijn.';
+  }
+  
+  // Validate page range
+  if (!empty($document->page_min) && $page < $document->page_min) {
+    $errors['page'] = 'Pagina nr. moet minimaal ' . $document->page_min . ' zijn.';
+  }
+  if (!empty($document->page_max) && $page > $document->page_max) {
+    $errors['page'] = 'Pagina nr. mag maximaal ' . $document->page_max . ' zijn.';
+  }
+  
+  // Validate line maximum
+  if (!empty($document->line_max) && $line > $document->line_max) {
+    $errors['line'] = 'Regelnummer mag maximaal ' . $document->line_max . ' zijn.';
+  }
+  
+  return $errors;
+}
+
+/**
+ * Gets document validation constraints as a human-readable string.
+ *
+ * @param int $document_id
+ *   The document ID to get constraints for.
+ *
+ * @return string
+ *   Formatted constraints string, or empty string if no constraints.
+ */
+function ammo_get_document_constraints_display($document_id) {
+  if (empty($document_id) || !is_numeric($document_id)) {
+    return '';
+  }
+  
+  $document = entity_load_single('document', $document_id);
+  if (!$document) {
+    return '';
+  }
+  
+  $constraints = array();
+  
+  // Chapter constraints
+  if (!empty($document->chapter_min) || !empty($document->chapter_max)) {
+    $chapter_range = 'Hoofdstuk: ';
+    if (!empty($document->chapter_min) && !empty($document->chapter_max)) {
+      $chapter_range .= $document->chapter_min . '-' . $document->chapter_max;
+    } elseif (!empty($document->chapter_min)) {
+      $chapter_range .= 'vanaf ' . $document->chapter_min;
+    } elseif (!empty($document->chapter_max)) {
+      $chapter_range .= 'tot ' . $document->chapter_max;
+    }
+    $constraints[] = $chapter_range;
+  }
+  
+  // Page constraints
+  if (!empty($document->page_min) || !empty($document->page_max)) {
+    $page_range = 'Pagina: ';
+    if (!empty($document->page_min) && !empty($document->page_max)) {
+      $page_range .= $document->page_min . '-' . $document->page_max;
+    } elseif (!empty($document->page_min)) {
+      $page_range .= 'vanaf ' . $document->page_min;
+    } elseif (!empty($document->page_max)) {
+      $page_range .= 'tot ' . $document->page_max;
+    }
+    $constraints[] = $page_range;
+  }
+  
+  // Line constraints
+  if (!empty($document->line_max)) {
+    $constraints[] = 'Regelnummer: tot ' . $document->line_max;
+  }
+  
+  return implode(' | ', $constraints);
+}

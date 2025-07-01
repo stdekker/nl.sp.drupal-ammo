@@ -1,3 +1,90 @@
+# AMMO Module - Amendment and Motion Management
+
+This Drupal module manages amendments and motions for meetings.
+
+## Features
+
+- Meeting management
+- Document management with validation ranges
+- Amendment submission and management  
+- Motion submission and management
+- Contact and branch relationship management
+- Email notifications
+- Print functionality
+- Export functionality
+
+## Document Validation Ranges
+
+As of version 7011, documents now support validation ranges for amendments:
+
+### Document Settings
+When creating or editing a document, you can set:
+- **Chapter range**: Minimum and maximum chapter numbers (e.g., 1-7)
+- **Page range**: Minimum and maximum page numbers (e.g., 1-123)  
+- **Line maximum**: Maximum line number allowed
+
+### Amendment Validation
+When creating or editing amendments, the system validates:
+- Chapter number must be within the document's chapter range
+- Page number must be within the document's page range
+- Line number must not exceed the document's maximum line number
+
+The amendment form displays the allowed ranges for user guidance.
+
+### Database Changes
+New fields added to `ammo_documents` table:
+- `chapter_min`: Minimum chapter number (default: 1)
+- `chapter_max`: Maximum chapter number
+- `page_min`: Minimum page number (default: 1)  
+- `page_max`: Maximum page number
+- `line_max`: Maximum line number
+
+## Installation
+
+1. Place module in `sites/default/modules/custom/nl.sp.drupal-ammo`
+2. Enable the module
+3. Run database updates: `drush updatedb`
+
+## Database Updates
+
+Run the following to apply validation range updates:
+```bash
+drush updatedb
+```
+
+This will execute update 7011 to add the new validation fields.
+
+## Usage
+
+### Setting Document Validation Ranges
+
+1. Go to document management
+2. Create or edit a document  
+3. Configure validation ranges in the "Validatie instellingen" section
+4. Save the document
+
+### Creating Amendments with Validation
+
+1. Create a new amendment
+2. Select the document
+3. Enter chapter, page, and line numbers
+4. The form will show allowed ranges and validate your input
+5. Submit the amendment
+
+The system will prevent submission if values are outside the configured ranges.
+
+## API Functions
+
+### `ammo_validate_document_ranges($document_id, $chapter, $page, $line)`
+Validates amendment values against document constraints.
+
+### `ammo_get_document_constraints_display($document_id)`  
+Returns formatted constraints string for display.
+
+## CSS Classes
+
+- `.document-constraints`: Styling for constraint display boxes
+
 # Ammo Module
 
 The Ammo module provides a comprehensive system for managing amendments and motions within a Drupal 7 website, specifically tailored for the needs of the SP (Socialist Party). It allows users to submit, view, and manage amendments and motions related to specific meetings and documents.

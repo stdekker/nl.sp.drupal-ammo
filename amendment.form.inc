@@ -199,20 +199,59 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#markup' => $branch_info,
     );
     
+    // Get document constraints for each field
+    $chapter_description = '';
+    $page_description = '';
+    $line_description = 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.';
+    
+    if (isset($form_state['storage']['document'])) {
+      $document = entity_load_single('document', $form_state['storage']['document']);
+      if ($document) {
+        // Chapter field description with constraints
+        if (!empty($document->chapter_min) || !empty($document->chapter_max)) {
+          if (!empty($document->chapter_min) && !empty($document->chapter_max)) {
+            $chapter_description = 'Toegestaan: ' . $document->chapter_min . '-' . $document->chapter_max . '.';
+          } elseif (!empty($document->chapter_min)) {
+            $chapter_description = 'Minimaal: ' . $document->chapter_min . '.';
+          } elseif (!empty($document->chapter_max)) {
+            $chapter_description = 'Maximaal: ' . $document->chapter_max . '.';
+          }
+        }
+        
+        // Page field description with constraints
+        if (!empty($document->page_min) || !empty($document->page_max)) {
+          if (!empty($document->page_min) && !empty($document->page_max)) {
+            $page_description = 'Toegestaan: ' . $document->page_min . '-' . $document->page_max . '.';
+          } elseif (!empty($document->page_min)) {
+            $page_description = 'Minimaal: ' . $document->page_min . '.';
+          } elseif (!empty($document->page_max)) {
+            $page_description = 'Maximaal: ' . $document->page_max . '.';
+          }
+        }
+        
+        // Line field description with constraints
+        if (!empty($document->line_max)) {
+          $line_description .= ' Maximaal toegestaan regelnummer: ' . $document->line_max . '.';
+        }
+      }
+    }
+    
     $form['chapter'] = array(
       '#type' => 'textfield',
       '#title' => 'Hoofdstuk nr.',
       '#default_value' => ammo_default($form_state, 'chapter'),
+      '#description' => $chapter_description,
     );
     $form['page'] = array(
       '#type' => 'textfield',
       '#title' => 'Pagina nummer',
       '#default_value' => ammo_default($form_state, 'page'),
+      '#description' => $page_description,
     );
     $form['line'] = array(
       '#type' => 'textfield',
       '#title' => 'Regel nummer (begin)',
-      '#description' => 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.',
+      '#description' => $line_description,
       '#default_value' => ammo_default($form_state, 'line'),
     );
     $form['amendment_text'] = array(
@@ -376,6 +415,7 @@ function ammo_amendment_form_validate($form, &$form_state) {
     }
     break;
   case 6:
+    // Basic format validation
     if (!preg_match('/^[0-9][0-9]*$/', $values['chapter'])) {
       form_set_error('chapter', 'Hoofdstuk nr. moet een getal zijn.');
     }
@@ -387,6 +427,18 @@ function ammo_amendment_form_validate($form, &$form_state) {
     }
     if (empty($values['amendment_text'])) {
       form_set_error('amendment_text', 'Vul de wijzigingsvoorstel tekst in.');
+    }
+    
+    // Range validation against document settings
+    if (isset($form_state['storage']['document']) && !form_get_errors()) {
+      $chapter = (int)$values['chapter'];
+      $page = (int)$values['page'];
+      $line = (int)$values['line'];
+      
+      $validation_errors = ammo_validate_document_ranges($form_state['storage']['document'], $chapter, $page, $line);
+      foreach ($validation_errors as $field => $message) {
+        form_set_error($field, $message);
+      }
     }
     break;
   case 7:

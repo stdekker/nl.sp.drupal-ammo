@@ -102,6 +102,33 @@ function ammo_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
+      'chapter_min' => array(
+        'description' => 'Minimum chapter number for validation.',
+        'type' => 'int',
+        'size' => 'small',
+        'default' => 1,
+      ),
+      'chapter_max' => array(
+        'description' => 'Maximum chapter number for validation.',
+        'type' => 'int',
+        'size' => 'small',
+      ),
+      'page_min' => array(
+        'description' => 'Minimum page number for validation.',
+        'type' => 'int',
+        'size' => 'small',
+        'default' => 1,
+      ),
+      'page_max' => array(
+        'description' => 'Maximum page number for validation.',
+        'type' => 'int',
+        'size' => 'small',
+      ),
+      'line_max' => array(
+        'description' => 'Maximum line number for validation.',
+        'type' => 'int',
+        'size' => 'small',
+      ),
     ),
     'primary key' => array(
       'id',
@@ -458,4 +485,61 @@ function ammo_update_7010() {
     $spec = $schema['ammo_meetings']['fields']['disable_confirmation_checkbox'];
     db_add_field('ammo_meetings', 'disable_confirmation_checkbox', $spec);
   }
+}
+
+/**
+ * Add validation range fields to {ammo_documents} table.
+ */
+function ammo_update_7011() {
+  // Add chapter range fields
+  if (!db_field_exists('ammo_documents', 'chapter_min')) {
+    $spec = array(
+      'description' => 'Minimum chapter number for validation.',
+      'type' => 'int',
+      'size' => 'small',
+      'default' => 1,
+    );
+    db_add_field('ammo_documents', 'chapter_min', $spec);
+  }
+  
+  if (!db_field_exists('ammo_documents', 'chapter_max')) {
+    $spec = array(
+      'description' => 'Maximum chapter number for validation.',
+      'type' => 'int',
+      'size' => 'small',
+    );
+    db_add_field('ammo_documents', 'chapter_max', $spec);
+  }
+  
+  // Add page range fields
+  if (!db_field_exists('ammo_documents', 'page_min')) {
+    $spec = array(
+      'description' => 'Minimum page number for validation.',
+      'type' => 'int',
+      'size' => 'small',
+      'default' => 1,
+    );
+    db_add_field('ammo_documents', 'page_min', $spec);
+  }
+  
+  if (!db_field_exists('ammo_documents', 'page_max')) {
+    $spec = array(
+      'description' => 'Maximum page number for validation.',
+      'type' => 'int',
+      'size' => 'small',
+    );
+    db_add_field('ammo_documents', 'page_max', $spec);
+  }
+  
+  // Add line maximum field
+  if (!db_field_exists('ammo_documents', 'line_max')) {
+    $spec = array(
+      'description' => 'Maximum line number for validation.',
+      'type' => 'int',
+      'size' => 'small',
+    );
+    db_add_field('ammo_documents', 'line_max', $spec);
+  }
+  
+  return t('Added validation range fields to documents table.');
 }
