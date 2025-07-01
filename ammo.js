@@ -56,6 +56,22 @@
           $link.closest('.text-limit').find('.truncated-text').show();
         });
 
+        // Handle withdrawn proposal toggle (compatible with jQuery 1.4.4)
+        $(context).delegate('.withdrawn-toggle', 'click', function(e) {
+          e.preventDefault();
+          var $link = $(this);
+          var targetId = $link.data('target');
+          var $content = $('#' + targetId);
+          
+          if ($content.is(':visible')) {
+            $content.hide();
+            $link.text('[Toon details]');
+          } else {
+            $content.show();
+            $link.text('[Verberg details]');
+          }
+        });
+
     }
   };
 

@@ -1,5 +1,18 @@
-<?php global $base_url; ?>
-<h3 id="motion<?php print $entity_id; ?>">Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?></h3>
+<?php 
+global $base_url; 
+$is_withdrawn = ($state === 'withdrawn');
+?>
+<h3 id="motion<?php print $entity_id; ?>" class="motion-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
+  Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?>
+  <?php if ($is_withdrawn): ?>
+    <span class="withdrawn-indicator"> - Ingetrokken</span>
+  <?php endif; ?>
+</h3>
+
+<?php if ($is_withdrawn): ?>
+<a href="#" class="withdrawn-toggle" data-target="motion-content-<?php print $entity_id; ?>">[Toon details]</a>
+<div id="motion-content-<?php print $entity_id; ?>" class="motion-content-collapsed" style="display: none;">
+<?php endif; ?>
 <?php //print '<p>' . $meeting_title . ' van de SP, in vergadering bijeen op ' . $meeting_date . '.</p>'; ?>
 
 <h4>Indiener(s):</h4>
@@ -126,4 +139,8 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
     <?php endif; ?>
   </ul>
+<?php endif; ?>
+
+<?php if ($is_withdrawn): ?>
+</div>
 <?php endif; ?>

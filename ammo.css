@@ -29,7 +29,7 @@ ul.ammo-list li {
 li.withdrawn,
 li.invalid,
 li.blocked {
-  background-color: #eee;
+  /* background-color: #eee; */
   color: #888;
 }
 
@@ -94,6 +94,43 @@ a.text-limit-toggle:link {
 .blocked a.text-limit-toggle:link {
 	text-decoration: none;
 	color: #aaa;
+}
+
+/* Withdrawn proposal styles */
+.withdrawn-header {
+  cursor: pointer;
+}
+
+.withdrawn-indicator {
+  font-weight: normal;
+}
+
+.withdrawn-toggle {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9em;
+  font-weight: normal;
+  display: block;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.withdrawn-toggle:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+.amendment-content-collapsed,
+.motion-content-collapsed {
+  display: none;
+}
+
+.withdrawn .amendment-content-collapsed,
+.withdrawn .motion-content-collapsed {
+  background-color: #f9f9f9;
+  border-left: 3px solid #ccc;
+  padding: 10px;
+  margin-top: 10px;
 }
 
 h4.inline-title {

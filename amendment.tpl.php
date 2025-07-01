@@ -4,8 +4,19 @@ global $base_url;
 // Format amendment ID with "X" fallback for empty chapter
 $chapter_display = (!empty($chapter)) ? $chapter : 'X';
 $amendment_id = (!empty($chapterized_id)) ? $chapter_display . '.' . $chapterized_id : $chapter_display . '.' . $entity_id;
+$is_withdrawn = ($state === 'withdrawn');
 ?>
-<h3 id="amendment<?php print $entity_id; ?>">Voorstel <?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)</h3>
+<h3 id="amendment<?php print $entity_id; ?>" class="amendment-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
+  Voorstel <?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)
+  <?php if ($is_withdrawn): ?>
+    <span class="withdrawn-indicator"> - Ingetrokken</span>
+  <?php endif; ?>
+</h3>
+
+<?php if ($is_withdrawn): ?>
+<a href="#" class="withdrawn-toggle" data-target="amendment-content-<?php print $entity_id; ?>">[Toon details]</a>
+<div id="amendment-content-<?php print $entity_id; ?>" class="amendment-content-collapsed" style="display: none;">
+<?php endif; ?>
 
 <?php
 // Process owners - always use h4 heading for consistency
@@ -124,4 +135,8 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
   <?php endif; ?>
 </ul>
+<?php endif; ?>
+
+<?php if ($is_withdrawn): ?>
+</div>
 <?php endif; ?>
