@@ -656,7 +656,6 @@ function ammo_select_afdeling_form(&$form, &$form_state, $type, $options) {
     '#options' => $options,
     '#default_value' => ammo_default($form_state, 'branch_id'),
     '#required' => true,
-    '#attributes' => array('onchange' => "jQuery('#action_button').mousedown()"),
   );
 }
 
@@ -689,7 +688,6 @@ function ammo_select_meeting_form(&$form, &$form_state, $options = array()) {
       '#options' => $options,
       '#default_value' => ammo_default($form_state, 'meeting'),
       '#required' => true,
-      '#attributes' => array('onchange' => "jQuery('#action_button').mousedown()"),
     );
   }
 }

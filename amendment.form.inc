@@ -264,16 +264,25 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#title' => 'Toelichting',
       '#default_value' => ammo_default($form_state, 'supplement'),
     );
-    $form['submission_type'] = array(
-      '#type' => 'radios',
-      '#title' => 'Opslaan als',
-      '#options' => array(
-        'draft' => 'Concept',   
-        'submit' => 'Definitief',
-      ),
-      '#default_value' => ammo_default($form_state, 'submission_type') ? ammo_default($form_state, 'submission_type') : 'submit',
-      '#description' => 'Een concept-voorstel wordt nog niet getoond en je kunt het later nog bewerken. Kies voor definitief als je het voorstel wil publiceren. Je kunt dat niet ongedaan maken.',
-    );
+    // Only show submission type choice to admins
+    if (ammo_admin_access()) {
+      $form['submission_type'] = array(
+        '#type' => 'radios',
+        '#title' => 'Opslaan als',
+        '#options' => array(
+          'draft' => 'Concept',   
+          'submit' => 'Definitief',
+        ),
+        '#default_value' => ammo_default($form_state, 'submission_type') ? ammo_default($form_state, 'submission_type') : 'submit',
+        '#description' => 'Een concept-voorstel wordt nog niet getoond en je kunt het later nog bewerken. Kies voor definitief als je het voorstel wil publiceren. Je kunt dat niet ongedaan maken.',
+      );
+    } else {
+      // For non-admins, set submission type as hidden field with fixed value
+      $form['submission_type'] = array(
+        '#type' => 'hidden',
+        '#value' => 'submit',
+      );
+    }
   }
 
   if ($form_state['step'] == 7) {
@@ -284,7 +293,6 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $submission_text = 'definitief'; // This step only shows for definitive submissions
     
     $summary = '<div class="amendment-summary">';
-    $summary .= '<h3>Samenvatting van uw wijzigingsvoorstel:</h3>';
     $summary .= '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '</p>';
     $summary .= '<p><strong>Document:</strong> ' . check_plain($form_state['storage']['document_display_name']) . '</p>';
     $summary .= '<p><strong>Hoofdstuk:</strong> ' . check_plain(ammo_default($form_state, 'chapter')) . '</p>';
