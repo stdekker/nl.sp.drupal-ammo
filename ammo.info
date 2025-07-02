@@ -2,7 +2,7 @@ name = Ammo
 description = SP Wijzigingsvoorstellen en Moties
 core = 7.x
 package = sprbs
-version = 1.0.2
+version = 1.1
 
 dependencies[] = number
 dependencies[] = entity
