@@ -336,17 +336,3 @@ h4.inline-title {
 .ownership-form .form-actions .button {
   margin-right: 1em;
 }
-
-/* Document constraints display */
-.document-constraints {
-  background-color: #e6f3ff;
-  border: 1px solid #b3d9ff;
-  border-radius: 4px;
-  padding: 10px;
-  margin-bottom: 15px;
-  font-size: 0.9em;
-}
-
-.document-constraints strong {
-  color: #0066cc;
-}

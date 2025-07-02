@@ -68,9 +68,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   // Set laste page depending on permissions.
-  $form_state['storage']['last_step'] = 7; // Add confirmation step
+  $form_state['storage']['last_step'] = 6; // Confirmation step
   if (ammo_admin_access() && !empty($path_id)) {
-    $form_state['storage']['last_step'] = 8; // Admin advice step moves to 8
+    $form_state['storage']['last_step'] = 7; // Admin advice step
   }
 
   // If $form_state['step'] is not set, we set it to the first step.
@@ -163,11 +163,11 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       return $form;
     }
     if (count($options) == 1) {
-      $form_state['step'] += 2; // Skip both branch selection and owner selection steps
+      $form_state['step']++; // Skip branch selection step and go to content (step 5)
       $form_state['storage']['branch_id'] = key($options);
       $form_state['storage']['branch_display_name'] = current($options);
       
-      // Don't create entity yet - wait until user provides content in step 6
+      // Don't create entity yet - wait until user provides content in step 5
       $form_state['storage']['single_branch_auto_selected'] = TRUE;
     }
     else {
@@ -179,14 +179,6 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 5) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel bewerken</h2>';
-    ammo_select_owner_form('amendment', $form, $form_state);
-    $form['backed']['#prefix'] =
-      '<p>Bijeenkomst: ' . check_plain($form_state['storage']['meeting_display_name']) . '<br/>' .
-      'Document: ' . check_plain($form_state['storage']['document_display_name'])  . '</p>';
-  }
-
-  if ($form_state['step'] == 6) {
     $form['title']['#markup'] = '<h2>Wijzigingsvoorstel bewerken</h2>';
     
     // Show selected meeting, document and branch info
@@ -285,7 +277,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     }
   }
 
-  if ($form_state['step'] == 7) {
+  if ($form_state['step'] == 6) {
     $form['title']['#markup'] = '<h2>Bevestiging</h2>';
     
     // Show summary of what will be submitted (only for definitive submissions)
@@ -319,7 +311,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     );
   }
 
-  if ($form_state['step'] == 8) {
+  if ($form_state['step'] == 7) {
     $form['title']['#markup'] = '<h2>Wijzigingsvoorstel advies</h2>';
     $form['item'] = array(
       '#type' => 'item',
@@ -361,7 +353,6 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   // If we are on first step, we do not want a back button
   if (
     $form_state['step'] > $form_state['storage']['first_step'] &&
-    $form_state['step'] <> 5 &&
     !empty($form_state['active_steps'])
   )
   {
@@ -422,7 +413,7 @@ function ammo_amendment_form_validate($form, &$form_state) {
       form_set_error('checked', 'U moet bevestigen dat u hebt gecontroleerd dat er niet al een vergelijkbaar wijzigingsvoorstel is ingediend.');
     }
     break;
-  case 6:
+  case 5:
     // Basic format validation
     if (!preg_match('/^[0-9][0-9]*$/', $values['chapter'])) {
       form_set_error('chapter', 'Hoofdstuk nr. moet een getal zijn.');
@@ -449,7 +440,7 @@ function ammo_amendment_form_validate($form, &$form_state) {
       }
     }
     break;
-  case 7:
+  case 6:
     if (empty($values['confirm'])) {
       form_set_error('confirm', 'U moet bevestigen dat u het wijzigingsvoorstel wilt opslaan/indienen.');
     }
@@ -505,21 +496,10 @@ function ammo_amendment_form_submit($form, &$form_state)
       $form_state['storage']['branch_id'] = $values['branch_id'];
       $form_state['storage']['branch_display_name'] = $form['branch_id']['#options'][$values['branch_id']];
       
-      // For admins creating new proposals, skip the owner confirmation step
-      if (ammo_admin_access() && empty($path_id)) {
-        $form_state['step']++; // Skip step 5 (owner confirmation) and go directly to step 6 (content)
-        $form_state['storage']['admin_branch_selected'] = TRUE;
-      }
+      // Branch selected, no additional step needed
+      $form_state['storage']['branch_selected'] = TRUE;
       break;
     case 5:
-      // Remove entity creation from here - only handle ownership confirmation
-      if ($values['backed']) {
-        // Store ownership decision, entity will be created later when we have content
-        $form_state['storage']['ownership_confirmed'] = TRUE;
-      }
-      $form_state['storage']['new'] = FALSE;
-      break;
-    case 6:
       // Store form data first
       $form_state['storage']['chapter'] = $values['chapter'];
       $form_state['storage']['page'] = $values['page'];
@@ -545,7 +525,7 @@ function ammo_amendment_form_submit($form, &$form_state)
           $storage = $form_state['storage'];
           
           // Set ownership based on how branch was selected
-          if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+          if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['branch_selected'])) {
             $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
           } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
             $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
@@ -575,9 +555,9 @@ function ammo_amendment_form_submit($form, &$form_state)
         ammo_ajax_redirect($form_state['storage']['destination']['destination']);
         return;
       }
-      // For definitive submission, continue to confirmation step (entity created in step 7)
+      // For definitive submission, continue to confirmation step (entity created in step 6)
       break;
-    case 7:
+    case 6:
       // Confirmation step - create entity and save definitive submission
       // Create amendment entity if it doesn't exist yet
       if (empty($storage['amendment'])) {
@@ -594,7 +574,7 @@ function ammo_amendment_form_submit($form, &$form_state)
         $storage = $form_state['storage'];
         
         // Set ownership based on how branch was selected
-        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['branch_selected'])) {
           $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
         } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
           $entity = ammo_save_relation('owner', 'amendment', $form_state['storage']['amendment'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
@@ -623,7 +603,7 @@ function ammo_amendment_form_submit($form, &$form_state)
       $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
       drupal_set_message('<p>Het wijzigingsvoorstel ' . $amendment_number . ' is definitief ingediend voor behandeling. E-mail is verzonden.</p>');
       break;
-    case 8:
+    case 7:
       $mapping = array(
         'advice' => 'advice',
         'advice_supplement' => 'advice_supplement',

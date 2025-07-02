@@ -213,6 +213,15 @@ function ammo_menu() {
     'access callback' => 'ammo_admin_access',
   );
 
+  // Devel item to show user's afdelingen access
+  $items['devel/ammo/afdelingen'] = array(
+    'title' => 'Ammo: Gebruiker afdelingen toegang',
+    'description' => 'Toont welke afdelingen de huidige gebruiker toegang heeft in Ammo',
+    'page callback' => 'ammo_devel_user_afdelingen_page',
+    'access arguments' => array('access devel information'),
+    'menu_name' => 'devel',
+  );
+
   return $items;
 }
 
@@ -1141,4 +1150,112 @@ function ammo_show_motions() {
     $value = ($result > 0) ? TRUE : FALSE;
   }
   return $value;
+}
+
+/**
+ * Devel page callback to show which afdelingen the current user has access to.
+ */
+function ammo_devel_user_afdelingen_page() {
+  global $user;
+  
+  // Get user wrapper
+  $user_wrapper = entity_metadata_wrapper('user', $user);
+  
+  // Get contact ID - with fallback for when OpenID is disabled
+  $contact_id = NULL;
+  try {
+    if (isset($user_wrapper->field_contact_id)) {
+      $contact_id = $user_wrapper->field_contact_id->value();
+    }
+  } catch (EntityMetadataWrapperException $e) {
+    // Field doesn't exist, use fallback
+  }
+  
+  // If no contact_id and user is admin, use user ID as fallback
+  if (empty($contact_id) && ammo_admin_access()) {
+    $contact_id = $user->uid;
+  }
+  
+  $output = '';
+  
+  // Display user information
+  $output .= '<h2>Gebruiker informatie</h2>';
+  $output .= '<p><strong>Gebruiker ID:</strong> ' . $user->uid . '</p>';
+  $output .= '<p><strong>Gebruikersnaam:</strong> ' . check_plain($user->name) . '</p>';
+  $output .= '<p><strong>Contact ID:</strong> ' . ($contact_id ? $contact_id : '<em>Geen contact ID gevonden</em>') . '</p>';
+  
+  // Display user roles
+  $output .= '<p><strong>Rollen:</strong> ' . implode(', ', $user->roles) . '</p>';
+  
+  // Display permissions relevant to Ammo
+  $ammo_permissions = array(
+    'administer ammo' => 'Beheer ammo',
+    'administer amendments and motions' => 'Beheer wijzigingsvoorstellen en moties',
+    'add amendments and motions' => 'Voeg wijzigingsvoorstellen en moties toe',
+    'view submitted amendments and motions' => 'Bekijk ingediende wijzigingsvoorstellen en moties',
+  );
+  
+  $output .= '<h3>Ammo permissies</h3>';
+  $output .= '<ul>';
+  foreach ($ammo_permissions as $permission => $description) {
+    $has_permission = user_access($permission);
+    $output .= '<li>' . $description . ': ' . ($has_permission ? '<strong>Ja</strong>' : 'Nee') . '</li>';
+  }
+  $output .= '</ul>';
+  
+  // Get afdelingen access
+  $output .= '<h2>Afdelingen toegang</h2>';
+  
+  if ($contact_id) {
+    $afdelingen = ammo_get_afdelingen($contact_id);
+    
+    if (!empty($afdelingen)) {
+      $output .= '<p><strong>Aantal afdelingen met toegang:</strong> ' . count($afdelingen) . '</p>';
+      $output .= '<h3>Afdelingen lijst</h3>';
+      $output .= '<ul>';
+      foreach ($afdelingen as $afd_id => $afd_name) {
+        $output .= '<li><strong>ID:</strong> ' . $afd_id . ' - <strong>Naam:</strong> ' . check_plain($afd_name) . '</li>';
+      }
+      $output .= '</ul>';
+    } else {
+      $output .= '<p><em>Geen afdelingen toegang gevonden voor deze gebruiker.</em></p>';
+    }
+    
+    // Also try getting all afdelingen if user is admin
+    if (ammo_admin_access()) {
+      $all_afdelingen = ammo_get_afdelingen('all');
+      if (!empty($all_afdelingen)) {
+        $output .= '<h3>Alle afdelingen (admin toegang)</h3>';
+        $output .= '<p><strong>Totaal aantal afdelingen:</strong> ' . count($all_afdelingen) . '</p>';
+        $output .= '<details><summary>Toon alle afdelingen</summary>';
+        $output .= '<ul>';
+        foreach ($all_afdelingen as $afd_id => $afd_name) {
+          $output .= '<li><strong>ID:</strong> ' . $afd_id . ' - <strong>Naam:</strong> ' . check_plain($afd_name) . '</li>';
+        }
+        $output .= '</ul>';
+        $output .= '</details>';
+      }
+    }
+    
+    // Get function role mapping if available
+    $function_role_mapping = variable_get('procoid_function_role_mapping', array());
+    if (!empty($function_role_mapping)) {
+      $output .= '<h3>Functie-rol mapping (procoid)</h3>';
+      $output .= '<pre>' . print_r($function_role_mapping, TRUE) . '</pre>';
+    }
+    
+  } else {
+    $output .= '<p><em>Kan afdelingen toegang niet bepalen - geen contact ID beschikbaar.</em></p>';
+  }
+  
+  // Add some debug information about the Ammo access functions
+  $output .= '<h2>Ammo toegang functies</h2>';
+  $output .= '<ul>';
+  $output .= '<li><strong>ammo_add_access():</strong> ' . (ammo_add_access() ? 'Ja' : 'Nee') . '</li>';
+  $output .= '<li><strong>ammo_admin_access():</strong> ' . (ammo_admin_access() ? 'Ja' : 'Nee') . '</li>';
+  $output .= '<li><strong>ammo_superadmin_access():</strong> ' . (ammo_superadmin_access() ? 'Ja' : 'Nee') . '</li>';
+  $output .= '<li><strong>ammo_view_overview_access():</strong> ' . (ammo_view_overview_access() ? 'Ja' : 'Nee') . '</li>';
+  $output .= '</ul>';
+  
+  return $output;
 }

@@ -93,8 +93,15 @@ function ammo_get_afdelingen_helper($contact_id = NULL) {
     }
   }
   elseif (ammo_add_access()) {
-    // Return contact chapter.
+    // First try the complex procoid-based access system
     $afdeling_info = ammo_get_contact_add_access_afdelingen($contact_id);
+    if (!empty($afdeling_info)) {
+      return $afdeling_info;
+    }
+    
+    // Fallback for users who have add access but don't have procoid function mappings
+    // This ensures users with multiple afdelingen can still select which one to use
+    $afdeling_info = ammo_get_contact_afdeling_info($contact_id);
     if (!empty($afdeling_info)) {
       return $afdeling_info;
     }
@@ -117,6 +124,24 @@ function ammo_get_contact($contact_id) {
     $user_wrapped = entity_metadata_wrapper('user', $user);
     return $user_wrapped;
   }
+}
+
+function ammo_get_contact_afdeling_info($contact_id) {
+  $user_wrapped = ammo_get_contact($contact_id);
+  if (!empty($user_wrapped)) {
+    try {
+      $afd_id = $user_wrapped->field_afdeling_id->value();
+      $afd_title = $user_wrapped->field_afdeling->value();
+      
+      if (!empty($afd_id) && !empty($afd_title)) {
+        return [$afd_id => $afd_title];
+      }
+    } catch (EntityMetadataWrapperException $e) {
+      // Fields might not exist, return FALSE
+    }
+  }
+  
+  return FALSE;
 }
 
 function ammo_get_contact_add_access_afdelingen($contact_id) {

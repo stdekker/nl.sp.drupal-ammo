@@ -75,12 +75,12 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   // Set data input step for changes check.
-  $form_state['storage']['changes_step'] = 5;
+  $form_state['storage']['changes_step'] = 4;
 
   // Set laste page depending on permissions.
-  $form_state['storage']['last_step'] = 5;
+  $form_state['storage']['last_step'] = 4;
   if (ammo_admin_access() && !empty($path_id)) {
-    $form_state['storage']['last_step'] = 6;
+    $form_state['storage']['last_step'] = 5;
   }
 
   // If $form_state['step'] is not set, we set it to the first step.
@@ -151,11 +151,11 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       return $form;
     }
     if (count($options) == 1) {
-      $form_state['step'] += 2; // Skip both branch selection and owner selection steps  
+      $form_state['step']++; // Skip branch selection step and go to content (step 4)
       $form_state['storage']['branch_id'] = key($options);
       $form_state['storage']['branch_display_name'] = current($options);
       
-      // Don't create entity yet - wait until user provides content in step 5
+      // Don't create entity yet - wait until user provides content in step 4
       $form_state['storage']['single_branch_auto_selected'] = TRUE;
     }
     else {
@@ -166,11 +166,6 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   if ($form_state['step'] == 4) {
-    $form['title']['#markup'] = '<h2>Motie bewerken</h2>';
-    ammo_select_owner_form('motion', $form, $form_state);
-  }
-
-  if ($form_state['step'] == 5) {
     $form['title']['#markup'] = '<h2>Motie bewerken</h2>';
     
     // Show selected meeting and branch info
@@ -225,7 +220,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     );
   }
 
-  if ($form_state['step'] == 6) {
+  if ($form_state['step'] == 5) {
     $form['title']['#markup'] = '<h2>Motie advies</h2>';
     $form['item'] = array(
       '#type' => 'item',
@@ -328,7 +323,6 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   // If we are on first step, we do not want a back button
   if(
     $form_state['step'] > $form_state['storage']['first_step'] &&
-    $form_state['step'] <> 4 &&
     !empty($form_state['active_steps'])
   )
   {
@@ -390,7 +384,7 @@ function ammo_motion_form_validate($form, &$form_state)
       form_set_error('checked', 'U moet bevestigen dat u hebt gecontroleerd dat er niet al een vergelijkbare motie is ingediend.');
     }
     break;
-  case 5:
+  case 4:
     if (empty($values['consideration_opening'])) {
       form_set_error('consideration_opening', 'Vul de overweging openingszin in.');
     }
@@ -451,21 +445,10 @@ function ammo_motion_form_submit($form, &$form_state)
       $form_state['storage']['branch_id'] = $values['branch_id'];
       $form_state['storage']['branch_display_name'] = $form['branch_id']['#options'][$values['branch_id']];
       
-      // For admins creating new proposals, skip the owner confirmation step
-      if (ammo_admin_access() && empty($path_id)) {
-        $form_state['step']++; // Skip step 4 (owner confirmation) and go directly to step 5 (content)
-        $form_state['storage']['admin_branch_selected'] = TRUE;
-      }
+      // Branch selected, no additional step needed
+      $form_state['storage']['branch_selected'] = TRUE;
       break;
     case 4:
-      // Remove entity creation from here - only handle ownership confirmation
-      if ($values['backed']) {
-        // Store ownership decision, entity will be created later when we have content
-        $form_state['storage']['ownership_confirmed'] = TRUE;
-      }
-      $form_state['storage']['new'] = FALSE;
-      break;
-    case 5:
       // Create motion entity now that we have valid content to save
       if (empty($storage['motion'])) {
         $form_state['storage']['state'] = 'concept';
@@ -481,7 +464,7 @@ function ammo_motion_form_submit($form, &$form_state)
         $storage = $form_state['storage'];
         
         // Set ownership based on how branch was selected
-        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['admin_branch_selected'])) {
+        if (!empty($form_state['storage']['single_branch_auto_selected']) || !empty($form_state['storage']['branch_selected'])) {
           $entity = ammo_save_relation('owner', 'motion', $form_state['storage']['motion'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
         } elseif (!empty($form_state['storage']['ownership_confirmed'])) {
           $entity = ammo_save_relation('owner', 'motion', $form_state['storage']['motion'], $form_state['storage']['branch_id'], 'branch', $form_state['storage']['branch_display_name'], $form_state['storage']['branch_id'], $form_state['storage']['branch_display_name']);
@@ -508,7 +491,7 @@ function ammo_motion_form_submit($form, &$form_state)
       $motion_number = $motion->motion_id ?: $motion->id;
       drupal_set_message('<p>Motie ' . $motion_number . ' is succesvol opgeslagen. E-mail is verzonden.</p>');
       break;
-    case 6:
+    case 5:
       $mapping = array(
         'advice' => 'advice',
         'advice_supplement' => 'advice_supplement',
