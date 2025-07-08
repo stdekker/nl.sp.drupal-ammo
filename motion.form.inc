@@ -32,7 +32,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       if (ammo_admin_access()) {
         if (ammo_populate_form('motion', $path_id, $form_state)) {
           if (ammo_support_access($form_state['storage']['meeting']) || ammo_superadmin_access()) {
-            $form_state['storage']['first_step'] = 6;
+            $form_state['storage']['first_step'] = 5;
           }
           else {
             return;

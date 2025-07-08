@@ -34,7 +34,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         if (ammo_populate_form('amendment', $path_id, $form_state)) {
           $meeting_id = ammo_get_meeting_id('amendment', $form_state['storage']['amendment']);
           if (ammo_support_access($meeting_id) || ammo_superadmin_access()) {
-            $form_state['storage']['first_step'] = 8;
+            $form_state['storage']['first_step'] = 7;
           }
           else {
             return;
