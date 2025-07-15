@@ -112,6 +112,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
       <?php if ($admin_access) : ?>
         <li><?php print l('indieners', 'ammo/motion/ownership/' . $entity_id, array('query' => $dest))?></li>
+        <li><?php print l('stemming', 'ammo/motion/vote-request/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
       <?php if ($superadmin_access) : ?>
         <li><?php print l('verwijderen', 'ammo/motion/delete/' . $entity_id, array('query' => $dest))?></li>

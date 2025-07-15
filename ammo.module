@@ -213,6 +213,25 @@ function ammo_menu() {
     'access callback' => 'ammo_admin_access',
   );
 
+  // Add admin vote request management routes
+  $items['ammo/amendment/vote-request/%'] = array(
+    'title' => 'Stemmingaanvragen beheren',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_amendment_vote_request_admin_form', 3),
+    'file' => 'vote_request_admin.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_admin_access',
+  );
+
+  $items['ammo/motion/vote-request/%'] = array(
+    'title' => 'Stemmingaanvragen beheren',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_motion_vote_request_admin_form', 3),
+    'file' => 'vote_request_admin.form.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_admin_access',
+  );
+
   // Devel item to show user's afdelingen access
   $items['devel/ammo/afdelingen'] = array(
     'title' => 'Ammo: Gebruiker afdelingen toegang',
