@@ -73,11 +73,17 @@ function ammo_print_form($form, &$form_state) {
       unset($form_state['values']['amendments_order']);
       break;
     }
-
-
   }
 
   if (!empty($form_state['values']['type'])) {
+    $form['status'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Statussen'),
+      '#options' => ammo_states(),
+      '#default_value' => array('accepted', 'submitted', 'rejected'),
+      '#required' => TRUE,
+    );
+
     $form['notespace'] = array(
       '#type' => 'checkbox',
       '#title' => 'Ruimte voor notities toevoegen',
@@ -86,7 +92,7 @@ function ammo_print_form($form, &$form_state) {
     $form['pagebreaks'] = array(
       '#type' => 'checkbox',
       '#title' => 'Pagina-einden tussen wijzigingsvoorstellen',
-      '#default_value' => 1,
+      '#default_value' => 0,
     );
   }
 

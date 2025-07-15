@@ -812,7 +812,9 @@ function template_preprocess_print_amendments_by_location(&$variables) {
       'description' => check_plain($document->description),
       'meeting_id' => check_plain($document->meeting_id),
     );
-    $amendments_results = db_query("SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'concept' ORDER BY chapter, page, line, id", array(":document_id" => $document->id));
+    $statuses = array_filter($variables['values']['status']);
+    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states) ORDER BY chapter, page, line, id";
+    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses));
     foreach ($amendments_results as $amendment) {
       // Get owners.
       $owners_member = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'member');
@@ -859,7 +861,9 @@ function template_preprocess_print_amendments_by_number(&$variables) {
       'description' => check_plain($document->description),
       'meeting_id' => check_plain($document->meeting_id),
     );
-    $amendments_results = db_query("SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state != 'concept' ORDER BY chapter, chapterized_id", array(":document_id" => $document->id));
+    $statuses = array_filter($variables['values']['status']);
+    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states) ORDER BY chapter, chapterized_id";
+    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses));
     $backers = ammo_get_related_contacts($amendment->id, 'amendment', 'backer');
     foreach ($amendments_results as $amendment) {
       // Get owners.
@@ -899,10 +903,14 @@ function template_preprocess_print_motions_by_branch(&$variables) {
   $data = _ammo_preprocess_meeting_data($variables['values']['meeting']);
   // Include blocked motions for admins in print view
   $admin_access = ammo_admin_access();
+  $statuses = array_filter($variables['values']['status']);
+  $query = "SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state IN (:states)";
+  $args = array(":meeting_id" => $variables['values']['meeting'], ':states' => $statuses);
   if ($admin_access) {
-    $motions_results = db_query("SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept'", array(":meeting_id" => $variables['values']['meeting']));
+    $motions_results = db_query($query, $args);
   } else {
-    $motions_results = db_query("SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept' AND state != 'blocked'", array(":meeting_id" => $variables['values']['meeting']));
+    $query .= " AND state != 'blocked'";
+    $motions_results = db_query($query, $args);
   }
   foreach ($motions_results as $motion) {
     $owners_member = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'member');
@@ -938,10 +946,14 @@ function template_preprocess_print_motions_by_number(&$variables) {
   $data = _ammo_preprocess_meeting_data($variables['values']['meeting']);
   // Include blocked motions for admins in print view
   $admin_access = ammo_admin_access();
+  $statuses = array_filter($variables['values']['status']);
+  $query = "SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state IN (:states)";
+  $args = array(":meeting_id" => $variables['values']['meeting'], ':states' => $statuses);
   if ($admin_access) {
-    $motions_results = db_query("SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept'", array(":meeting_id" => $variables['values']['meeting']));
+    $motions_results = db_query($query, $args);
   } else {
-    $motions_results = db_query("SELECT * FROM {ammo_motions} WHERE meeting_id = :meeting_id AND state != 'concept' AND state != 'blocked'", array(":meeting_id" => $variables['values']['meeting']));
+    $query .= " AND state != 'blocked'";
+    $motions_results = db_query($query, $args);
   }
   foreach ($motions_results as $motion) {
     $owners_member = ammo_get_related_contacts($motion->id, 'motion', 'owner', 'member');

@@ -17,8 +17,21 @@ p {
 </style>
 </head>
 <body>
+<?php 
+// Display document title only once at the top
+$document_title = '';
+if (!empty($meeting['documents'])) {
+  foreach ($meeting['documents'] as $document) {
+    if (!empty($document['title'])) {
+      $document_title = $document['title'];
+      break;
+    }
+  }
+}
+if (!empty($document_title)): ?>
+  <h2><?php print $document_title; ?></h2>
+<?php endif; ?>
 <?php foreach ($meeting['documents'] as $document) : ?>
-  <h2><?php print $document['title']; ?></h2>
   <?php foreach ($document['chapters'] as $chapter) : ?>
     <?php foreach ($chapter['pages'] as $page) : ?>
       <?php foreach ($page['amendments'] as $amendment) : ?>
