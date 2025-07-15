@@ -111,7 +111,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
     <?php if ($admin_access): ?>
       <li><?php print l('indieners', 'ammo/amendment/ownership/' . $entity_id, array('query' => $dest)); ?></li>
-      <li><?php print l('stemmingaanvragen', 'ammo/amendment/vote-request/' . $entity_id, array('query' => $dest)); ?></li>
+      <li><?php print l('stemming', 'ammo/amendment/vote-request/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
