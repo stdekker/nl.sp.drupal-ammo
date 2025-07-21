@@ -84,6 +84,12 @@ function ammo_print_form($form, &$form_state) {
       '#required' => TRUE,
     );
 
+    $form['vote_requested_only'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Alleen stemming aangevraagd',
+      '#default_value' => 0,
+    );
+
     $form['notespace'] = array(
       '#type' => 'checkbox',
       '#title' => 'Ruimte voor notities toevoegen',

@@ -35,7 +35,8 @@ if (!empty($document_title)): ?>
   <?php foreach ($document['chapters'] as $chapter) : ?>
     <?php foreach ($chapter['pages'] as $page) : ?>
       <?php foreach ($page['amendments'] as $amendment) : ?>
-        <p><strong>Wijzigingsvoorstel nr. <?php print $amendment['chapter'] . '.' . $amendment['chapterized_id']; ?>, hoofdstuk <?php print $amendment['chapter']; ?>, pagina <?php print $amendment['page']; ?>, regel <?php print $amendment['line']; ?></strong></p>
+        <h3><?php print $amendment['chapter'] . '.' . $amendment['chapterized_id']; ?></h3>
+        <p><strong>Hoofdstuk <?php print $amendment['chapter']; ?>, pagina <?php print $amendment['page']; ?>, regel <?php print $amendment['line']; ?></strong></p>
         <?php if (!empty($amendment['owners_branch'])) : ?>
           <?php $list = array(); ?>
           <?php foreach ($amendment['owners_branch'] as $owner_branch) : $list[] = $owner_branch['contact_display_name']; endforeach; ?>
@@ -47,7 +48,7 @@ if (!empty($document_title)): ?>
           <?php foreach ($amendment['owners_member'] as $owner_member) : $list[] = $owner_member['contact_display_name']; endforeach; ?>
           <?php $last = array_pop($list); ?>
           <?php if (count($list) === 0) : $members_list = $last; else : $members_list = implode(', ', $list) . ' en ' . $last; endif; ?>
-          <p>Ingediend door <?php print $members_list; ?> van afdeling <?php print $owner_member['branch_display_name']; ?>.</p>
+          <p><strong>Ingediend door:</strong> <?php print $members_list; ?> van afdeling <?php print $owner_member['branch_display_name']; ?>.</p>
           <?php $number = count($amendment['backers']) + count($amendment['owners_member']); ?>
           <?php if (!empty($amendment['owners_branch'])) : ?>
             <p>Mede ingediend door afdeling <?php print $owners_list; ?>.</p>
@@ -69,6 +70,18 @@ if (!empty($document_title)): ?>
         <?php endif; ?>
         <?php $options = ammo_states(); ?>
         <p><strong>Status:</strong> <?php print $options[$amendment['state']]; ?></p>
+        <?php if (!empty($amendment['vote_requests']) && is_array($amendment['vote_requests']) && count($amendment['vote_requests']) > 0) : ?>
+          <p><strong>Stemming aangevraagd door:</strong> 
+          <?php
+            $vote_list = array();
+            foreach ($amendment['vote_requests'] as $vote_request) {
+              $vote_list[] = $vote_request['contact_display_name'];
+            }
+            print implode(', ', $vote_list) . '.';
+          ?>
+          </p>
+          <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
+        <?php endif; ?>
         <?php if (!empty($amendment['advice'])) : ?>
           <?php $options = ammo_amendment_advice(); ?>
           <p><strong>Advies:</strong> <?php print $options[$amendment['advice']]; ?></p>
