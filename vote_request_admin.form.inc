@@ -31,6 +31,13 @@ function ammo_vote_request_admin_form($form, &$form_state, $entity_type, $entity
     return array();
   }
 
+  // Check if vote requests are allowed for this status
+  $meeting_id = ammo_get_meeting_id($entity_type, $entity_id);
+  if (!ammo_vote_request_access($meeting_id, $entity->state)) {
+    drupal_set_message('Het is niet mogelijk stemmingaanvragen te beheren voor voorstellen met de status "' . $entity->state . '".', 'error');
+    return array();
+  }
+
   $form_state['storage']['entity_type'] = $entity_type;
   $form_state['storage']['entity_id'] = $entity_id;
 

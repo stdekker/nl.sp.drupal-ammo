@@ -85,12 +85,12 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 }
 ?>
 
-<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))): ?>
+<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail))) && (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0)): ?>
 <h4>Advies:</h4>
 <p>
 <?php
   $options = ammo_amendment_advice();
-  print ucfirst(strtolower($options[$advice]));
+  print $options[$advice];
   if (!empty($advice_supplement)) {
     print '<br/>' . $advice_supplement;
   }
@@ -111,7 +111,9 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
     <?php if ($admin_access): ?>
       <li><?php print l('indieners', 'ammo/amendment/ownership/' . $entity_id, array('query' => $dest)); ?></li>
-      <li><?php print l('stemming', 'ammo/amendment/vote-request/' . $entity_id, array('query' => $dest)); ?></li>
+      <?php if ($state !== 'spelling_grammar'): ?>
+        <li><?php print l('stemming', 'ammo/amendment/vote-request/' . $entity_id, array('query' => $dest)); ?></li>
+      <?php endif; ?>
     <?php endif; ?>
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>

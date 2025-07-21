@@ -71,7 +71,7 @@ $is_withdrawn = ($state === 'withdrawn');
 </div>
 <?php endif; ?>
 
-<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))) : ?>
+<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail))) && (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0)) : ?>
 <h4>Advies:</h4>
 <div class="ammo-section-content">
 <p>
@@ -112,7 +112,9 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
       <?php if ($admin_access) : ?>
         <li><?php print l('indieners', 'ammo/motion/ownership/' . $entity_id, array('query' => $dest))?></li>
-        <li><?php print l('stemming', 'ammo/motion/vote-request/' . $entity_id, array('query' => $dest))?></li>
+        <?php if ($state !== 'spelling_grammar') : ?>
+          <li><?php print l('stemming', 'ammo/motion/vote-request/' . $entity_id, array('query' => $dest))?></li>
+        <?php endif; ?>
       <?php endif; ?>
       <?php if ($superadmin_access) : ?>
         <li><?php print l('verwijderen', 'ammo/motion/delete/' . $entity_id, array('query' => $dest))?></li>
