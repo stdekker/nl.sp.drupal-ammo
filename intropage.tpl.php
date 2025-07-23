@@ -5,7 +5,8 @@
 
     <div class="ammo-section-content">
       <h2>Bekijken</h2>
-      <p>Voordat je een voorstel of motie indient, bekijk je eerst het overzicht van de ingediende voorstellen. Vaak kun je bij een bestand voorstel aansluiten, hier kun je in het overzicht steun bij aangeven.</p>
+      <p>Voordat je een voorstel of motie indient, bekijk je eerst het overzicht van de ingediende voorstellen. 
+        Vaak kun je bij een bestaand voorstel aansluiten, hier kun je in het overzicht steun bij aangeven.</p>
       <nav class="button-group">
         <ul>
           <li><a href="ammo/amendments">Overzicht wijzigingsvoorstellen</a></li>
@@ -16,8 +17,10 @@
 
     <div class="ammo-section-content">   
       <h2>Indienen</h2>
-      <p>Als er geen voorstellen zijn waar je bij kunt aansluiten kun je namens je afdeling(en) een wijzigingsvoorstel of motie indienen. Deze moeten besproken zijn tijdens een ledenvergadering.</p>
-      <p><strong>Let op!</strong> Tekstcorrecties, typefouten, e.d. kunnen worden ingediend bij <a href="mailto:secretariaat@sp.nl">secretariaat@sp.nl </a></p>
+      <p>Als er geen voorstellen zijn waar je bij kunt aansluiten kun je namens je afdeling een wijzigingsvoorstel of motie indienen. 
+        Deze moeten besproken zijn tijdens een ledenvergadering.</p>
+      <p><strong>Let op!</strong> Tekstcorrecties, typefouten, tekstuele aanvullingen e.d. kunnen worden ingediend bij <a href="mailto:programmacommissie@sp.nl">programmacommissie@sp.nl</a>. Voorstellen en moties over kommaplaatsing, spelling, zinsstructuur etc. worden ter kennisgeving aangenomen met de status ‘tekstuele wijziging’ en komen niet in stemming op het congres.</p>
+      <p>Loop je tegen problemen aan met het gebruik van dit programma? Stuur een e-mail naar <a href="mailto:webteam@sp.nl">webteam@sp.nl</a></p>
       <nav class="button-group">
         <ul>
           <li><a href="ammo/amendment">Wijzigingsvoorstel <span class="ammo-button-label">Voor inoudelijke toevoegingen en wijzigingen</span></a></li>

@@ -612,22 +612,30 @@ function ammo_afdelingen_access($admin_owner = NULL) {
 }
 
 function ammo_checked_form(&$form, &$form_state, $type) {
-  // This function is now only called when the confirmation should be shown
-  // (after meeting selection and verification that the setting is not disabled)
-  
+  // Separate instruction texts for easier modification.
+  $instructions = array(
+    'amendment' =>
+      '<p>Afdelingsvoorzitters kunnen hier wijzigingsvoorstellen indienen. Dit zijn voorstellen tot het inhoudelijk wijzigen of aanvullen van het verkiezingsprogramma.</p>
+      <p>Om de stemmingen op het congres vlot en goed te laten verlopen willen we je vragen om vooraf te controleren of het wijzigingsvoorstel dat jij in wilt dienen, al niet eerder door een andere afdeling ingediend is.</p>
+      <p>In dat geval kun je het wijzigingsvoorstel met één druk op de knop &#39;mede-indienen&#39;. Mocht de eerste indiener het wijzigingsvoorstel intrekken, dan blijft het wijzigingsvoorstel staan omdat jij mede-indiener bent.</p>',
+    'motion' =>
+      '<p>Afdelingsvoorzitters kunnen hier moties indienen. Moties roepen de partij tot een specifieke actie.</p>
+      <p>Om de stemmingen op het congres vlot en goed te laten verlopen willen we je vragen om vooraf te controleren of de motie die jij in wilt dienen, al niet eerder door een andere afdeling ingediend is. 
+      In dat geval kun je de motie met één druk op de knop &#39;mede-indienen&#39;. Mocht de eerste indiener de motie intrekken, dan blijft de motie staan omdat jij mede-indiener bent.</p>',
+  );
+
   $link1 = l('gecontroleerd', 'ammo/' . $type . 's', array('attributes' => array('target' => '_blank')));
-  $link2 = l('overzicht', 'ammo/' . $type . 's');
   $text1 = ($type == 'amendment') ? 'vergelijkbaar wijzigingsvoorstel' : 'vergelijkbare motie';
-  $text2 = ($type == 'amendment') ? 'wijzigingsvoorstellen' : 'moties';
-  $text3 = ($type == 'amendment') ? 'het wijzigingsvoorstel' : 'de motie';
-  $text4 = ($type == 'amendment') ? '<p>Afdelingen kunnen wijzigingsvoorstellen indienen via deze module. Individuele leden kunnen uitsluitend wijzigingsvoorstellen indienen via het landelijk secretariaat (secretariaat@sp.nl). De wijzigingsvoorstellen van individuele leden dienen te worden ondersteund door ten minste 50 leden (handtekeningenlijst met naam en lidnummer bijvoegen).</p>' : '';
-  $finaltext = $text4 . '<p>Om de discussie te kunnen concentreren op hoofdpunten, is het niet handig om tal van ' . $text2 . ' met dezelfde strekking in te dienen. Daarom vragen we onze afdelingsvoorzitters om vooraf te controleren of ' . $text3 . ' dat jij in wilt dienen, al niet eerder door een andere afdeling ingediend is. In dat geval kun je ' . $text3 . ' met één druk op de knop \'mede-indienen\'. Mocht de eerste indiener ' . $text3 . ' intrekken, dan blijft ' . $text2 . ' staan omdat jij mede-indiener bent.</p>';
+
+  // Use the correct instruction text based on type, fallback to motion if unknown.
+  $finaltext = isset($instructions[$type]) ? $instructions[$type] : $instructions['motion'];
+
   $form['checked'] = array(
     '#type' => 'checkbox',
     '#title' => 'Ik heb ' . $link1 . ' dat er niet al een ' . $text1 . ' is ingediend.',
     '#default_value' => FALSE,
     '#required' => TRUE,
-		'#prefix' => $finaltext,
+    '#prefix' => $finaltext,
   );
 }
 
