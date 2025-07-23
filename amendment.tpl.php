@@ -122,7 +122,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
         <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
       <?php if ($supported_branches && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
-        <li><?php print l('voorstel intrekken', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
+        <li><?php print l('voorstel / steun intrekken', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
       <?php if ($removable_member_owners): ?>
         <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/amendment/' . $entity_id, array('query' => $dest)); ?></li>

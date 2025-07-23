@@ -787,8 +787,8 @@ function ammo_vote_request_access($meeting_id, $status) {
   if (!ammo_add_access()) {
     return FALSE;
   }
-  // Vote requests can only be given when status is not 'concept', 'submitted' or 'withdrawn'
-  $allowed_statuses = array('accepted', 'rejected');
+  // Get allowed statuses from configuration, fall back to default if not set
+  $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
   return in_array($status, $allowed_statuses);
 }
 

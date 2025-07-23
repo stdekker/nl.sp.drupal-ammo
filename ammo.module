@@ -168,6 +168,16 @@ function ammo_menu() {
   );
   */
 
+  $items['admin/ammo/vote-request-settings'] = array(
+    'title' => 'Stemmingaanvraag instellingen',
+    'description' => 'Configureer voor welke statussen stemmingaanvragen mogelijk zijn',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_vote_request_settings_form'),
+    'access callback' => 'ammo_superadmin_access',
+    'file' => 'vote_request_settings.form.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   $items['admin/ammo/user-section'] = array(
     'title' => 'Indienen / wijzigen',
     'type' => MENU_NORMAL_ITEM,
@@ -1171,6 +1181,7 @@ function ammo_admin_overview_page() {
     'admin/ammo/document' => t('Documenten'),
     'admin/ammo/print' => t('Print'),
     // 'admin/ammo/export' => t('Export'), // TEMPORARILY DISABLED
+    'admin/ammo/vote-request-settings' => t('Stemmingaanvraag instellingen'),
     'admin/ammo/user-section' => t('Indienen / wijzigen'),
   );
 
