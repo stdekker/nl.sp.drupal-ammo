@@ -89,7 +89,7 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
     case 'withdraw':
       switch ($target_type) {
       case 'amendment':
-        $text = 'De geselecteerd afdelingen dienen dit wijzigingsvoorstel niet langer (mede) in.';
+        $text = 'De geselecteerde afdelingen dienen dit wijzigingsvoorstel niet langer (mede) in.';
         break;
       case 'motion':
         $text = 'De geselecteerde afdelingen dienen deze motie niet langer (mede) in.';
