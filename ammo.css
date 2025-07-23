@@ -236,16 +236,19 @@ h4.inline-title {
 .ammo-section-content .button-group ul {
   list-style: none;
   flex: 1;
-  column-count: 2;
   margin: 0;
   padding: 0;
   width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
 } 
 
 .ammo-section-content .button-group ul li {
   display: block;
-  margin: 0 0 1em 0;
-  width: 100%;
+  margin: 0;
+  flex: 1;
+  min-width: 300px;
 }
 
 .ammo-section-content .button-group ul li a {
