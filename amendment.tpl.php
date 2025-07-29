@@ -92,7 +92,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
   $options = ammo_amendment_advice();
   print $options[$advice];
   if (!empty($advice_supplement)) {
-    print '<br/>' . $advice_supplement;
+    print ' &ndash; ' . $advice_supplement;
   }
 ?>
 </p>
