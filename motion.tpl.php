@@ -1,11 +1,13 @@
 <?php 
 global $base_url; 
-$is_withdrawn = ($state === 'withdrawn');
+$is_withdrawn = ($state === 'withdrawn' || $state === 'rejected');
 ?>
 <h3 id="motion<?php print $entity_id; ?>" class="motion-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
   Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?>
-  <?php if ($is_withdrawn): ?>
+  <?php if ($state === 'withdrawn'): ?>
     <span class="withdrawn-indicator"> - Ingetrokken</span>
+  <?php elseif ($state === 'rejected'): ?>
+    <span class="withdrawn-indicator"> - Afgewezen</span>
   <?php endif; ?>
 </h3>
 
@@ -71,7 +73,7 @@ $is_withdrawn = ($state === 'withdrawn');
 </div>
 <?php endif; ?>
 
-<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail))) && (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0)) : ?>
+<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))) : ?>
 <h4>Advies:</h4>
 <div class="ammo-section-content">
 <p>
@@ -102,8 +104,8 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 <?php if (empty($no_links)) : ?>
   <?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>
   <ul class="ammo-list">
-    <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
-      <?php if ($edit_access) : ?>
+    <?php if ((!empty($owners_branch) || !empty($owners_member)) || $admin_access || $superadmin_access) : ?>
+      <?php if ($edit_access || $admin_access) : ?>
         <li>Bewerken:</li>
         <li><?php print l('inhoud', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
@@ -112,7 +114,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
       <?php if ($admin_access) : ?>
         <li><?php print l('indieners', 'ammo/motion/ownership/' . $entity_id, array('query' => $dest))?></li>
-        <?php if ($state !== 'spelling_grammar') : ?>
+        <?php if ($state !== 'spellgiing_grammar') : ?>
           <li><?php print l('stemming', 'ammo/motion/vote-request/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
       <?php endif; ?>
@@ -121,7 +123,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
     <?php endif; ?>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
-      <?php if ($withdraw_access && $state !== 'withdrawn' && $state !== 'spelling_grammar') : ?>
+      <?php if (($withdraw_access && $state !== 'withdrawn' && $state !== 'rejected' && $state !== 'spelling_grammar') || $admin_access) : ?>
         <?php if ($unsupported_branches) : ?>
           <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
@@ -132,7 +134,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
           <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
       <?php endif; ?>
-      <?php if ($vote_request_access) : ?>
+      <?php if ($vote_request_access || $admin_access) : ?>
         <?php if ($vote_unrequested_branches) : ?>
           <li><?php print l('stemming aanvragen als afdeling', 'ammo/vote_request/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>

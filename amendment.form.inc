@@ -159,7 +159,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     if (empty($options)) {
       $options = array();
       // Show message that no branches are available
-      drupal_set_message('Geen afdelingen beschikbaar voor dit evenement. Neem contact op met de beheerder.', 'warning');
+      drupal_set_message('Geen afdelingen beschikbaar om te kiezen. Neem contact op met webteam@sp.nl', 'warning');
       return $form;
     }
     if (count($options) == 1) {
