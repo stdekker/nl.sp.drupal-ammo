@@ -54,11 +54,11 @@ if (!empty($owners_member)) {
 ?>
 
 <h4>Voorstel:</h4>
-<div class="text-limit"><?php print nl2br($amendment_text); ?></div>
+<div class="text-limit"><?php print $amendment_text; ?></div>
 
 <?php if (!empty($supplement)): ?>
 <h4>Toelichting voorstel:</h4>
-<div class="text-limit"><?php print nl2br($supplement); ?></div>
+<div class="text-limit"><?php print $supplement; ?></div>
 <?php endif; ?>
 
 <?php if (!empty($state) && (!$hide_state || $state === 'withdrawn' || ($admin_access && empty($mail)))): ?>

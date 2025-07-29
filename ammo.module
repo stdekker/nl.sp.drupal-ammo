@@ -14,6 +14,49 @@ function ammo_init() {
   module_load_include("inc", "ammo", "ammo");
 }
 
+/**
+ * Sanitize text by stripping HTML tags, normalizing punctuation, applying nl2br, and limiting consecutive <br> tags.
+ * 
+ * @param string $text
+ *   The text to sanitize.
+ * @param bool $strip_html
+ *   Whether to strip HTML tags from the text. Default TRUE.
+ * @param array $allowed_tags
+ *   Array of allowed HTML tags if strip_html is TRUE. Default empty (strip all).
+ * @return string
+ *   The sanitized text with HTML stripped, punctuation normalized, and consecutive <br> tags limited to maximum 2.
+ */
+function ammo_sanitize_text($text, $strip_html = TRUE, $allowed_tags = array()) {
+  if (empty($text)) {
+    return $text;
+  }
+  
+  // Strip HTML tags if requested
+  if ($strip_html) {
+    if (empty($allowed_tags)) {
+      // Strip all HTML tags
+      $text = strip_tags($text);
+    } else {
+      // Strip HTML tags but allow specified ones
+      $text = strip_tags($text, '<' . implode('><', $allowed_tags) . '>');
+    }
+  }
+  
+  // Normalize multiple exclamation marks to single exclamation mark
+  // Matches patterns like !!!, !!1!!1, !!!!!, etc.
+  $text = preg_replace('/[!1]{2,}/i', '!', $text);
+  
+  // Apply nl2br to convert newlines to <br> tags
+  $text = nl2br($text);
+  
+  // Limit consecutive <br> tags to maximum 2
+  // This regex matches 3 or more consecutive <br> tags (with optional spaces/attributes)
+  // and replaces them with exactly 2 <br> tags
+  $text = preg_replace('/(<br\s*\/?>(\s*)){3,}/i', '<br /><br />', $text);
+  
+  return $text;
+}
+
 function ammo_menu() {
   $items = array();
 
@@ -561,7 +604,7 @@ function template_preprocess_amendment(&$variables) {
     );
     foreach($vars as $key => &$value) {
       if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
-      $value = nl2br(check_plain($value));
+      $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
   }
@@ -668,7 +711,7 @@ function template_preprocess_motion(&$variables) {
     );
     foreach($vars as $key => &$value) {
       if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
-      $value = nl2br(check_plain($value));
+      $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
   }
@@ -862,7 +905,7 @@ function template_preprocess_print_amendments_by_location(&$variables) {
       );
       foreach ($data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['pages'][$amendment->page]['amendments'][$amendment->id] as $key => &$value) {
         if (in_array($key, array('owners_member', 'owners_branch', 'backers', 'vote_requests'))) continue;
-        $value = nl2br($value);
+        $value = ammo_sanitize_text($value);
       }
     }
   }
@@ -920,7 +963,7 @@ function template_preprocess_print_amendments_by_number(&$variables) {
       );
       foreach ($data['meeting']['amendments'][$amendment->id] as $key => &$value) {
         if (in_array($key, array('owners_member', 'owners_branch', 'backers', 'vote_requests'))) continue;
-        $value = nl2br($value);
+        $value = ammo_sanitize_text($value);
       }
     }
   }
@@ -964,7 +1007,7 @@ function template_preprocess_print_motions_by_branch(&$variables) {
     );
     foreach ($data['meeting']['branches'][$first_owner['branch_id']]['motions'][$motion->id] as $key => &$value) {
       if (in_array($key, array('owners_member', 'owners_branch', 'backers'))) continue;
-      $value = nl2br($value);
+      $value = ammo_sanitize_text($value);
     }
   }
   $variables['meeting'] = $data['meeting'];
@@ -1005,7 +1048,7 @@ function template_preprocess_print_motions_by_number(&$variables) {
     );
     foreach ($data['meeting']['motions'][$motion->id] as $key => &$value) {
       if (in_array($key, array('owners_member', 'owners_branch', 'backers'))) continue;
-      $value = nl2br($value);
+      $value = ammo_sanitize_text($value);
     }
   }
   $variables['meeting'] = $data['meeting'];
