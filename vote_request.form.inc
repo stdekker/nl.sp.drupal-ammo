@@ -36,7 +36,17 @@ function ammo_vote_request_form($form, &$form_state, $action, $contact_type, $ta
   
   // Check if vote requests are allowed for this status
   if (!ammo_vote_request_access($meeting_id, $entity->state)) {
-    form_set_error('vote_request', 'Het is niet mogelijk stemming aan te vragen voor voorstellen met deze status.');
+    // Provide more specific error messages
+    $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
+    $states = ammo_states();
+    
+    if (!in_array($entity->state, $allowed_statuses)) {
+      form_set_error('vote_request', 'Het is niet mogelijk stemming aan te vragen voor voorstellen met de status "' . $entity->state . '". Toegestane statussen: ' . implode(', ', array_intersect_key($states, array_flip($allowed_statuses))) . '.');
+    } elseif (ammo_passed_date($meeting_id, 'withdraw') && !ammo_admin_access()) {
+      form_set_error('vote_request', 'Het is niet meer mogelijk stemming aan te vragen omdat de intrekdatum voor dit evenement is verstreken.');
+    } else {
+      form_set_error('vote_request', 'Het is niet mogelijk stemming aan te vragen voor dit voorstel.');
+    }
     return array();
   }
   

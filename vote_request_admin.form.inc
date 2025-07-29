@@ -34,7 +34,17 @@ function ammo_vote_request_admin_form($form, &$form_state, $entity_type, $entity
   // Check if vote requests are allowed for this status
   $meeting_id = ammo_get_meeting_id($entity_type, $entity_id);
   if (!ammo_vote_request_access($meeting_id, $entity->state)) {
-    drupal_set_message('Het is niet mogelijk stemmingaanvragen te beheren voor voorstellen met de status "' . $entity->state . '".', 'error');
+    // Provide more specific error messages
+    $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
+    $states = ammo_states();
+    
+    if (!in_array($entity->state, $allowed_statuses)) {
+      drupal_set_message('Het is niet mogelijk stemmingaanvragen te beheren voor voorstellen met de status "' . $entity->state . '". Toegestane statussen: ' . implode(', ', array_intersect_key($states, array_flip($allowed_statuses))) . '.', 'error');
+    } elseif (ammo_passed_date($meeting_id, 'withdraw') && !ammo_admin_access()) {
+      drupal_set_message('Het is niet meer mogelijk stemmingaanvragen te beheren omdat de intrekdatum voor dit evenement is verstreken.', 'error');
+    } else {
+      drupal_set_message('Het is niet mogelijk stemmingaanvragen te beheren voor dit voorstel.', 'error');
+    }
     return array();
   }
 

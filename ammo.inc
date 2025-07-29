@@ -789,12 +789,18 @@ function ammo_withdraw_access($meeting_id) {
 }
 
 function ammo_vote_request_access($meeting_id, $status) {
+  // Check if withdrawal date has passed
   if (ammo_passed_date($meeting_id, 'withdraw')) {
-    return FALSE;
+    // Allow admins to bypass date restrictions
+    if (!ammo_admin_access()) {
+      return FALSE;
+    }
   }
+  
   if (!ammo_add_access()) {
     return FALSE;
   }
+  
   // Get allowed statuses from configuration, fall back to default if not set
   $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
   return in_array($status, $allowed_statuses);
