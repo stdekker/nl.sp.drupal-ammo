@@ -85,7 +85,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 }
 ?>
 
-<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail))) && ((!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) || $state === 'rejected')): ?>
+<?php if ((!empty($advice)) && (!$hide_advice || ($admin_access && empty($mail)))): ?>
 <h4>Advies:</h4>
 <p>
 <?php
