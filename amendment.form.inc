@@ -54,12 +54,17 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       break;
     }
   }
-  else {
+  elseif (empty($form_state['storage']['amendment'])) {
     $meetings = ammo_get_meetings('submit');
     if (empty($meetings) && !ammo_admin_access()) {
       // Instead of showing a warning notice and returning, we'll show the page with info text
       $submissions_closed = TRUE;
     }
+  }
+
+  if (!empty($form_state['storage']['amendment']) && !ammo_edit_access($form_state['storage']['meeting'], $form_state['storage']['branch_id'], 'amendment', $form_state['storage']['amendment'])) {
+    drupal_set_message('U kunt dit voorstel niet meer wijzigen.', 'error');
+    return array();
   }
 
   // Always set first step.
@@ -303,6 +308,12 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     );
     
     $confirm_text = 'Weet u zeker dat u dit wijzigingsvoorstel definitief wilt indienen? Dit kan niet ongedaan worden gemaakt.';
+    if (!empty($form_state['storage']['submitted_edit'])) {
+      $split = count(ammo_amendment_edit_owners($form_state['storage']['submitted_edit'])) > 1;
+      $confirm_text = $split
+        ? 'Ik bevestig de wijziging. Er ontstaat een nieuw voorstel; mijn steun voor het oude voorstel vervalt. De mede-indieners blijven bij het oude voorstel en krijgen een e-mail.'
+        : 'Ik bevestig de wijziging van dit voorstel. Het voorstel wordt opnieuw ingediend; het eerdere advies en de beoordeling vervallen.';
+    }
     
     $form['confirm'] = array(
       '#type' => 'checkbox',
@@ -401,6 +412,15 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
 function ammo_amendment_form_validate($form, &$form_state) {
   $values = $form_state['values'];
   $step = $form_state['step'];
+  $storage = $form_state['storage'];
+  if (!empty($storage['amendment']) && !ammo_edit_access($storage['meeting'], $storage['branch_id'], 'amendment', $storage['amendment'])) {
+    form_set_error('', 'U kunt dit voorstel niet meer wijzigen.');
+    return;
+  }
+  if (!empty($storage['submitted_edit']) && ammo_amendment_edit_signature($storage['submitted_edit']) !== $storage['submitted_edit_signature']) {
+    form_set_error('', 'Het voorstel of de indieners zijn gewijzigd. Open het voorstel opnieuw.');
+    return;
+  }
 
   // First we set up a switch for each of our three steps
   switch($step) {
@@ -558,6 +578,20 @@ function ammo_amendment_form_submit($form, &$form_state)
       // For definitive submission, continue to confirmation step (entity created in step 6)
       break;
     case 6:
+      if (!empty($storage['submitted_edit'])) {
+        $amendment = ammo_save_submitted_amendment($storage);
+        if ($amendment === FALSE) {
+          $form_state['rebuild'] = TRUE;
+          return;
+        }
+        if ($amendment === NULL) {
+          drupal_set_message('Er zijn geen wijzigingen opgeslagen.');
+        }
+        else {
+          drupal_set_message('Voorstel ' . check_plain($amendment->chapter . '.' . $amendment->chapterized_id) . ' is ingediend.');
+        }
+        break;
+      }
       // Confirmation step - create entity and save definitive submission
       // Create amendment entity if it doesn't exist yet
       if (empty($storage['amendment'])) {

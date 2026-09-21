@@ -67,6 +67,13 @@ function ammo_schema() {
         'type' => 'varchar',
         'length' => '255',
       ),
+      'allow_submitted_amendment_edit' => array(
+        'description' => 'Allow the primary owner to edit submitted amendments regardless of dates.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'disable_confirmation_checkbox' => array(
         'description' => 'Disable the confirmation checkbox at the start of amendment forms.',
         'type' => 'int',
@@ -542,4 +549,14 @@ function ammo_update_7011() {
   }
   
   return t('Added validation range fields to documents table.');
+}
+
+/**
+ * Allow meetings to enable editing submitted amendments.
+ */
+function ammo_update_7012() {
+  if (!db_field_exists('ammo_meetings', 'allow_submitted_amendment_edit')) {
+    $schema = ammo_schema();
+    db_add_field('ammo_meetings', 'allow_submitted_amendment_edit', $schema['ammo_meetings']['fields']['allow_submitted_amendment_edit']);
+  }
 }

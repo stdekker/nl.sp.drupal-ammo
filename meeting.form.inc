@@ -115,6 +115,13 @@ function ammo_meeting_form($form, &$form_state) {
     '#title' => 'Geen moties.',
   );
 
+  $form['allow_submitted_amendment_edit'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Ingediende wijzigingsvoorstellen wijzigen toestaan',
+    '#description' => 'De hoofdindiener mag wijzigen zolang dit is aangevinkt, ook na de inleverdatum en beoordeling. Bij mede-indieners ontstaat een nieuw voorstel.',
+    '#default_value' => 0,
+  );
+
   $form['disable_confirmation_checkbox'] = array(
     '#type' => 'checkbox',
     '#title' => 'Uitschakelen bevestiging wijzigingsvoorstellen.',
@@ -181,6 +188,7 @@ function ammo_meeting_form_submit($form, &$form_state) {
     'hide_meeting' => $values['hide_meeting'],
     'no_motions' => $values['no_motions'],
     'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
+    'allow_submitted_amendment_edit' => $values['allow_submitted_amendment_edit'],
     'admin_owner' => $values['admin_owner'],
   );
   
@@ -276,6 +284,13 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#default_value' => $meeting->no_motions,
   );
 
+  $form['allow_submitted_amendment_edit'] = array(
+    '#type' => 'checkbox',
+    '#title' => 'Ingediende wijzigingsvoorstellen wijzigen toestaan',
+    '#description' => 'De hoofdindiener mag wijzigen zolang dit is aangevinkt, ook na de inleverdatum en beoordeling. Bij mede-indieners ontstaat een nieuw voorstel.',
+    '#default_value' => !empty($meeting->allow_submitted_amendment_edit),
+  );
+
   $form['disable_confirmation_checkbox'] = array(
     '#type' => 'checkbox',
     '#title' => 'Uitschakelen bevestiging wijzigingsvoorstellen.',
@@ -346,6 +361,7 @@ function ammo_meeting_edit_form_submit($form, &$form_state) {
     'hide_meeting' => $values['hide_meeting'],
     'no_motions' => $values['no_motions'],
     'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
+    'allow_submitted_amendment_edit' => $values['allow_submitted_amendment_edit'],
     'admin_owner' => $values['admin_owner'],
   );
 

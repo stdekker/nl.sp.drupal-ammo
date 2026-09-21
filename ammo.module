@@ -378,6 +378,14 @@ function ammo_mail($key, &$message, $params) {
 
   // Create messages.
   switch($key) {
+  case 'amendment_replacement':
+    $message['subject'] .= ' - nieuw voorstel na wijziging';
+    $old_path = url('ammo/amendments/' . $params['meeting_id'], array('absolute' => TRUE, 'fragment' => 'amendment' . $params['old_id']));
+    $message['body'][] = '<p>' . check_plain($params['first_owner']) . ' heeft een nieuw voorstel ingediend en steunt het oude voorstel niet meer.</p>';
+    $message['body'][] = '<p>Uw mede-indiening blijft bij <a href="' . check_plain($old_path) . '">voorstel ' . check_plain($params['old_number']) . '</a>. U steunt het nieuwe voorstel niet automatisch.</p>';
+    $message['body'][] = $params['markup'];
+    $message['body'][] = '<p><a href="' . check_plain($path) . '">Bekijk het nieuwe voorstel</a></p>';
+    break;
   case 'vote_request':
     $message['subject'] .= ' - stemming aangevraagd door afdeling ' . $params['branch_display_name'];
     $message['body'][] = '<h3>Stemming aangevraagd door ' . $params['branch_display_name'] . '</h3>';

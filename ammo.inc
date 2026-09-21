@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/amendment-edit.inc';
+
 function ammo_entity_check_title($type, $title) {
   // check if title is unique
   $query = new EntityFieldQuery();
@@ -563,6 +565,10 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
       if ($type === 'amendment') {
         $document = entity_load_single('document', $form_state['storage']['document']);
         $storage['document_display_name'] = $document->title;
+        if (!ammo_admin_access() && !empty($entity->state) && $entity->state !== 'concept') {
+          $storage['submitted_edit'] = $entity->id;
+          $storage['submitted_edit_signature'] = ammo_amendment_edit_signature($entity->id);
+        }
       }
       return TRUE;
     }
@@ -809,6 +815,18 @@ function ammo_vote_request_access($meeting_id, $status) {
 function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_id = NULL) {
   if (ammo_admin_access()) {
     return TRUE;
+  }
+  if ($entity_type === 'amendment' && !empty($entity_id)) {
+    $entity = entity_load_single('amendment', $entity_id);
+    if (!empty($entity->state) && $entity->state !== 'concept') {
+      $meeting = entity_load_single('meeting', $meeting_id);
+      $owner = ammo_get_first_owner('amendment', $entity_id);
+      return !empty($meeting->allow_submitted_amendment_edit)
+        && !in_array($entity->state, array('withdrawn', 'blocked'), TRUE)
+        && ammo_get_meeting_id('amendment', $entity_id) == $meeting_id
+        && ammo_add_access() && !empty($owner)
+        && $owner['branch_id'] == $branch_id && ammo_access($owner['branch_id']);
+    }
   }
   if (ammo_passed_date($meeting_id, 'submit')) {
     return FALSE;
@@ -1108,14 +1126,17 @@ function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeti
   $relations = ammo_get_related_contacts($entity_id, $entity_type, 'owner', 'branch');
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email);
   $params['differences'] = $differences;
-  drupal_mail('ammo', 'change_message', $sender_email, $language, $params, $sender_email, TRUE);
+  $result = drupal_mail('ammo', 'change_message', $sender_email, $language, $params, $sender_email, TRUE);
+  $success = !empty($result['result']);
   if (!empty($differences)) {
     foreach ($relations as $relation) {
       if (!empty($relation['contact_email'])) {
-        drupal_mail('ammo', 'change_message', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+        $result = drupal_mail('ammo', 'change_message', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+        $success = !empty($result['result']) && $success;
       }
     }
   }
+  return $success;
 }
 
 function ammo_withdraw_mail($entity_type, $entity_id, $owner, $meeting_id) {
