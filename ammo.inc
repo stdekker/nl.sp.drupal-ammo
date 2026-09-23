@@ -33,6 +33,13 @@ function ammo_states() {
   );
 }
 
+/**
+ * Whether the current user may add support to an amendment in this state.
+ */
+function ammo_amendment_can_receive_support($state) {
+  return ammo_admin_access() || !in_array($state, array('invalid', 'rejected'), TRUE);
+}
+
 function ammo_amendment_actions() {
   return array(
     'add' => 'Toevoegen tekst',

@@ -96,15 +96,18 @@ a.text-limit-toggle:link {
 	color: #aaa;
 }
 
-/* Withdrawn proposal styles */
+/* Collapsed proposal styles */
+.collapsed-header,
 .withdrawn-header {
   cursor: pointer;
 }
 
+.collapsed-indicator,
 .withdrawn-indicator {
   font-weight: normal;
 }
 
+.amendment-details-toggle,
 .withdrawn-toggle {
   color: #666;
   text-decoration: none;
@@ -115,6 +118,7 @@ a.text-limit-toggle:link {
   margin-bottom: 10px;
 }
 
+.amendment-details-toggle:hover,
 .withdrawn-toggle:hover {
   color: #000;
   text-decoration: underline;
@@ -126,6 +130,7 @@ a.text-limit-toggle:link {
 }
 
 .withdrawn .amendment-content-collapsed,
+.invalid .amendment-content-collapsed,
 .withdrawn .motion-content-collapsed {
   background-color: #f9f9f9;
   border-left: 3px solid #ccc;

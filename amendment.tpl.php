@@ -5,16 +5,17 @@ global $base_url;
 $chapter_display = (!empty($chapter)) ? $chapter : 'X';
 $amendment_id = (!empty($chapterized_id)) ? $chapter_display . '.' . $chapterized_id : $chapter_display . '.' . $entity_id;
 $is_withdrawn = ($state === 'withdrawn');
+$is_collapsed = $is_withdrawn || $state === 'invalid';
 ?>
-<h3 id="amendment<?php print $entity_id; ?>" class="amendment-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
+<h3 id="amendment<?php print $entity_id; ?>" class="amendment-header <?php print $is_collapsed ? 'collapsed-header' : ''; ?>">
   Voorstel <?php print $amendment_id; ?> (pagina <?php print $page; ?>, regel <?php print $line; ?>)
-  <?php if ($is_withdrawn): ?>
-    <span class="withdrawn-indicator"> - Ingetrokken</span>
+  <?php if ($is_collapsed): ?>
+    <span class="collapsed-indicator"> - <?php print $is_withdrawn ? 'Ingetrokken' : 'Ongeldig'; ?></span>
   <?php endif; ?>
 </h3>
 
-<?php if ($is_withdrawn): ?>
-<a href="#" class="withdrawn-toggle" data-target="amendment-content-<?php print $entity_id; ?>">[Toon details]</a>
+<?php if ($is_collapsed): ?>
+<a href="#" class="amendment-details-toggle" data-target="amendment-content-<?php print $entity_id; ?>">[Toon details]</a>
 <div id="amendment-content-<?php print $entity_id; ?>" class="amendment-content-collapsed" style="display: none;">
 <?php endif; ?>
 
@@ -118,7 +119,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
   <?php endif; ?>
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
     <?php if ($withdraw_access && $state !== 'withdrawn' && $state !== 'spelling_grammar'): ?>
-      <?php if ($unsupported_branches): ?>
+      <?php if ($unsupported_branches && ammo_amendment_can_receive_support($state)): ?>
         <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
       <?php if ($supported_branches && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
@@ -140,6 +141,6 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 </ul>
 <?php endif; ?>
 
-<?php if ($is_withdrawn): ?>
+<?php if ($is_collapsed): ?>
 </div>
 <?php endif; ?>

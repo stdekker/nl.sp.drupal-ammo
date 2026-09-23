@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * Prevent new support for invalid or rejected amendments by regular users.
+ */
+function ammo_support_add_allowed($action, $target_type, $entity_id) {
+  if ($action !== 'add' || $target_type !== 'amendment' || ammo_admin_access()) {
+    return TRUE;
+  }
+  $state = db_query('SELECT state FROM {ammo_amendments} WHERE id = :id', array(':id' => $entity_id))->fetchField();
+  return ammo_amendment_can_receive_support($state);
+}
+
 function ammo_support_form($form, &$form_state, $action, $contact_type, $target_type = NULL, $entity_id = NULL) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
@@ -27,6 +38,10 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
     filter_var($entity_id, FILTER_VALIDATE_INT) === FALSE
   ) {
     form_set_error('support', 'De pagina kan niet worden geladen.');
+    return array();
+  }
+  if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
+    form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
     return array();
   }
   $form['item'] = array(
@@ -180,6 +195,10 @@ function ammo_support_form_validate($form, &$form_state) {
   $target_type = arg(4);
   $entity_id = arg(5);
   $entity = entity_load_single($target_type, $entity_id);
+  if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
+    form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
+    return;
+  }
   switch ($contact_type) {
   case 'member':
     if (!$form_state['values']['support']) {
@@ -260,6 +279,10 @@ function ammo_support_form_submit($form, &$form_state) {
   $target_type = arg(4);
   $entity_id = arg(5);
   $entity = entity_load_single($target_type, $entity_id);
+  if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
+    drupal_set_message('Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.', 'error');
+    return;
+  }
   $afdelingen = ammo_get_afdelingen('all');
 
   switch ($contact_type) {

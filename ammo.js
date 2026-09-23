@@ -46,8 +46,8 @@
           $link.closest('.text-limit').find('.truncated-text').show();
         });
 
-        // Handle withdrawn proposal toggle (compatible with jQuery 1.4.4)
-        $(context).delegate('.withdrawn-toggle', 'click', function(e) {
+        // Toggle collapsed proposal details (compatible with jQuery 1.4.4)
+        $(context).delegate('.amendment-details-toggle, .withdrawn-toggle', 'click', function(e) {
           e.preventDefault();
           var $link = $(this);
           var targetId = $link.data('target');
