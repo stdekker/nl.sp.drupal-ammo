@@ -2,7 +2,7 @@
 
 function ammo_overview_amendments_form($form, &$form_state, $meeting_id = NULL) {
   drupal_page_is_cacheable(FALSE);
-  // Store destination before ajax call.
+  // Preserve the overview location for amendment actions.
   ammo_set_destination($form_state);
 
   $form['#attached']['js'] = array(
@@ -15,7 +15,7 @@ function ammo_overview_amendments_form($form, &$form_state, $meeting_id = NULL) 
   // Check if there is choice.
   $options = ammo_get_meetings();
   if (!empty($meeting_id) || count($options) == 1) {
-    if (count($options) == 1) {
+    if (empty($meeting_id) && count($options) == 1) {
       $meeting_id = key($options);
     }
     $form['overview'] = array(
@@ -31,11 +31,6 @@ function ammo_overview_amendments_form($form, &$form_state, $meeting_id = NULL) 
       '#name' => 'action_button',
       '#id' => 'action_button',
       '#submit' => array('ammo_overview_amendments_form_submit'),
-      '#ajax' => array
-      (
-        'wrapper' => 'ajax_form',
-        'callback' => 'ammo_overview_amendments_form_ajax_callback',
-      ),
     );
     $form['overview'] = array(
       '#type' => 'item',
@@ -45,17 +40,5 @@ function ammo_overview_amendments_form($form, &$form_state, $meeting_id = NULL) 
 }
 
 function ammo_overview_amendments_form_submit($form, &$form_state) {
-  $form_state['rebuild'] = TRUE;
-  return $form;
+  $form_state['redirect'] = 'ammo/amendments/' . $form_state['values']['meeting'];
 }
-
-function ammo_overview_amendments_form_ajax_callback($form, &$form_state) {
-  $values = $form_state['values'];
-
-  if (!empty($values['meeting'])) {
-    $form_state['storage']['destination']['destination'] .= '/' . $values['meeting'];
-  }
-  $form['overview']['#markup'] = theme('overview_amendments', array('meeting_id' => $values['meeting'], 'destination' => $form_state['storage']['destination']));
-  return $form;
-}
-

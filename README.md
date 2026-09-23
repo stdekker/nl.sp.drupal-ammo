@@ -56,6 +56,13 @@ This will execute update 7011 to add the new validation fields.
 
 ## Usage
 
+The amendment overview loads one document/chapter at a time. Chapter links
+above and below the entries use `?document=ID&chapter=N` and work without
+JavaScript. Chapter 0 groups entries without a chapter; invalid selections
+fall back to the first visible chapter. Admin totals still cover the document.
+Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/amendments-pager.test.php`.
+
 ### Setting Document Validation Ranges
 
 1. Go to document management

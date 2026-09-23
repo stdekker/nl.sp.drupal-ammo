@@ -187,21 +187,41 @@ h4.inline-title {
 /* Change background color of links on hover */
 .page-ammo-amendments ul.tab li a:hover {background-color: #ddd;}
 
-/* Create an active/current tablink class */
-.page-ammo-amendments ul.tab li a:focus,
-.page-ammo-amendments ul.tab li a.active {
-  background-color: #ccc;
+/* Keep the selected chapter clear on both navigation bars. */
+.page-ammo-amendments .chapter-navigation ul.tab li a[aria-current="page"] {
+  background-color: #222;
+  color: #fff;
+  font-weight: bold;
 }
 
-/* Style the tab content */
-.page-ammo-amendments .tabcontent {
-    display: none;
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    border-top: none;
+.page-ammo-amendments .chapter-navigation {
+  margin-block: 1.5em;
 }
-.page-ammo-amendments .tabcontent.active {
-	display: block;
+
+.page-ammo-amendments .amendment-navigation .amendments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5em;
+  list-style: none;
+  margin: -1em 0 1.5em;
+  padding: 0;
+}
+
+.page-ammo-amendments .amendment-navigation .amendment {
+  margin: 0;
+}
+
+.page-ammo-amendments .amendment-navigation a {
+  display: block;
+  background: #eee;
+  padding: .6em .8em;
+  text-decoration: none;
+}
+
+.page-ammo-amendments .amendment-navigation a:hover,
+.page-ammo-amendments .amendment-navigation a:focus {
+  background: #222;
+  color: #fff;
 }
 
 .page-ammo td {
