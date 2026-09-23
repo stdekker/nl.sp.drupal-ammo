@@ -348,6 +348,17 @@ function ammo_schema() {
     ),
   );
 
+  $schema['ammo_test_entries'] = array(
+    'description' => 'Entries created by the meeting test data generator.',
+    'fields' => array(
+      'meeting_id' => array('type' => 'int', 'not null' => TRUE),
+      'entry_type' => array('type' => 'varchar', 'length' => 16, 'not null' => TRUE),
+      'entry_id' => array('type' => 'int', 'size' => 'big', 'not null' => TRUE),
+    ),
+    'primary key' => array('entry_type', 'entry_id'),
+    'indexes' => array('meeting' => array('meeting_id')),
+  );
+
   return $schema;
 }
 
@@ -558,5 +569,15 @@ function ammo_update_7012() {
   if (!db_field_exists('ammo_meetings', 'allow_submitted_amendment_edit')) {
     $schema = ammo_schema();
     db_add_field('ammo_meetings', 'allow_submitted_amendment_edit', $schema['ammo_meetings']['fields']['allow_submitted_amendment_edit']);
+  }
+}
+
+/**
+ * Track generated meeting test entries independently of their editable text.
+ */
+function ammo_update_7013() {
+  if (!db_table_exists('ammo_test_entries')) {
+    $schema = ammo_schema();
+    db_create_table('ammo_test_entries', $schema['ammo_test_entries']);
   }
 }

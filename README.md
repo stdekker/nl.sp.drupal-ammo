@@ -85,6 +85,27 @@ Returns formatted constraints string for display.
 
 - `.document-constraints`: Styling for constraint display boxes
 
+## Meeting test data
+
+After deployment, run database updates (Ammo update 7013) and rebuild the menu
+cache. Back up the database before updating.
+
+Under `/admin/ammo/meeting`, choose **Testgegevens** for a meeting. Add 10, 25,
+50 or 100 amendments to a selected document, or motions when enabled. Each
+series cycles through the existing statuses and uses labelled Dutch sample
+text. Existing published, recognized branches with valid branch IDs are assigned
+as owners in alphabetical rotation. Generation requires an available branch.
+Amendments rotate across chapters 1–10 within the document's configured limits.
+No contacts are created and no email is sent. Older test series remain unchanged;
+delete and regenerate them to assign branches.
+
+**Alle testgegevens verwijderen** asks for confirmation and removes every
+tracked series for that meeting, including contact relations. Real entries
+and other meetings remain intact. Edited test entries are still tracked.
+
+Run the rollback-only integration check from the DDEV project:
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/test-data.test.php`.
+
 # Ammo Module
 
 The Ammo module provides a comprehensive system for managing amendments and motions within a Drupal 7 website, specifically tailored for the needs of the SP (Socialist Party). It allows users to submit, view, and manage amendments and motions related to specific meetings and documents.
@@ -139,4 +160,4 @@ The Ammo module provides a comprehensive system for managing amendments and moti
 *   **Users:** Logged-in users with the `add amendments and motions` permission can visit `/ammo` to start submitting proposals.
 *   **Administrators:** Users with administrative permissions can manage meetings and documents at `/admin/ammo`.
 
-This module is tightly integrated with the `procoid` module, which handles user authentication and synchronization with the Procurios system. User data from Procurios, such as branch information, is used to determine ownership and support for proposals. 
+This module is tightly integrated with the `procoid` module, which handles user authentication and synchronization with the Procurios system. User data from Procurios, such as branch information, is used to determine ownership and support for proposals.

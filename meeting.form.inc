@@ -48,6 +48,7 @@ function ammo_meeting_list_page() {
       check_plain($meeting->email),
       $settings_text,
       l('Bewerken', 'admin/ammo/meeting/' . $meeting->id . '/edit') . ' | ' .
+      l('Testgegevens', 'admin/ammo/meeting/' . $meeting->id . '/test-data') . ' | ' .
       l('Verwijderen', 'admin/ammo/meeting/' . $meeting->id . '/delete'),
     );
   }

@@ -155,6 +155,23 @@ function ammo_menu() {
     'access callback' => 'ammo_superadmin_access',
   );
 
+  $items['admin/ammo/meeting/%meeting/test-data'] = array(
+    'title' => 'Testgegevens',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_test_data_form', 3),
+    'file' => 'test-data.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_superadmin_access',
+  );
+  $items['admin/ammo/meeting/%meeting/test-data/delete'] = array(
+    'title' => 'Alle testgegevens verwijderen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_test_data_delete_form', 3),
+    'file' => 'test-data.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_superadmin_access',
+  );
+
   $items['admin/ammo/document'] = array(
     'title' => 'Documenten',
     'page callback' => 'ammo_document_list_page',
