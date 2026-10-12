@@ -738,21 +738,6 @@ function ammo_select_meeting_form(&$form, &$form_state, $options = array()) {
   }
 }
 
-function ammo_view_entity_form($type, $entity_id) {
-  $entity = entity_load_single($type, $entity_id);
-  // check if exists.
-  if ($entity) {
-    $markup = theme($type, array('entity_id' => $entity_id));
-    $form['view'] = array(
-      '#type' => 'item',
-      '#markup' => $markup,
-    );
-    return $form;
-  }
-  drupal_set_message('Data kon niet worden opgehaald.', 'error');
-  return array();
-}
-
 function ammo_delete_entity_form($type, $entity_id) {
   $entity = entity_load_single($type, $entity_id);
   // check if exists.

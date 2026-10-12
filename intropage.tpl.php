@@ -13,6 +13,9 @@
           <?php if ($show_motions): ?>
           <li><a href="ammo/motions">Overzicht moties</a></li>
           <?php endif; ?>
+          <?php if ($add_access): ?>
+          <li><a href="ammo/afdeling">Mijn afdeling <span class="ammo-button-label">Ingediend en mede ingediend door je afdeling</span></a></li>
+          <?php endif; ?>
         </ul>
       </nav>
     </div>

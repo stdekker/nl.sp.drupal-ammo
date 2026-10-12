@@ -48,10 +48,6 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         return;
       }
       break;
-    case 'view':
-      $form = ammo_view_entity_form('amendment', $path_id);
-      return $form;
-      break;
     }
   }
   elseif (empty($form_state['storage']['amendment'])) {

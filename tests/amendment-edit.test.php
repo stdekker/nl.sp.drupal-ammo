@@ -85,7 +85,7 @@ try {
   ammo_edit_test_assert(entity_load_single('contact_relation', $owner->id)->target_id == $split->id && entity_load_single('contact_relation', $coowner->id)->target_id == $original->id, 'Only primary owner must move.');
   $mails = variable_get('drupal_test_email_collector', array());
   ammo_edit_test_assert(count($mails) === 1 && $mails[0]['to'] === 'coowner@example.invalid', 'Only coowners receive deduplicated replacement mail.');
-  ammo_edit_test_assert(strpos($mails[0]['body'], 'amendment' . $old->id) !== FALSE && strpos($mails[0]['body'], 'amendment' . $split->id) !== FALSE, 'Mail must link both proposals.');
+  ammo_edit_test_assert(strpos($mails[0]['body'], 'ammo/amendment/view/' . $old->id) !== FALSE && strpos($mails[0]['body'], 'ammo/amendment/view/' . $split->id) !== FALSE, 'Mail must link both proposals.');
   ammo_edit_test_assert(ammo_save_submitted_amendment($storage) === FALSE, 'Duplicate split must fail.');
   drupal_get_messages('error');
   $permissions[$user->uid] = array();

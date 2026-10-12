@@ -63,6 +63,31 @@ fall back to the first visible chapter. Admin totals still cover the document.
 Run the rollback-only check with
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/amendments-pager.test.php`.
 
+### Afdelingsoverzicht
+
+`/ammo/afdeling` (tab **Mijn afdeling**, requires `add amendments and motions`)
+lists per afdeling of the user what it submitted and, in a second part, what it
+co-submitted. The first owner of an entry is the submitter; every other branch
+owner is a mede-indiener. Own concepts are listed with the submitted entries.
+Each number links to the page of the entry. Motions are listed when the
+meeting has them.
+Admins can pick any afdeling (`?afdeling=ID`). After deployment rebuild the
+menu and theme registry with `drush cc all`; there is no database update.
+Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/branch-overview.test.php`.
+
+### Itempagina
+
+Every amendment and motion has its own page: `/ammo/amendment/view/ID` and
+`/ammo/motion/view/ID`. It shows the entry with the same action links as the
+overviews; actions return to the page. Access follows the overviews: the view
+or add permission is required, blocked entries are for admins only, concepts
+for admins and their owners (member or afdeling), and nothing is shown of a
+hidden meeting. Notification mails and the afdelingsoverzicht link to this
+page. After deployment rebuild the menu with `drush cc all`.
+Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/item-view.test.php`.
+
 ### Setting Document Validation Ranges
 
 1. Go to document management

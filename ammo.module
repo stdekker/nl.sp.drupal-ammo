@@ -113,6 +113,16 @@ function ammo_menu() {
     'weight' => 1,
   );
 
+  $items['ammo/afdeling'] = array(
+    'title' => 'Mijn afdeling',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_branch_overview_form', 2),
+    'file' => 'branch-overview.form.inc',
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'ammo_add_access',
+    'weight' => 2,
+  );
+
   $items['admin/ammo'] = array(
     'title' => 'Ammo',
     'description' => 'Ammo admin',
@@ -264,6 +274,24 @@ function ammo_menu() {
     'access callback' => 'user_is_logged_in',
   );
 
+  $items['ammo/amendment/view/%'] = array(
+    'title' => 'Wijzigingsvoorstel',
+    'page callback' => 'ammo_item_view_page',
+    'page arguments' => array('amendment', 3),
+    'file' => 'item-view.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'user_is_logged_in',
+  );
+
+  $items['ammo/motion/view/%'] = array(
+    'title' => 'Motie',
+    'page callback' => 'ammo_item_view_page',
+    'page arguments' => array('motion', 3),
+    'file' => 'item-view.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'user_is_logged_in',
+  );
+
   // Add admin ownership management routes
   $items['ammo/amendment/ownership/%'] = array(
     'title' => 'Eigenaarschap beheren',
@@ -378,26 +406,30 @@ function ammo_show_motions_access() {
 }
 
 /**
+ * Path of the page that shows a single amendment or motion.
+ */
+function ammo_item_view_path($type, $id) {
+  return 'ammo/' . $type . '/view/' . $id;
+}
+
+/**
  * Implements hook_mail().
  */
 function ammo_mail($key, &$message, $params) {
-  global $base_url;
-
   // Set reply-to header.
   $message['headers']['Reply-To'] = $params['reply_to'];
   $type = ($params['entity_type'] == 'amendment') ? 'Wijzigingsvoorstel' : 'Motie';
   $message['subject'] = $type . ' nr. ' . $params['id'];
-  $path = $base_url . '/ammo/' . $params['entity_type'] . 's/' . $params['meeting_id'];
+  $path = url(ammo_item_view_path($params['entity_type'], $params['entity_id']), array('absolute' => TRUE));
   if ($params['entity_type'] === 'amendment') {
     $message['subject'] .= ' ' . $params['document_title'];
-    $path .= '#' . $params['entity_type'] . $params['entity_id'];
   };
 
   // Create messages.
   switch($key) {
   case 'amendment_replacement':
     $message['subject'] .= ' - nieuw voorstel na wijziging';
-    $old_path = url('ammo/amendments/' . $params['meeting_id'], array('absolute' => TRUE, 'fragment' => 'amendment' . $params['old_id']));
+    $old_path = url(ammo_item_view_path('amendment', $params['old_id']), array('absolute' => TRUE));
     $message['body'][] = '<p>' . check_plain($params['first_owner']) . ' heeft een nieuw voorstel ingediend en steunt het oude voorstel niet meer.</p>';
     $message['body'][] = '<p>Uw mede-indiening blijft bij <a href="' . check_plain($old_path) . '">voorstel ' . check_plain($params['old_number']) . '</a>. U steunt het nieuwe voorstel niet automatisch.</p>';
     $message['body'][] = $params['markup'];
@@ -468,6 +500,11 @@ function ammo_theme() {
     ),
     'overview_motions' => array(
       'template' => 'motions',
+      'variables' => array(
+      ),
+    ),
+    'overview_branch' => array(
+      'template' => 'branch-overview',
       'variables' => array(
       ),
     ),
@@ -794,6 +831,11 @@ function template_preprocess_overview_motions(&$variables) {
     }
     $variables = $variables + $data;
   }
+}
+
+function template_preprocess_overview_branch(&$variables) {
+  module_load_include('inc', 'ammo', 'branch-overview');
+  $variables += ammo_branch_overview_page($variables['meeting_id'], $variables['selected_branches']);
 }
 
 function template_preprocess_print_amendments_by_location(&$variables) {

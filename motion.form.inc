@@ -46,10 +46,6 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
         return;
       }
       break;
-    case 'view':
-      $form = ammo_view_entity_form('motion', $path_id);
-      return $form;
-      break;
     case 'delete':
       if (ammo_superadmin_access()) {
         if (ammo_populate_form('motion', $path_id, $form_state)) {

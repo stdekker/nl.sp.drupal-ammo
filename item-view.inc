@@ -1,0 +1,110 @@
+<?php
+
+/**
+ * The item with its document and meeting, or FALSE when one of them is gone.
+ */
+function ammo_item_view_load($type, $id) {
+  if (!is_scalar($id) || !ctype_digit((string) $id)) {
+    return FALSE;
+  }
+  $item = entity_load_single($type, $id);
+  if (!$item) {
+    return FALSE;
+  }
+  $document = NULL;
+  $meeting_id = $type === 'motion' ? $item->meeting_id : NULL;
+  if ($type === 'amendment' && !empty($item->document_id)) {
+    $document = entity_load_single('document', $item->document_id);
+    $meeting_id = $document ? $document->meeting_id : NULL;
+  }
+  // Items can outlive a deleted document or meeting.
+  $meeting = empty($meeting_id) ? FALSE : entity_load_single('meeting', $meeting_id);
+  if (!$meeting) {
+    return FALSE;
+  }
+  return array('item' => $item, 'document' => $document, 'meeting' => $meeting);
+}
+
+/**
+ * Whether the user is a member owner or belongs to a branch that owns the item.
+ */
+function ammo_item_view_is_owner($type, $id) {
+  if (ammo_is_related($id, $type, 'owner', 'member')) {
+    return TRUE;
+  }
+  foreach (ammo_get_related_contacts($id, $type, 'owner', 'branch') as $owner) {
+    if (ammo_access($owner['contact_id'])) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Visibility of a single item, following the overviews.
+ *
+ * @param array $loaded
+ *   Result of ammo_item_view_load().
+ */
+function ammo_item_view_access($type, array $loaded) {
+  if (!ammo_view_overview_access() && !ammo_add_access()) {
+    return FALSE;
+  }
+  if ($type === 'motion' && !ammo_show_motions()) {
+    return FALSE;
+  }
+  // The overviews show nothing of a hidden meeting, not even to admins.
+  if (!empty($loaded['meeting']->hide_meeting)) {
+    return FALSE;
+  }
+  if (ammo_admin_access()) {
+    return TRUE;
+  }
+  $state = $loaded['item']->state;
+  if ($state === 'blocked') {
+    return FALSE;
+  }
+  if (!empty($state) && $state !== 'concept') {
+    return TRUE;
+  }
+  return ammo_item_view_is_owner($type, $loaded['item']->id);
+}
+
+function ammo_item_view_page($type, $id) {
+  drupal_page_is_cacheable(FALSE);
+  $loaded = ammo_item_view_load($type, $id);
+  if (!$loaded) {
+    return MENU_NOT_FOUND;
+  }
+  if (!ammo_item_view_access($type, $loaded)) {
+    return MENU_ACCESS_DENIED;
+  }
+  $item = $loaded['item'];
+  $meeting = $loaded['meeting'];
+  if ($type === 'amendment') {
+    drupal_set_title('Wijzigingsvoorstel ' . ($item->chapter ?: 'X') . '.' . ($item->chapterized_id ?: $item->id));
+    $context = check_plain($meeting->title) . ': ' . check_plain($loaded['document']->title);
+    $overview = 'ammo/amendments/' . $meeting->id;
+    // The amendment overview only loads the selected document and chapter.
+    $options = array('query' => array('document' => $item->document_id, 'chapter' => (int) $item->chapter));
+  }
+  else {
+    drupal_set_title('Motie ' . ($item->motion_id ?: $item->id));
+    $context = check_plain($meeting->title);
+    $overview = 'ammo/motions/' . $meeting->id;
+    $options = array();
+  }
+  // Drafts are not part of the overviews.
+  if ($item->state === 'concept') {
+    $back = l('Terug naar Mijn afdeling', 'ammo/afdeling/' . $meeting->id);
+  }
+  else {
+    $back = l('Terug naar overzicht', $overview, $options + array('fragment' => $type . $item->id));
+  }
+  return array(
+    '#attached' => array('js' => array(drupal_get_path('module', 'ammo') . '/ammo.js')),
+    'context' => array('#markup' => '<p class="ammo-item-context">' . $context . '</p>'),
+    'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id)) . '</li></ul>'),
+    'back' => array('#markup' => '<p class="ammo-item-back">' . $back . '</p>'),
+  );
+}

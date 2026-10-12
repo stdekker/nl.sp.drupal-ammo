@@ -28,7 +28,10 @@ ul.ammo-list li {
 
 li.withdrawn,
 li.invalid,
-li.blocked {
+li.blocked,
+.branch-overview tr.withdrawn,
+.branch-overview tr.invalid,
+.branch-overview tr.blocked {
   /* background-color: #eee; */
   color: #888;
 }
@@ -231,6 +234,26 @@ h4.inline-title {
 
 .page-ammo td {
   padding: 0 1em 0 0;
+}
+
+/* Branch overview */
+
+.branch-overview table {
+  width: 100%;
+  margin-bottom: 2em;
+}
+
+.branch-overview caption {
+  text-align: left;
+  font-weight: bold;
+  padding: .5em 0;
+}
+
+.branch-overview th,
+.branch-overview td {
+  text-align: left;
+  vertical-align: top;
+  padding: .3em 1em .3em 0;
 }
 
 .more-text {
