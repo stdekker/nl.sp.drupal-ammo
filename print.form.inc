@@ -80,7 +80,7 @@ function ammo_print_form($form, &$form_state) {
       '#type' => 'checkboxes',
       '#title' => t('Statussen'),
       '#options' => ammo_states(),
-      '#default_value' => array('accepted', 'submitted', 'rejected'),
+      '#default_value' => array('submitted', 'assessed'),
       '#required' => TRUE,
     );
 

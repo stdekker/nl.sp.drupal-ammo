@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Prevent new support for invalid or rejected amendments by regular users.
+ * Prevent new support for invalid amendments, or ones assessed as rejected, by regular users.
  */
 function ammo_support_add_allowed($action, $target_type, $entity_id) {
   if ($action !== 'add' || $target_type !== 'amendment' || ammo_admin_access()) {
     return TRUE;
   }
-  $state = db_query('SELECT state FROM {ammo_amendments} WHERE id = :id', array(':id' => $entity_id))->fetchField();
-  return ammo_amendment_can_receive_support($state);
+  $amendment = db_query('SELECT state, advice FROM {ammo_amendments} WHERE id = :id', array(':id' => $entity_id))->fetchObject();
+  return $amendment ? ammo_amendment_can_receive_support($amendment->state, $amendment->advice) : TRUE;
 }
 
 function ammo_support_form($form, &$form_state, $action, $contact_type, $target_type = NULL, $entity_id = NULL) {

@@ -37,7 +37,7 @@ function ammo_vote_request_form($form, &$form_state, $action, $contact_type, $ta
   // Check if vote requests are allowed for this status
   if (!ammo_vote_request_access($meeting_id, $entity->state)) {
     // Provide more specific error messages
-    $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
+    $allowed_statuses = ammo_vote_request_allowed_statuses();
     $states = ammo_states();
     
     if (!in_array($entity->state, $allowed_statuses)) {

@@ -11,7 +11,7 @@ function ammo_vote_request_settings_form($form, &$form_state) {
   );
   
   // Get current settings or use defaults
-  $current_settings = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
+  $current_settings = ammo_vote_request_allowed_statuses();
   
   $form['ammo_vote_request_allowed_statuses'] = array(
     '#type' => 'checkboxes',
@@ -23,7 +23,7 @@ function ammo_vote_request_settings_form($form, &$form_state) {
   );
   
   $form['help_text'] = array(
-    '#markup' => '<div class="form-item"><strong>Huidige standaard instellingen:</strong><ul><li><strong>Overgenomen</strong> - Voorstellen die zijn overgenomen door de commissie</li><li><strong>Afgewezen</strong> - Voorstellen die zijn afgewezen door de commissie</li></ul><p>Let op: Als geen statussen zijn geselecteerd, kunnen er geen stemmingaanvragen worden gedaan.</p></div>',
+    '#markup' => '<div class="form-item"><strong>Huidige standaard instellingen:</strong><ul><li><strong>Beoordeeld</strong> - Voorstellen die de commissie heeft beoordeeld; het advies (overnemen of afwijzen) geeft de uitkomst</li></ul><p>Let op: Als geen statussen zijn geselecteerd, kunnen er geen stemmingaanvragen worden gedaan.</p></div>',
   );
   
   $form['submit'] = array(

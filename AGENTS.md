@@ -32,7 +32,7 @@ deployment notes.
 | --- | --- |
 | `ammo.module` | Hooks: menu, permissions, access callbacks, `hook_mail`, `hook_theme`, `template_preprocess_*`, `hook_entity_info`, intro and admin pages. |
 | `ammo.inc` | Shared helpers: states, advice, afdelingen/contacts, relations, saving (`ammo_save_entity`, `ammo_store`), access (`ammo_edit_access`, `ammo_access`, …), diff and mail helpers, document range validation. Loaded on every request by `ammo_init()`. |
-| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7014`. |
+| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7015`. |
 | `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `print`, `export`, `branch-overview`, …). |
 | `locators.inc` | Location indicators (locators) of documents and amendments: definitions with the legacy fallback, validation, storage fields, grouping, numbering, location text and sorting. Required by `ammo.inc`. |
 | `amendment-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
@@ -69,8 +69,11 @@ by its own table:
 
 The rules the code depends on:
 
-- **States** come from `ammo_states()`: `concept`, `submitted`, `accepted`,
-  `rejected`, `withdrawn`, `invalid`, `blocked`, `spelling_grammar`.
+- **States** come from `ammo_states()`: `concept`, `submitted`, `assessed`,
+  `withdrawn`, `invalid`, `blocked`, `spelling_grammar`.
+  - `assessed` ("Beoordeeld") replaced `accepted` and `rejected` in update
+    7015. The outcome is the advice (`accept` or `reject`); test it with
+    `ammo_assessed_as($item, 'reject')`, never with the state alone.
   - `blocked` (shown as "Verwijderd") is visible to admins only. Admins set it
     through the delete confirmation page (`ammo_delete_entity_form()`), not the
     status dropdown; use `ammo_editable_states()` for state selects.
@@ -136,7 +139,7 @@ The module defines four permissions: `administer ammo` (superadmin),
   helpers in `ammo.inc`. Do not send mail from test data or from test scripts.
 - To change the schema:
   1. Change `ammo_schema()`.
-  2. Add the next `ammo_update_70NN()` (currently 7015). Guard it with
+  2. Add the next `ammo_update_70NN()` (currently 7016). Guard it with
      `db_field_exists()` or `db_table_exists()`, and reuse the definition from
      `ammo_schema()`.
 - To change data access, prefer `db_select` and `EntityFieldQuery`. Load and

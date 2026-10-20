@@ -23,10 +23,8 @@ function ammo_states() {
   return array(
     'concept' => 'Concept',
     'submitted' => 'Ingediend',
-    'accepted' => 'Overgenomen',
-    //'accepted_intention' => 'Strekking overgenomen',
-    //'accepted_partially' => 'Gedeeltelijk overgenomen',
-    'rejected' => 'Afgewezen',
+    // The outcome of an assessment is the advice: Overnemen or Afwijzen.
+    'assessed' => 'Beoordeeld',
     'withdrawn' => 'Ingetrokken',
     'invalid' => 'Ongeldig',
     'blocked' => 'Verwijderd',
@@ -35,10 +33,25 @@ function ammo_states() {
 }
 
 /**
- * Whether the current user may add support to an amendment in this state.
+ * Whether an item (object or row) is assessed with the given advice: accept or reject.
  */
-function ammo_amendment_can_receive_support($state) {
-  return ammo_admin_access() || !in_array($state, array('invalid', 'rejected'), TRUE);
+function ammo_assessed_as($item, $advice) {
+  $item = (object) $item;
+  return isset($item->state, $item->advice) && $item->state === 'assessed' && $item->advice === $advice;
+}
+
+/**
+ * Whether the current user may add support to an amendment; not when invalid or assessed as rejected.
+ */
+function ammo_amendment_can_receive_support($state, $advice = NULL) {
+  return ammo_admin_access() || ($state !== 'invalid' && !ammo_assessed_as(array('state' => $state, 'advice' => $advice), 'reject'));
+}
+
+/**
+ * The states on which vote requests are allowed.
+ */
+function ammo_vote_request_allowed_statuses() {
+  return variable_get('ammo_vote_request_allowed_statuses', array('assessed'));
 }
 
 function ammo_amendment_actions() {
@@ -880,8 +893,7 @@ function ammo_vote_request_access($meeting_id, $status) {
   }
   
   // Get allowed statuses from configuration, fall back to default if not set
-  $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
-  return in_array($status, $allowed_statuses);
+  return in_array($status, ammo_vote_request_allowed_statuses());
 }
 
 function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_id = NULL) {

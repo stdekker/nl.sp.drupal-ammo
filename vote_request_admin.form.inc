@@ -35,7 +35,7 @@ function ammo_vote_request_admin_form($form, &$form_state, $entity_type, $entity
   $meeting_id = ammo_get_meeting_id($entity_type, $entity_id);
   if (!ammo_vote_request_access($meeting_id, $entity->state)) {
     // Provide more specific error messages
-    $allowed_statuses = variable_get('ammo_vote_request_allowed_statuses', array('accepted', 'rejected'));
+    $allowed_statuses = ammo_vote_request_allowed_statuses();
     $states = ammo_states();
     
     if (!in_array($entity->state, $allowed_statuses)) {

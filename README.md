@@ -88,6 +88,23 @@ page. After deployment rebuild the menu with `drush cc all`.
 Run the rollback-only check with
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/item-view.test.php`.
 
+### Beoordeeld
+
+The statuses *Overgenomen* and *Afgewezen* are replaced by *Beoordeeld*. The
+outcome of the assessment is the advice (*Overnemen* or *Afwijzen*). Where the
+module treated the old statuses differently, it now follows the advice:
+
+- amendments assessed with *Afwijzen* get no new support from regular users;
+- motions assessed with *Afwijzen* are folded in and lose their withdraw link,
+  and stay visible in Mijn afdeling when states are hidden;
+- the XML export contains items assessed with *Overnemen*;
+- vote requests default to *Beoordeeld* (see the vote request settings).
+
+After deployment back up the database and run `drush updatedb`. Ammo update
+7015 sets existing Overgenomen and Afgewezen items to Beoordeeld, fills an
+empty advice from the old status, maps the vote request setting, and reports
+items whose advice contradicts their old status (also in the watchdog log).
+
 ### Verwijderen
 
 The status *Verwijderd* is no longer in the status dropdown of **status/advies**.
@@ -209,7 +226,7 @@ The Ammo module provides a comprehensive system for managing amendments and moti
     *   Withdrawing a proposal.
     *   Supporting a proposal.
 *   **Data Export and Printing:**
-    *   Export meeting data, including accepted amendments and motions, to XML.
+    *   Export meeting data, including amendments and motions assessed with the advice to accept, to XML.
     *   Generate printable views of amendments and motions, with various sorting options (by location, by number, etc.).
 *   **Theming and Customization:** Provides a set of theme templates that can be overridden for custom styling and layout.
 

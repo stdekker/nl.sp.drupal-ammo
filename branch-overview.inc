@@ -25,7 +25,7 @@ function ammo_branch_overview_relations($type, $meeting_id, array $branch_ids) {
   $query = db_select('ammo_contact_relations', 'r');
   $query->join('ammo_' . $type . 's', 't', 't.id = r.target_id');
   $query->addField('t', 'id', 'item_id');
-  $query->fields('t', array('state'));
+  $query->fields('t', array('state', 'advice'));
   $query->fields('r', array('contact_id', 'contact_type', 'contact_display_name'));
   if ($type === 'amendment') {
     $query->join('ammo_documents', 'd', 'd.id = t.document_id');
@@ -99,9 +99,11 @@ function ammo_branch_overview_items($type, $meeting_id, array $branch_ids) {
 /**
  * Status label, hidden when the meeting hides states like the item templates.
  */
-function ammo_branch_overview_state_label($type, $state, $meeting) {
-  $always_shown = array('concept', 'withdrawn', $type === 'motion' ? 'rejected' : 'invalid');
-  if (!empty($meeting->hide_state) && !ammo_admin_access() && !in_array($state, $always_shown, TRUE)) {
+function ammo_branch_overview_state_label($type, $state, $meeting, $advice = NULL) {
+  $always_shown = array('concept', 'withdrawn', $type === 'motion' ? '' : 'invalid');
+  // Motions assessed as rejected are folded in on their page, so they always show.
+  $rejected_motion = $type === 'motion' && ammo_assessed_as(array('state' => $state, 'advice' => $advice), 'reject');
+  if (!empty($meeting->hide_state) && !ammo_admin_access() && !in_array($state, $always_shown, TRUE) && !$rejected_motion) {
     return '';
   }
   $states = ammo_states();
@@ -122,7 +124,7 @@ function ammo_branch_overview_number_link($type, array $item) {
 }
 
 function ammo_branch_overview_row($type, array $item, $meeting) {
-  $state = ammo_branch_overview_state_label($type, $item['state'], $meeting);
+  $state = ammo_branch_overview_state_label($type, $item['state'], $meeting, $item['advice']);
   $cells = array(ammo_branch_overview_number_link($type, $item));
   if ($type === 'amendment') {
     $cells[] = check_plain($item['document_title']);

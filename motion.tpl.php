@@ -1,12 +1,12 @@
 <?php 
 global $base_url; 
-$is_withdrawn = ($state === 'withdrawn' || $state === 'rejected');
+$is_withdrawn = ($state === 'withdrawn' || $rejected);
 ?>
 <h3 id="motion<?php print $entity_id; ?>" class="motion-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
   Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?>
   <?php if ($state === 'withdrawn'): ?>
     <span class="withdrawn-indicator"> - Ingetrokken</span>
-  <?php elseif ($state === 'rejected'): ?>
+  <?php elseif ($rejected): ?>
     <span class="withdrawn-indicator"> - Afgewezen</span>
   <?php endif; ?>
 </h3>
@@ -123,7 +123,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php endif; ?>
     <?php endif; ?>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
-      <?php if (($withdraw_access && $state !== 'withdrawn' && $state !== 'rejected' && $state !== 'spelling_grammar') || $admin_access) : ?>
+      <?php if (($withdraw_access && $state !== 'withdrawn' && !$rejected && $state !== 'spelling_grammar') || $admin_access) : ?>
         <?php if ($unsupported_branches) : ?>
           <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>

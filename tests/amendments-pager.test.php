@@ -21,7 +21,7 @@ try {
   $first = ammo_save_entity('document', array('title' => 'Z document', 'meeting_id' => $meeting->id));
   $second = ammo_save_entity('document', array('title' => 'A document', 'meeting_id' => $meeting->id));
   $ids = array();
-  foreach (array(1 => 'submitted', 2 => 'accepted', 3 => 'blocked', 4 => 'concept') as $chapter => $state) {
+  foreach (array(1 => 'submitted', 2 => 'assessed', 3 => 'blocked', 4 => 'concept') as $chapter => $state) {
     $entry = ammo_save_entity('amendment', array('document_id' => $first->id, 'chapter' => $chapter, 'chapterized_id' => 1, 'state' => $state));
     $ids[$chapter] = $entry->id;
   }

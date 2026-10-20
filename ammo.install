@@ -615,3 +615,45 @@ function ammo_update_7014() {
     db_add_index('ammo_amendments', 'document_group', $schema['ammo_amendments']['indexes']['document_group']);
   }
 }
+
+/**
+ * Replace the statuses Overgenomen and Afgewezen with Beoordeeld.
+ *
+ * The outcome stays in the advice: an empty advice is filled from the old
+ * status, and items whose advice contradicts their old status are reported.
+ */
+function ammo_update_7015() {
+  $outcomes = array('accepted' => 'accept', 'rejected' => 'reject');
+  $conflicts = array();
+  foreach (array('amendment' => 'ammo_amendments', 'motion' => 'ammo_motions') as $type => $table) {
+    foreach ($outcomes as $state => $advice) {
+      db_update($table)
+        ->fields(array('advice' => $advice))
+        ->condition('state', $state)
+        ->condition(db_or()->isNull('advice')->condition('advice', ''))
+        ->execute();
+      $ids = db_select($table, 't')->fields('t', array('id'))
+        ->condition('state', $state)->condition('advice', $advice, '<>')
+        ->execute()->fetchCol();
+      if ($ids) {
+        $conflicts[] = $type . ' ' . implode(', ', $ids) . ' (status ' . $state . ')';
+      }
+      db_update($table)->fields(array('state' => 'assessed'))->condition('state', $state)->execute();
+    }
+  }
+  $allowed = variable_get('ammo_vote_request_allowed_statuses');
+  if (is_array($allowed)) {
+    $mapped = array();
+    foreach (array_filter($allowed) as $status) {
+      $status = isset($outcomes[$status]) ? 'assessed' : $status;
+      $mapped[$status] = $status;
+    }
+    variable_set('ammo_vote_request_allowed_statuses', array_values($mapped));
+  }
+  $message = 'Overgenomen en Afgewezen zijn vervangen door Beoordeeld; de uitkomst staat in het advies.';
+  if ($conflicts) {
+    $message .= ' Advies wijkt af van de oude status bij: ' . implode('; ', $conflicts) . '.';
+    watchdog('ammo', 'Update 7015: advies wijkt af van de oude status bij @items.', array('@items' => implode('; ', $conflicts)), WATCHDOG_WARNING);
+  }
+  return $message;
+}

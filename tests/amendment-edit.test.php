@@ -27,19 +27,19 @@ try {
   $branches[99999999] = array(99999999 => 'Testafdeling');
   $meeting = ammo_save_entity('meeting', array('title' => 'AMMO edit test', 'date' => '2000-01-01', 'submission_closing_date' => '1999-01-01', 'withdrawal_closing_date' => '1999-01-01', 'email' => 'ammo-test@example.invalid', 'allow_submitted_amendment_edit' => 1));
   $document = ammo_save_entity('document', array('title' => 'Testdocument', 'meeting_id' => $meeting->id));
-  $original = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Oude tekst', 'supplement' => 'Toelichting', 'state' => 'accepted', 'advice' => 'accept', 'advice_supplement' => 'Advies', 'state_supplement' => 'Beoordeling'));
+  $original = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Oude tekst', 'supplement' => 'Toelichting', 'state' => 'assessed', 'advice' => 'accept', 'advice_supplement' => 'Advies', 'state_supplement' => 'Beoordeling'));
   $owner = ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'amendment', 'target_id' => $original->id, 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling', 'contact_email' => 'owner@example.invalid'));
   ammo_edit_test_assert(ammo_add_access(), 'Fixture must have submission permission.');
   ammo_edit_test_assert(ammo_access(99999999), 'Fixture must have branch access.');
   ammo_edit_test_assert(ammo_get_first_owner('amendment', $original->id), 'Fixture must have a primary owner.');
-  ammo_edit_test_assert(ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'Past dates and accepted state must allow editing.');
+  ammo_edit_test_assert(ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'Past dates and assessed state must allow editing.');
   ammo_edit_test_assert(!ammo_edit_access($meeting->id, 123, 'amendment', $original->id), 'Other branch must be denied.');
   foreach (array('withdrawn', 'blocked') as $state) {
     $original->state = $state;
     entity_save('amendment', $original);
     ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'Closed state must be denied.');
   }
-  $original->state = 'accepted';
+  $original->state = 'assessed';
   entity_save('amendment', $original);
   $form_state = array();
   ammo_edit_test_assert(ammo_populate_form('amendment', $original->id, $form_state), 'Edit form must populate.');

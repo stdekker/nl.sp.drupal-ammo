@@ -33,7 +33,7 @@ try {
   $meeting = ammo_save_entity('meeting', array('title' => 'Branch overview test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'no_motions' => 0, 'hide_state' => 0));
   $document = ammo_save_entity('document', array('title' => 'Branch overview document', 'meeting_id' => $meeting->id));
   $ids = array();
-  foreach (array('shared' => 'submitted', 'admin_first' => 'submitted', 'member_first' => 'submitted', 'vote_only' => 'submitted', 'second' => 'submitted', 'draft' => 'concept', 'blocked' => 'blocked', 'rejected' => 'rejected') as $key => $state) {
+  foreach (array('shared' => 'submitted', 'admin_first' => 'submitted', 'member_first' => 'submitted', 'vote_only' => 'submitted', 'second' => 'submitted', 'draft' => 'concept', 'blocked' => 'blocked', 'rejected' => 'assessed') as $key => $state) {
     $entry = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 2, 'chapterized_id' => count($ids) + 1, 'page' => 14, 'line' => 220, 'state' => $state));
     $ids[$key] = (int) $entry->id;
   }
@@ -92,6 +92,7 @@ try {
   ammo_branch_overview_assert($rows[2]['data'][4] === 'Concept', 'Draft stays listed after the closing date');
   ammo_branch_overview_assert($rows[3]['data'][4] === '' && !$rows[3]['class'], 'Hidden state is neither printed nor used as class');
   ammo_branch_overview_assert(!isset($page['branches'][$a]['submitted']['tables']['motion']), 'No motions part for a meeting without motions');
+  ammo_branch_overview_assert(ammo_branch_overview_state_label('motion', 'assessed', $meeting, 'reject') === 'Beoordeeld' && ammo_branch_overview_state_label('motion', 'assessed', $meeting, 'accept') === '', 'Motion assessed as rejected stays visible when states are hidden');
 
   $user = user_load(1);
   ammo_branch_overview_assert(ammo_branch_overview_branches(array('afdeling' => $b)) === array((string) $b => 'SP Afdeling B'), 'Administrator can select a branch');
@@ -100,7 +101,7 @@ try {
   ammo_branch_overview_assert(isset($admin_items[$a]['submitted'][$ids['blocked']]), 'Administrator sees blocked items');
   $admin_page = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'));
   $admin_rows = $admin_page['branches'][$a]['submitted']['tables']['amendment']['rows'];
-  ammo_branch_overview_assert($admin_rows[3]['data'][4] === 'Verwijderd' && $admin_rows[4]['data'][4] === 'Afgewezen', 'Administrator sees blocked and hidden states');
+  ammo_branch_overview_assert($admin_rows[3]['data'][4] === 'Verwijderd' && $admin_rows[4]['data'][4] === 'Beoordeeld', 'Administrator sees blocked and hidden states');
   $_GET['afdeling'] = $b;
   $state = array();
   $form = ammo_branch_overview_form(array(), $state, $meeting->id);

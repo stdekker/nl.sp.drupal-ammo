@@ -25,8 +25,8 @@ try {
   $state = array();
   $form = ammo_support_form(array(), $state, 'add', 'member', 'amendment', $amendment->id);
   ammo_invalid_support_assert(isset($form['submit']), 'Member can open support form before status change');
-  foreach (array('invalid', 'rejected') as $blocked_state) {
-    $amendment->state = $blocked_state;
+  foreach (array('invalid' => array('invalid', NULL), 'rejected' => array('assessed', 'reject')) as $blocked_state => $fields) {
+    list($amendment->state, $amendment->advice) = $fields;
     entity_save('amendment', $amendment);
     ammo_invalid_support_assert(!ammo_support_add_allowed('add', 'amendment', $amendment->id), $blocked_state . ' amendment rejects new support');
     ammo_invalid_support_assert(ammo_support_add_allowed('withdraw', 'amendment', $amendment->id), 'Withdrawal remains allowed');
@@ -44,11 +44,15 @@ try {
   }
   form_clear_error();
   drupal_get_messages('error');
+  $amendment->state = 'assessed';
+  $amendment->advice = 'accept';
+  entity_save('amendment', $amendment);
+  ammo_invalid_support_assert(ammo_support_add_allowed('add', 'amendment', $amendment->id), 'Amendment assessed as accepted keeps accepting support');
   ammo_save_entity('contact_relation', array('target_id' => $amendment->id, 'target_type' => 'amendment', 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => 99999998, 'branch_id' => 99999998, 'contact_display_name' => 'Bestaande indiener', 'branch_display_name' => 'Bestaande indiener'));
   $branches = &drupal_static('ammo_get_afdelingen');
   $branches[99999999] = array(99999999 => 'Andere afdeling');
-  foreach (array('invalid', 'rejected') as $blocked_state) {
-    $amendment->state = $blocked_state;
+  foreach (array('invalid' => array('invalid', NULL), 'rejected' => array('assessed', 'reject')) as $blocked_state => $fields) {
+    list($amendment->state, $amendment->advice) = $fields;
     entity_save('amendment', $amendment);
     $blocked_markup = theme('amendment', array('entity_id' => $amendment->id));
     ammo_invalid_support_assert(strpos($blocked_markup, 'mede indienen') === FALSE, $blocked_state . ' amendment hides co-submission link');
@@ -72,9 +76,17 @@ try {
   $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 1, 'state' => 'withdrawn'));
   $motion_markup = theme('motion', array('entity_id' => $motion->id));
   ammo_invalid_support_assert(strpos($motion_markup, 'class="withdrawn-toggle"') !== FALSE, 'Withdrawn motion retains its details toggle');
+  $motion->state = 'assessed';
+  $motion->advice = 'reject';
+  entity_save('motion', $motion);
+  $motion_markup = theme('motion', array('entity_id' => $motion->id));
+  ammo_invalid_support_assert(strpos($motion_markup, ' - Afgewezen</span>') !== FALSE && strpos($motion_markup, 'class="withdrawn-toggle"') !== FALSE, 'Motion assessed as rejected is folded in');
+  $motion->advice = 'accept';
+  entity_save('motion', $motion);
+  ammo_invalid_support_assert(strpos(theme('motion', array('entity_id' => $motion->id)), 'withdrawn-toggle') === FALSE, 'Motion assessed as accepted stays open');
   $user = user_load(1);
-  foreach (array('invalid', 'rejected') as $blocked_state) {
-    $amendment->state = $blocked_state;
+  foreach (array('invalid' => array('invalid', NULL), 'rejected' => array('assessed', 'reject')) as $blocked_state => $fields) {
+    list($amendment->state, $amendment->advice) = $fields;
     entity_save('amendment', $amendment);
     ammo_invalid_support_assert(ammo_support_add_allowed('add', 'amendment', $amendment->id), 'Administrator retains access for ' . $blocked_state);
     $state = array();
@@ -82,7 +94,7 @@ try {
     ammo_invalid_support_assert(isset($form['submit']), 'Administrator can open support form for ' . $blocked_state);
   }
   $transaction->rollback();
-  print "PASS: invalid and rejected amendments block ordinary member and branch support on open and submit; withdrawal, motions and administrator access preserved. Fixtures rolled back.\n";
+  print "PASS: invalid amendments and those assessed as rejected block ordinary member and branch support on open and submit; withdrawal, motions and administrator access preserved. Fixtures rolled back.\n";
 }
 catch (Exception $e) {
   $transaction->rollback();
