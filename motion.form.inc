@@ -426,10 +426,11 @@ function ammo_motion_form_submit($form, &$form_state)
     switch ($step) {
     case 1:
       $form_state['storage']['meeting'] = $values['meeting'];
-      $form_state['storage']['meeting_display_name'] = $form['meeting']['#options'][$values['meeting']];
-      
-      // Check if we should skip the confirmation step for this meeting
+      // A single meeting is a value element without options, so use its title.
       $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
+      $form_state['storage']['meeting_display_name'] = $meeting ? $meeting->title : '';
+
+      // Check if we should skip the confirmation step for this meeting
       if ($meeting && !empty($meeting->disable_confirmation_checkbox)) {
         $form_state['step']++; // This will make it skip step 2 in the normal increment logic
       }
