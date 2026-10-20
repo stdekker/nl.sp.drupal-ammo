@@ -770,9 +770,22 @@ function template_preprocess_motion(&$variables) {
   }
 }
 
+/**
+ * Link to the submit form of an overview, when the user may submit to the meeting now.
+ */
+function ammo_overview_submit_link($meeting_id, $entity_type) {
+  $meeting = entity_load_single('meeting', $meeting_id);
+  $access = $entity_type == 'motion' ? ammo_add_motion_access() : ammo_add_access();
+  if (!$meeting || !$access || !ammo_meeting_range_open($meeting, $entity_type . '_submission')) {
+    return '';
+  }
+  return l($entity_type == 'motion' ? 'Motie indienen' : 'Wijzigingsvoorstel indienen', 'ammo/' . $entity_type);
+}
+
 function template_preprocess_overview_amendments(&$variables) {
   module_load_include('inc', 'ammo', 'amendments-pager');
   $variables += ammo_amendments_page($variables['meeting_id'], $_GET);
+  $variables['submit_link'] = ammo_overview_submit_link($variables['meeting_id'], 'amendment');
   if (!empty($variables['meeting']['selected_document'])) {
     $variables['destination'] = array('destination' => url('ammo/amendments/' . $variables['meeting']['id'], array('query' => array('document' => $variables['meeting']['selected_document'], 'chapter' => $variables['meeting']['selected_chapter']))));
   }
@@ -819,6 +832,7 @@ function template_preprocess_overview_motions(&$variables) {
       }
       $data['meeting']['motion_totals'][$motion->state]++;
     }
+    $data['submit_link'] = ammo_overview_submit_link($meeting->id, 'motion');
     $variables = $variables + $data;
   }
 }

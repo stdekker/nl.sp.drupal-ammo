@@ -29,4 +29,6 @@
     <?php endforeach; ?>
   </ul>
 
+<?php elseif (isset($meeting) && empty($meeting['hide'])) : ?>
+  <p>Er zijn nog geen moties ingediend.<?php if (!empty($submit_link)) : ?> <?php print $submit_link; ?><?php endif; ?></p>
 <?php endif; ?>

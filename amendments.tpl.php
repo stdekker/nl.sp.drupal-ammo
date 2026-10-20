@@ -35,5 +35,5 @@
     <?php print $bottom_chapter_navigation; ?>
   </nav>
 <?php elseif (empty($meeting['hide'])): ?>
-  <p>Er zijn geen wijzigingsvoorstellen beschikbaar.</p>
+  <p>Er zijn geen wijzigingsvoorstellen beschikbaar.<?php if (!empty($submit_link)) : ?> <?php print $submit_link; ?><?php endif; ?></p>
 <?php endif; ?>
