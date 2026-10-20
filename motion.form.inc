@@ -243,6 +243,8 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       '#options' => ammo_motion_advice(),
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'advice'),
+      // The advice is the outcome of an assessment; checked in validation.
+      '#states' => array('required' => array(':input[name="state"]' => array('value' => 'assessed'))),
     );
 
     $form['texts'] = array(
@@ -396,6 +398,9 @@ function ammo_motion_form_validate($form, &$form_state)
     if (empty($values['follow_up_text'])) {
       form_set_error('follow_up_text', 'Vul de vervolg inhoud in.');
     }
+    break;
+  case 5:
+    ammo_validate_assessed_advice($values);
     break;
   }
 }

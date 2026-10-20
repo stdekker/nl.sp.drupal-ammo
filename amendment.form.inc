@@ -324,6 +324,8 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#options' => ammo_amendment_advice(),
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'advice'),
+      // The advice is the outcome of an assessment; checked in validation.
+      '#states' => array('required' => array(':input[name="state"]' => array('value' => 'assessed'))),
     );
     $form['advice_supplement'] = array(
       '#type' => 'textarea',
@@ -426,6 +428,9 @@ function ammo_amendment_form_validate($form, &$form_state) {
     if (empty($values['confirm'])) {
       form_set_error('confirm', 'U moet bevestigen dat u het wijzigingsvoorstel wilt opslaan/indienen.');
     }
+    break;
+  case 7:
+    ammo_validate_assessed_advice($values);
     break;
   }
 }

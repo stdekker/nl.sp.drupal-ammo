@@ -41,6 +41,15 @@ function ammo_assessed_as($item, $advice) {
 }
 
 /**
+ * Requires an advice for the status Beoordeeld, because the advice is the outcome.
+ */
+function ammo_validate_assessed_advice(array $values) {
+  if (isset($values['state']) && $values['state'] === 'assessed' && empty($values['advice'])) {
+    form_set_error('advice', 'Kies een advies. Bij de status Beoordeeld geeft het advies de uitkomst.');
+  }
+}
+
+/**
  * Whether the current user may add support to an amendment; not when invalid or assessed as rejected.
  */
 function ammo_amendment_can_receive_support($state, $advice = NULL) {

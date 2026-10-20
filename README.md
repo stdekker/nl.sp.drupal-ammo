@@ -91,7 +91,8 @@ Run the rollback-only check with
 ### Beoordeeld
 
 The statuses *Overgenomen* and *Afgewezen* are replaced by *Beoordeeld*. The
-outcome of the assessment is the advice (*Overnemen* or *Afwijzen*). Where the
+outcome of the assessment is the advice (*Overnemen* or *Afwijzen*), so the
+status/advies form refuses *Beoordeeld* without an advice. Where the
 module treated the old statuses differently, it now follows the advice:
 
 - amendments assessed with *Afwijzen* get no new support from regular users;
