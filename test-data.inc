@@ -64,10 +64,11 @@ function ammo_test_data_validate_selection($meeting_id, $type, $count, $document
   if ($type === 'amendment' && !empty($document_id)) {
     $document = entity_load_single('document', $document_id);
     if ($document && $document->meeting_id == $meeting_id) {
-      if ($document->chapter_min > 10) {
+      if (ammo_document_is_legacy($document) && $document->chapter_min > 10) {
         throw new InvalidArgumentException('Dit document staat geen hoofdstukken binnen 1–10 toe.');
       }
-      $errors = ammo_validate_document_ranges($document_id, max(1, $document->chapter_min), max(1, $document->page_min), 1);
+      $locators = ammo_document_locators($document);
+      $errors = ammo_validate_locators($document, ammo_test_data_locator_input($locators, 0), $locators);
       if (!$errors) {
         return;
       }
@@ -103,6 +104,34 @@ function ammo_test_data_form_submit($form, &$form_state) {
   $form_state['redirect'] = 'admin/ammo/meeting/' . $values['meeting'] . '/test-data';
 }
 
+/**
+ * Locator input for test entry $i; the group rotates over at most ten values.
+ */
+function ammo_test_data_locator_input(array $locators, $i) {
+  $input = array();
+  foreach ($locators as $key => $locator) {
+    if (empty($locator['required'])) {
+      $input[$key] = '';
+      continue;
+    }
+    if ($locator['type'] === 'text') {
+      $input[$key] = 'Testlocatie';
+      continue;
+    }
+    $letter = $locator['type'] === 'letter';
+    $first = $letter ? ord($locator['min'] !== '' ? $locator['min'] : 'A') : max(1, (int) $locator['min']);
+    $value = $first;
+    if (!empty($locator['grouping'])) {
+      $last = $letter ? ord($locator['max'] !== '' ? $locator['max'] : 'Z') : ($locator['max'] !== '' ? (int) $locator['max'] : PHP_INT_MAX);
+      // Legacy chapters stay within 1–10.
+      $last = !empty($locator['legacy']) ? min($last, 10) : min($last, $first + 9);
+      $value = $first + ($last >= $first ? $i % ($last - $first + 1) : 0);
+    }
+    $input[$key] = $letter ? chr($value) : (string) $value;
+  }
+  return $input;
+}
+
 function ammo_test_data_generate($meeting_id, $type, $count, $document_id = NULL) {
   ammo_test_data_validate_selection($meeting_id, $type, $count, $document_id);
   $branches = ammo_test_data_branches();
@@ -117,15 +146,14 @@ function ammo_test_data_generate($meeting_id, $type, $count, $document_id = NULL
     $states = array_keys(ammo_states());
     $topics = array('betaalbare woningen', 'goed openbaar vervoer', 'toegankelijke zorg', 'groene buurten', 'gelijke kansen');
     $document = $type === 'amendment' ? entity_load_single('document', $document_id) : NULL;
+    $locators = $document ? ammo_document_locators($document) : array();
     for ($i = 0; $i < $count; $i++) {
       $topic = $topics[$i % count($topics)];
       $label = '[TEST] ' . ($i + 1) . ': ' . $topic;
       $values = array('state' => $states[$i % count($states)], 'supplement' => $label . '. Dit is gegenereerde testdata.', 'advice' => $i % 2 ? 'reject' : 'accept', 'advice_supplement' => 'Testadvies over ' . $topic . '.', 'state_supplement' => 'Teststatus.');
       if ($document) {
-        $chapter_min = max(1, (int) $document->chapter_min);
-        $chapter_max = empty($document->chapter_max) ? 10 : min(10, (int) $document->chapter_max);
-        $chapter = $chapter_min + ($i % ($chapter_max - $chapter_min + 1));
-        $values += array('document_id' => $document_id, 'chapter' => $chapter, 'page' => max(1, $document->page_min), 'line' => 1, 'amendment_text' => $label . '. Voeg toe: Wij zetten ons in voor ' . $topic . '.', 'chapterized_id' => 1 + db_query('SELECT MAX(chapterized_id) FROM {ammo_amendments} WHERE document_id = :document AND chapter = :chapter', array(':document' => $document_id, ':chapter' => $chapter))->fetchField());
+        $fields = ammo_amendment_locator_fields($document, ammo_test_data_locator_input($locators, $i));
+        $values += $fields + array('document_id' => $document_id, 'amendment_text' => $label . '. Voeg toe: Wij zetten ons in voor ' . $topic . '.', 'chapterized_id' => ammo_next_chapterized_id($document_id, ammo_amendment_group($fields)));
       }
       else {
         $values += array('meeting_id' => $meeting_id, 'motion_id' => 1 + db_query('SELECT MAX(motion_id) FROM {ammo_motions} WHERE meeting_id = :meeting', array(':meeting' => $meeting_id))->fetchField(), 'consideration_opening' => '[TEST] constaterende dat', 'consideration_body' => $label . '. Er behoefte is aan ' . $topic . '.', 'follow_up_opening' => 'verzoekt', 'follow_up_body' => 'Een voorstel uit te werken voor ' . $topic . '.');

@@ -46,8 +46,9 @@ function ammo_save_submitted_amendment($storage) {
       return FALSE;
     }
     $original = entity_load_single('amendment', $id);
+    $editable = array_merge(ammo_amendment_locator_columns($original->document_id), array('amendment_text', 'supplement'));
     $fields = array();
-    foreach (array('chapter', 'page', 'line', 'amendment_text', 'supplement') as $field) {
+    foreach ($editable as $field) {
       if ((string) $original->$field !== (string) $storage[$field]) {
         $fields[$field] = $storage[$field];
       }
@@ -60,15 +61,16 @@ function ammo_save_submitted_amendment($storage) {
     $first_owner = ammo_get_first_owner('amendment', $id);
     $split = count($owners) > 1;
     $saved = $split ? entity_create('amendment', array('document_id' => $original->document_id)) : clone $original;
-    foreach (array('chapter', 'page', 'line', 'amendment_text', 'supplement') as $field) {
+    foreach ($editable as $field) {
       $saved->$field = $storage[$field];
     }
     $saved->state = 'submitted';
     $saved->state_supplement = '';
     $saved->advice = '';
     $saved->advice_supplement = '';
-    if ($split || $original->chapter != $saved->chapter || empty($original->chapterized_id)) {
-      $saved->chapterized_id = 1 + db_query('SELECT MAX(chapterized_id) FROM {ammo_amendments} WHERE document_id = :document AND chapter = :chapter', array(':document' => $saved->document_id, ':chapter' => $saved->chapter))->fetchField();
+    $group = ammo_amendment_group($saved);
+    if ($split || $group !== ammo_amendment_group($original) || empty($original->chapterized_id)) {
+      $saved->chapterized_id = ammo_next_chapterized_id($saved->document_id, $group);
     }
     if (entity_save('amendment', $saved) === FALSE) {
       throw new Exception('Het gewijzigde voorstel kon niet worden opgeslagen.');
@@ -106,7 +108,10 @@ function ammo_save_submitted_amendment($storage) {
     }
     else {
       $differences = array();
-      foreach ($fields as $field => $value) {
+      if (isset($fields['locator_values'])) {
+        $differences += ammo_locator_differences($original->document_id, $original, $fields);
+      }
+      foreach (array_diff_key($fields, array('locator_values' => TRUE, 'group_value' => TRUE)) as $field => $value) {
         $description = ammo_diff_fields($field);
         $differences[$field] = array('fieldname' => $description['name'], 'diff' => ammo_diffline($original->$field, $value));
       }
@@ -127,7 +132,7 @@ function ammo_amendment_replacement_mail($original, $saved, $owners, $first_owne
   $sender = ammo_mailadress($meeting_id);
   $params = ammo_mail_get_params('amendment', $saved->id, $meeting_id, $sender);
   $params['old_id'] = $original->id;
-  $params['old_number'] = $original->chapter . '.' . $original->chapterized_id;
+  $params['old_number'] = ammo_amendment_number($original);
   $recipients = array();
   foreach ($owners as $owner) {
     if ($owner->id != $first_owner['id'] && !empty($owner->contact_email)) {

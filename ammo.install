@@ -136,6 +136,10 @@ function ammo_schema() {
         'type' => 'int',
         'size' => 'small',
       ),
+      'locators' => array(
+        'description' => 'JSON list of location indicators; NULL for the legacy chapter, page and line.',
+        'type' => 'text',
+      ),
     ),
     'primary key' => array(
       'id',
@@ -178,6 +182,15 @@ function ammo_schema() {
         'type' => 'int',
         'size' => 'small',
       ),
+      'locator_values' => array(
+        'description' => 'JSON object of location indicator values by key, for documents with locators.',
+        'type' => 'text',
+      ),
+      'group_value' => array(
+        'description' => 'Value of the grouping location indicator, for documents with locators.',
+        'type' => 'varchar',
+        'length' => '64',
+      ),
       'amendment_text' => array(
         'description' => 'The amendment text.',
         'type' => 'text',
@@ -202,6 +215,9 @@ function ammo_schema() {
     ),
     'primary key' => array(
       'id',
+    ),
+    'indexes' => array(
+      'document_group' => array('document_id', 'group_value'),
     ),
   );
 
@@ -579,5 +595,23 @@ function ammo_update_7013() {
   if (!db_table_exists('ammo_test_entries')) {
     $schema = ammo_schema();
     db_create_table('ammo_test_entries', $schema['ammo_test_entries']);
+  }
+}
+
+/**
+ * Add configurable location indicators to documents and amendments.
+ */
+function ammo_update_7014() {
+  $schema = ammo_schema();
+  if (!db_field_exists('ammo_documents', 'locators')) {
+    db_add_field('ammo_documents', 'locators', $schema['ammo_documents']['fields']['locators']);
+  }
+  foreach (array('locator_values', 'group_value') as $field) {
+    if (!db_field_exists('ammo_amendments', $field)) {
+      db_add_field('ammo_amendments', $field, $schema['ammo_amendments']['fields'][$field]);
+    }
+  }
+  if (!db_index_exists('ammo_amendments', 'document_group')) {
+    db_add_index('ammo_amendments', 'document_group', $schema['ammo_amendments']['indexes']['document_group']);
   }
 }

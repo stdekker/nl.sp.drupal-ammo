@@ -82,11 +82,12 @@ function ammo_item_view_page($type, $id) {
   $item = $loaded['item'];
   $meeting = $loaded['meeting'];
   if ($type === 'amendment') {
-    drupal_set_title('Wijzigingsvoorstel ' . ($item->chapter ?: 'X') . '.' . ($item->chapterized_id ?: $item->id));
+    drupal_set_title('Wijzigingsvoorstel ' . ammo_amendment_number($item));
     $context = check_plain($meeting->title) . ': ' . check_plain($loaded['document']->title);
     $overview = 'ammo/amendments/' . $meeting->id;
-    // The amendment overview only loads the selected document and chapter.
-    $options = array('query' => array('document' => $item->document_id, 'chapter' => (int) $item->chapter));
+    // The amendment overview only loads the selected document and group.
+    $group = ammo_amendment_group($item);
+    $options = array('query' => array('document' => $item->document_id, 'chapter' => $group === '' ? 0 : $group));
   }
   else {
     drupal_set_title('Motie ' . ($item->motion_id ?: $item->id));

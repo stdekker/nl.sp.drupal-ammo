@@ -32,8 +32,9 @@ deployment notes.
 | --- | --- |
 | `ammo.module` | Hooks: menu, permissions, access callbacks, `hook_mail`, `hook_theme`, `template_preprocess_*`, `hook_entity_info`, intro and admin pages. |
 | `ammo.inc` | Shared helpers: states, advice, afdelingen/contacts, relations, saving (`ammo_save_entity`, `ammo_store`), access (`ammo_edit_access`, `ammo_access`, …), diff and mail helpers, document range validation. Loaded on every request by `ammo_init()`. |
-| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7013`. |
+| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7014`. |
 | `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `print`, `export`, `branch-overview`, …). |
+| `locators.inc` | Location indicators (locators) of documents and amendments: definitions with the legacy fallback, validation, storage fields, grouping, numbering, location text and sorting. Required by `ammo.inc`. |
 | `amendment-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
 | `*.tpl.php` | Templates registered in `ammo_theme()`; their variables come from the matching `template_preprocess_*` in `ammo.module`. |
 | `ammo.css`, `ammo.js` | Front-end assets. `ammo.css` is added through `ammo.info`. |
@@ -48,10 +49,14 @@ by its own table:
   `withdrawal_closing_date`, `date`) and switches such as `hide_meeting`,
   `no_motions`, `hide_state`, `hide_advice` and
   `allow_submitted_amendment_edit`.
-- `document` → `ammo_documents`, which belongs to a meeting. Holds the
-  validation ranges `chapter_min/max`, `page_min/max` and `line_max`.
-- `amendment` → `ammo_amendments`, which belongs to a document. Its number is
-  `chapter.chapterized_id`.
+- `document` → `ammo_documents`, which belongs to a meeting. `locators` holds
+  a JSON list of location indicators (key, label, type `numeric|letter|text`,
+  min, max, grouping, required). When it is NULL the document is legacy and
+  uses the ranges `chapter_min/max`, `page_min/max` and `line_max`.
+- `amendment` → `ammo_amendments`, which belongs to a document. Legacy
+  documents store `chapter`, `page` and `line`; other documents store
+  `locator_values` (JSON by locator key) and `group_value`. Its number is
+  `group.chapterized_id`, where the group is `COALESCE(group_value, chapter)`.
 - `motion` → `ammo_motions`, which belongs to a meeting directly. Its number is
   `motion_id`.
 - `contact_relation` → `ammo_contact_relations`. It links a contact to an
@@ -73,6 +78,11 @@ The rules the code depends on:
   Every other branch owner is a co-submitter (*mede-indiener*).
   `branch-overview.inc` repeats this rule in SQL, so keep the two in sync.
 - **Hidden meetings** (`hide_meeting`) show nothing to anyone.
+- **Locators**: read them through `ammo_document_locators()` and
+  `ammo_amendment_locator_values()`, which build chapter, page and line for
+  legacy documents. Use `ammo_amendment_number()`, `ammo_amendment_group()`
+  and `ammo_next_chapterized_id()` instead of `chapter` directly. A document
+  with amendments may not change its locator structure.
 
 ## Access
 
@@ -124,7 +134,7 @@ The module defines four permissions: `administer ammo` (superadmin),
   helpers in `ammo.inc`. Do not send mail from test data or from test scripts.
 - To change the schema:
   1. Change `ammo_schema()`.
-  2. Add the next `ammo_update_70NN()` (currently 7014). Guard it with
+  2. Add the next `ammo_update_70NN()` (currently 7015). Guard it with
      `db_field_exists()` or `db_table_exists()`, and reuse the definition from
      `ammo_schema()`.
 - To change data access, prefer `db_select` and `EntityFieldQuery`. Load and

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/amendment-edit.inc';
+require_once __DIR__ . '/locators.inc';
 
 function ammo_entity_check_title($type, $title) {
   // check if title is unique
@@ -470,16 +471,28 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
 
   $storage = $form_state['storage'];
 
+  // Configured locators are stored together, so describe each change apart.
+  // As for other fields, only changes submitted in this form step count.
+  if ($entity_type == 'amendment' && !empty($original_entity) && isset($fields['locator_values'])) {
+    $locators = ammo_document_locators($original_entity->document_id);
+    if (array_filter(array_intersect_key($values, $locators), 'strlen')) {
+      $differences += ammo_locator_differences($original_entity->document_id, $original_entity, $fields);
+    }
+  }
+
   // Store motion or amendment id and create short url.
   if (!empty($original_entity)) {
     switch ($entity_type) {
       case 'amendment':
-        if (empty($original_entity->chapterized_id) || $storage['chapter'] != $original_entity->chapter) {
-          // Set chapterized id.
-          $query = 'SELECT MAX(chapterized_id) FROM {ammo_amendments} WHERE chapter = :chapter AND document_id = :document_id';
-          $result = db_query($query, array(':chapter' => $storage['chapter'], ':document_id' => $storage['document']));
-          $new_id = $result->fetchField() + 1;
-          $fields['chapterized_id'] = $new_id;
+        $group = ammo_amendment_group($original_entity);
+        if (array_key_exists('group_value', $storage) || array_key_exists('chapter', $storage)) {
+          $group = ammo_amendment_group(array(
+            'group_value' => isset($storage['group_value']) ? $storage['group_value'] : NULL,
+            'chapter' => isset($storage['chapter']) ? $storage['chapter'] : NULL,
+          ));
+        }
+        if (empty($original_entity->chapterized_id) || $group !== ammo_amendment_group($original_entity)) {
+          $fields['chapterized_id'] = ammo_next_chapterized_id($storage['document'], $group);
         }
         break;
 
@@ -551,6 +564,8 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
           'state_supplement' => 'state_supplement',
           'chapterized_id' => 'chapterized_id',
           'amendment_text' => 'amendment_text',
+          'locator_values' => 'locator_values',
+          'group_value' => 'group_value',
         ),
         'motion' => array(
           'meeting_id' => 'meeting',
@@ -572,6 +587,8 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
       if ($type === 'amendment') {
         $document = entity_load_single('document', $form_state['storage']['document']);
         $storage['document_display_name'] = $document->title;
+        // The form edits each locator in its own field.
+        $storage += ammo_amendment_locator_values($entity, ammo_document_locators($document));
         if (!ammo_admin_access() && !empty($entity->state) && $entity->state !== 'concept') {
           $storage['submitted_edit'] = $entity->id;
           $storage['submitted_edit_signature'] = ammo_amendment_edit_signature($entity->id);
@@ -1074,7 +1091,7 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
           $title = $title . ': ' . $document->title;
         }
       }
-      $id = $entity->chapter . '.' . $entity->chapterized_id;
+      $id = ammo_amendment_number($entity);
       break;
 
     case 'motion':
@@ -1096,7 +1113,7 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
     'first_owner' => $first_owner,
   );
   if ($entity_type == 'amendment') {
-    $params['chapter'] = $entity->chapter;
+    $params['chapter'] = ammo_amendment_group($entity);
     $params['chapterized_id'] = $entity->chapterized_id;
     if (!empty($entity->document_id) && is_numeric($entity->document_id)) {
       $document = entity_load_single('document', $entity->document_id);
@@ -1493,13 +1510,13 @@ function ammo_get_vote_requests($entity_type, $entity_id) {
 }
 
 /**
- * Validates amendment values against document validation ranges.
+ * Validates legacy chapter, page and line values against a document.
  *
  * @param int $document_id
  *   The document ID to check ranges against.
  * @param int $chapter
  *   The chapter number to validate.
- * @param int $page  
+ * @param int $page
  *   The page number to validate.
  * @param int $line
  *   The line number to validate.
@@ -1508,39 +1525,14 @@ function ammo_get_vote_requests($entity_type, $entity_id) {
  *   Array of validation errors. Empty array if all values are valid.
  */
 function ammo_validate_document_ranges($document_id, $chapter, $page, $line) {
-  $errors = array();
-  
   if (empty($document_id) || !is_numeric($document_id)) {
-    return $errors;
+    return array();
   }
-  
   $document = entity_load_single('document', $document_id);
   if (!$document) {
-    return $errors;
+    return array();
   }
-  
-  // Validate chapter range
-  if (!empty($document->chapter_min) && $chapter < $document->chapter_min) {
-    $errors['chapter'] = 'Hoofdstuk nr. moet minimaal ' . $document->chapter_min . ' zijn.';
-  }
-  if (!empty($document->chapter_max) && $chapter > $document->chapter_max) {
-    $errors['chapter'] = 'Hoofdstuk nr. mag maximaal ' . $document->chapter_max . ' zijn.';
-  }
-  
-  // Validate page range
-  if (!empty($document->page_min) && $page < $document->page_min) {
-    $errors['page'] = 'Pagina nr. moet minimaal ' . $document->page_min . ' zijn.';
-  }
-  if (!empty($document->page_max) && $page > $document->page_max) {
-    $errors['page'] = 'Pagina nr. mag maximaal ' . $document->page_max . ' zijn.';
-  }
-  
-  // Validate line maximum
-  if (!empty($document->line_max) && $line > $document->line_max) {
-    $errors['line'] = 'Regelnummer mag maximaal ' . $document->line_max . ' zijn.';
-  }
-  
-  return $errors;
+  return ammo_validate_locators($document, array('chapter' => $chapter, 'page' => $page, 'line' => $line), ammo_legacy_locators($document));
 }
 
 /**
@@ -1556,44 +1548,25 @@ function ammo_get_document_constraints_display($document_id) {
   if (empty($document_id) || !is_numeric($document_id)) {
     return '';
   }
-  
   $document = entity_load_single('document', $document_id);
   if (!$document) {
     return '';
   }
-  
   $constraints = array();
-  
-  // Chapter constraints
-  if (!empty($document->chapter_min) || !empty($document->chapter_max)) {
-    $chapter_range = 'Hoofdstuk: ';
-    if (!empty($document->chapter_min) && !empty($document->chapter_max)) {
-      $chapter_range .= $document->chapter_min . '-' . $document->chapter_max;
-    } elseif (!empty($document->chapter_min)) {
-      $chapter_range .= 'vanaf ' . $document->chapter_min;
-    } elseif (!empty($document->chapter_max)) {
-      $chapter_range .= 'tot ' . $document->chapter_max;
+  foreach (ammo_document_locators($document) as $locator) {
+    if ($locator['type'] === 'text' || ($locator['min'] === '' && $locator['max'] === '')) {
+      continue;
     }
-    $constraints[] = $chapter_range;
-  }
-  
-  // Page constraints
-  if (!empty($document->page_min) || !empty($document->page_max)) {
-    $page_range = 'Pagina: ';
-    if (!empty($document->page_min) && !empty($document->page_max)) {
-      $page_range .= $document->page_min . '-' . $document->page_max;
-    } elseif (!empty($document->page_min)) {
-      $page_range .= 'vanaf ' . $document->page_min;
-    } elseif (!empty($document->page_max)) {
-      $page_range .= 'tot ' . $document->page_max;
+    if ($locator['min'] !== '' && $locator['max'] !== '') {
+      $range = $locator['min'] . '-' . $locator['max'];
     }
-    $constraints[] = $page_range;
+    elseif ($locator['min'] !== '') {
+      $range = 'vanaf ' . $locator['min'];
+    }
+    else {
+      $range = 'tot ' . $locator['max'];
+    }
+    $constraints[] = $locator['label'] . ': ' . $range;
   }
-  
-  // Line constraints
-  if (!empty($document->line_max)) {
-    $constraints[] = 'Regelnummer: tot ' . $document->line_max;
-  }
-  
   return implode(' | ', $constraints);
 }

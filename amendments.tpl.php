@@ -10,7 +10,7 @@
       <ul class="amendments">
         <?php foreach ($document['amendments'] as $amendment): ?>
           <li class="amendment">
-            <a href="#amendment<?php print $amendment['id']; ?>"><?php print ($amendment['chapter'] ?: 'X') . '.' . ($amendment['chapterized_id'] ?: $amendment['id']); ?></a>
+            <a href="#amendment<?php print $amendment['id']; ?>"><?php print $amendment['number']; ?></a>
           </li>
         <?php endforeach; ?>
       </ul>

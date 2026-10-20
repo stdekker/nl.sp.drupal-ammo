@@ -3,7 +3,7 @@
 <wijzigingen>
 <?php foreach ($document['chapters'] as $chapter): ?>
 <?php foreach ($chapter['amendments'] as $amendment) : ?>
-<vote>Nr. <?php print $chapter['chapter_nr'] . '.' . $amendment['chapterized_id']; ?>: <?php $options = ammo_amendment_advice(); ?><?php print $options[$amendment['advice']]; ?></vote>
+<vote>Nr. <?php print $amendment['number']; ?>: <?php $options = ammo_amendment_advice(); ?><?php print $options[$amendment['advice']]; ?></vote>
 <?php endforeach; ?>
 <?php endforeach; ?>
 <?php endforeach; ?>

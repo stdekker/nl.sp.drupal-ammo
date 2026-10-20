@@ -88,6 +88,31 @@ page. After deployment rebuild the menu with `drush cc all`.
 Run the rollback-only check with
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/item-view.test.php`.
 
+### Locaties (locators)
+
+New documents describe where an amendment applies with a configurable list of
+locations (*locaties*). Under **Locaties** on the document form each row has a
+name, a type (*Getal* with an optional minimum and maximum, *Letter (A–Z)* with
+an optional letter range, or *Vrije tekst*), a *Verplicht* checkbox and an
+order. A new document starts with Hoofdstuk, Pagina and Regelnummer. Exactly
+one location is *Groeperend*: it must be a number or a letter, is always
+required, and drives the overview tabs and the numbering (`3.12`, `B.4`).
+Clear a name to remove a location.
+
+Once a document has amendments only names, ranges, *Verplicht* and the order
+can change; adding, removing, changing a type or the grouping location is
+refused.
+
+Documents created before this version keep the chapter, page and line columns
+and their "Validatie instellingen"; their amendments, numbers and output are
+unchanged. No data is migrated.
+
+After deployment back up the database, run `drush updatedb` (Ammo update 7014
+adds `ammo_documents.locators`, `ammo_amendments.locator_values` and
+`ammo_amendments.group_value`) and `drush cc all` for the new theme hook.
+Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/locators.test.php`.
+
 ### Setting Document Validation Ranges
 
 1. Go to document management
@@ -108,7 +133,11 @@ The system will prevent submission if values are outside the configured ranges.
 ## API Functions
 
 ### `ammo_validate_document_ranges($document_id, $chapter, $page, $line)`
-Validates amendment values against document constraints.
+Validates legacy chapter, page and line values against document constraints.
+
+### `ammo_validate_locators($document, $values)`
+Validates amendment input against the locations of any document; errors are
+keyed by location key. See `locators.inc` for the other location helpers.
 
 ### `ammo_get_document_constraints_display($document_id)`  
 Returns formatted constraints string for display.

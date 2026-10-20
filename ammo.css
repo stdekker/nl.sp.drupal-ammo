@@ -387,3 +387,23 @@ h4.inline-title {
 .ownership-form .form-actions .button {
   margin-right: 1em;
 }
+
+/* Location fields of an amendment (chapter, page, line or configured
+   locators) sit side by side and wrap on narrow screens. */
+.amendment-location {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5em;
+  align-items: flex-start;
+}
+
+.amendment-location .form-item {
+  flex: 1 1 8em;
+  min-width: 0;
+  max-width: 14em;
+}
+
+.amendment-location .form-item input.form-text {
+  box-sizing: border-box;
+  width: 100%;
+}

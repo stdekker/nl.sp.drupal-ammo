@@ -192,61 +192,32 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#markup' => $branch_info,
     );
     
-    // Get document constraints for each field
-    $chapter_description = '';
-    $page_description = '';
-    $line_description = 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.';
-    
-    if (isset($form_state['storage']['document'])) {
-      $document = entity_load_single('document', $form_state['storage']['document']);
-      if ($document) {
-        // Chapter field description with constraints
-        if (!empty($document->chapter_min) || !empty($document->chapter_max)) {
-          if (!empty($document->chapter_min) && !empty($document->chapter_max)) {
-            $chapter_description = 'Toegestaan: ' . $document->chapter_min . '-' . $document->chapter_max . '.';
-          } elseif (!empty($document->chapter_min)) {
-            $chapter_description = 'Minimaal: ' . $document->chapter_min . '.';
-          } elseif (!empty($document->chapter_max)) {
-            $chapter_description = 'Maximaal: ' . $document->chapter_max . '.';
-          }
-        }
-        
-        // Page field description with constraints
-        if (!empty($document->page_min) || !empty($document->page_max)) {
-          if (!empty($document->page_min) && !empty($document->page_max)) {
-            $page_description = 'Toegestaan: ' . $document->page_min . '-' . $document->page_max . '.';
-          } elseif (!empty($document->page_min)) {
-            $page_description = 'Minimaal: ' . $document->page_min . '.';
-          } elseif (!empty($document->page_max)) {
-            $page_description = 'Maximaal: ' . $document->page_max . '.';
-          }
-        }
-        
-        // Line field description with constraints
-        if (!empty($document->line_max)) {
-          $line_description .= ' Maximaal toegestaan regelnummer: ' . $document->line_max . '.';
+    // One field per location indicator of the document, side by side.
+    $document = isset($form_state['storage']['document']) ? entity_load_single('document', $form_state['storage']['document']) : NULL;
+    $form['location'] = array(
+      '#type' => 'container',
+      '#attributes' => array('class' => array('amendment-location')),
+    );
+    foreach (ammo_document_locators($document) as $key => $locator) {
+      $description = ammo_locator_range_description($locator);
+      if (!empty($locator['legacy']) && $key === 'line') {
+        $description = 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.';
+        if ($locator['max'] !== '') {
+          $description .= ' Maximaal toegestaan regelnummer: ' . $locator['max'] . '.';
         }
       }
+      $form['location'][$key] = array(
+        '#type' => 'textfield',
+        '#title' => check_plain(isset($locator['title']) ? $locator['title'] : $locator['label']),
+        '#default_value' => ammo_default($form_state, $key),
+        '#description' => $description,
+        '#required' => empty($locator['legacy']) && !empty($locator['required']),
+      );
+      if ($locator['type'] === 'letter') {
+        $form['location'][$key]['#size'] = 2;
+        $form['location'][$key]['#maxlength'] = 1;
+      }
     }
-    
-    $form['chapter'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Hoofdstuk nr.',
-      '#default_value' => ammo_default($form_state, 'chapter'),
-      '#description' => $chapter_description,
-    );
-    $form['page'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Pagina nummer',
-      '#default_value' => ammo_default($form_state, 'page'),
-      '#description' => $page_description,
-    );
-    $form['line'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Regel nummer (begin)',
-      '#description' => $line_description,
-      '#default_value' => ammo_default($form_state, 'line'),
-    );
     $form['amendment_text'] = array(
       '#type' => 'textarea',
       '#title' => 'Tekst wijzigingsvoorstel',
@@ -288,9 +259,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $summary = '<div class="amendment-summary">';
     $summary .= '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '</p>';
     $summary .= '<p><strong>Document:</strong> ' . check_plain($form_state['storage']['document_display_name']) . '</p>';
-    $summary .= '<p><strong>Hoofdstuk:</strong> ' . check_plain(ammo_default($form_state, 'chapter')) . '</p>';
-    $summary .= '<p><strong>Pagina:</strong> ' . check_plain(ammo_default($form_state, 'page')) . '</p>';
-    $summary .= '<p><strong>Regel:</strong> ' . check_plain(ammo_default($form_state, 'line')) . '</p>';
+    foreach (ammo_document_locators($form_state['storage']['document']) as $key => $locator) {
+      $summary .= '<p><strong>' . check_plain($locator['label']) . ':</strong> ' . check_plain(ammo_default($form_state, $key)) . '</p>';
+    }
     $summary .= '<p><strong>Wijzigingsvoorstel:</strong><br/>' . nl2br(check_plain(ammo_default($form_state, 'amendment_text'))) . '</p>';
     if (ammo_default($form_state, 'supplement')) {
       $summary .= '<p><strong>Toelichting:</strong><br/>' . nl2br(check_plain(ammo_default($form_state, 'supplement'))) . '</p>';
@@ -430,30 +401,13 @@ function ammo_amendment_form_validate($form, &$form_state) {
     }
     break;
   case 5:
-    // Basic format validation
-    if (!preg_match('/^[0-9][0-9]*$/', $values['chapter'])) {
-      form_set_error('chapter', 'Hoofdstuk nr. moet een getal zijn.');
-    }
-    if (!preg_match('/^[0-9][0-9]*$/', $values['page'])) {
-      form_set_error('page', 'Pagina nr. moet een getal zijn.');
-    }
-    if (!preg_match('/^[0-9][0-9]*$/', $values['line'])) {
-      form_set_error('line', 'Regelnummer moet een getal zijn.');
+    // Location indicators: required, format and range of the document.
+    $document = !empty($storage['document']) ? entity_load_single('document', $storage['document']) : NULL;
+    foreach (ammo_validate_locators($document, $values) as $field => $message) {
+      form_set_error($field, $message);
     }
     if (empty($values['amendment_text'])) {
       form_set_error('amendment_text', 'Vul de wijzigingsvoorstel tekst in.');
-    }
-    
-    // Range validation against document settings
-    if (isset($form_state['storage']['document']) && !form_get_errors()) {
-      $chapter = (int)$values['chapter'];
-      $page = (int)$values['page'];
-      $line = (int)$values['line'];
-      
-      $validation_errors = ammo_validate_document_ranges($form_state['storage']['document'], $chapter, $page, $line);
-      foreach ($validation_errors as $field => $message) {
-        form_set_error($field, $message);
-      }
     }
     break;
   case 6:
@@ -518,9 +472,12 @@ function ammo_amendment_form_submit($form, &$form_state)
       break;
     case 5:
       // Store form data first
-      $form_state['storage']['chapter'] = $values['chapter'];
-      $form_state['storage']['page'] = $values['page'];
-      $form_state['storage']['line'] = $values['line'];
+      $document = entity_load_single('document', $storage['document']);
+      $locator_fields = ammo_amendment_locator_fields($document, $values);
+      foreach (ammo_document_locators($document) as $key => $locator) {
+        $form_state['storage'][$key] = ammo_normalize_locator_value($locator, $values[$key]);
+      }
+      $form_state['storage'] = $locator_fields + $form_state['storage'];
       $form_state['storage']['amendment_text'] = $values['amendment_text'];
       $form_state['storage']['supplement'] = $values['supplement'];
       $form_state['storage']['submission_type'] = $values['submission_type'];
@@ -553,10 +510,7 @@ function ammo_amendment_form_submit($form, &$form_state)
         $form_state['storage']['state'] = 'concept';
         $form_state['values']['state'] = 'concept';
         
-        $mapping = array(
-          'chapter' => 'chapter',
-          'page' => 'page',
-          'line' => 'line',
+        $mapping = drupal_map_assoc(array_keys($locator_fields)) + array(
           'amendment_text' => 'amendment_text',
           'supplement' => 'supplement',
           'state' => 'state',
@@ -565,7 +519,7 @@ function ammo_amendment_form_submit($form, &$form_state)
         
         // Show success message for draft
         $amendment = entity_load_single('amendment', $storage['amendment']);
-        $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
+        $amendment_number = ammo_amendment_number($amendment);
         drupal_set_message('<p>Het wijzigingsvoorstel ' . $amendment_number . ' is opgeslagen als concept. U kunt het later nog wijzigen.</p>');
         
         // Skip to end - redirect user
@@ -585,7 +539,7 @@ function ammo_amendment_form_submit($form, &$form_state)
           drupal_set_message('Er zijn geen wijzigingen opgeslagen.');
         }
         else {
-          drupal_set_message('Voorstel ' . check_plain($amendment->chapter . '.' . $amendment->chapterized_id) . ' is ingediend.');
+          drupal_set_message('Voorstel ' . check_plain(ammo_amendment_number($amendment)) . ' is ingediend.');
         }
         break;
       }
@@ -616,10 +570,7 @@ function ammo_amendment_form_submit($form, &$form_state)
       $form_state['storage']['state'] = 'submitted';
       $form_state['values']['state'] = 'submitted';
       
-      $mapping = array(
-        'chapter' => 'chapter',
-        'page' => 'page',
-        'line' => 'line',
+      $mapping = drupal_map_assoc(ammo_amendment_locator_columns($storage['document'])) + array(
         'amendment_text' => 'amendment_text',
         'supplement' => 'supplement',
         'state' => 'state',
@@ -631,7 +582,7 @@ function ammo_amendment_form_submit($form, &$form_state)
       
       // Show success message for definitive submission
       $amendment = entity_load_single('amendment', $storage['amendment']);
-      $amendment_number = $amendment->chapter . '.' . ($amendment->chapterized_id ?: $amendment->id);
+      $amendment_number = ammo_amendment_number($amendment);
       drupal_set_message('<p>Het wijzigingsvoorstel ' . $amendment_number . ' is definitief ingediend voor behandeling. E-mail is verzonden.</p>');
       break;
     case 7:

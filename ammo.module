@@ -512,6 +512,10 @@ function ammo_theme() {
       'render element' => 'form',
       'template' => 'amendment-form',
     ),
+    'ammo_locators_table' => array(
+      'render element' => 'element',
+      'file' => 'document.form.inc',
+    ),
     'motion_form' => array(
       'render element' => 'form',
       'template' => 'motion-form',
@@ -616,7 +620,10 @@ function template_preprocess_amendment(&$variables) {
     }
     $withdraw_access = ammo_support_access($meeting->id);
     $code = ammo_shurly('amendment', $entity->id);
+    $locators = ammo_document_locators($document);
     $vars = array(
+      'amendment_number' => check_plain(ammo_amendment_number($entity)),
+      'location' => check_plain(ammo_amendment_location($entity, $locators, FALSE, TRUE)),
       'chapterized_id' => $entity->chapterized_id,
       'document_id' => $entity->document_id,
       'chapter' => $entity->chapter,
@@ -842,8 +849,10 @@ function template_preprocess_print_amendments_by_location(&$variables) {
       'meeting_id' => check_plain($document->meeting_id),
     );
     $statuses = array_filter($variables['values']['status']);
-    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states) ORDER BY chapter, page, line, id";
-    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses));
+    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states)";
+    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses))->fetchAllAssoc('id');
+    $locators = ammo_document_locators($document);
+    ammo_sort_amendments($amendments_results, $locators);
     foreach ($amendments_results as $amendment) {
       // Check if we should filter by vote requests
       if (!empty($variables['values']['vote_requested_only'])) {
@@ -858,13 +867,14 @@ function template_preprocess_print_amendments_by_location(&$variables) {
       $owners_branch = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'branch');
       $backers = ammo_get_related_contacts($amendment->id, 'amendment', 'backer');
       $vote_requests = ammo_get_vote_requests('amendment', $amendment->id);
-      // Store chapter data.
-      $data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['nr'] = $amendment->chapter;
-      // Store page data.
-      $data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['pages'][$amendment->page]['nr'] = $amendment->page;
+      // Store group data.
+      $group = ammo_amendment_group($amendment);
+      $data['meeting']['documents'][$document->id]['chapters'][$group]['nr'] = $group;
       // Store amendment data.
-      $data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['pages'][$amendment->page]['amendments'][$amendment->id] = array(
+      $data['meeting']['documents'][$document->id]['chapters'][$group]['amendments'][$amendment->id] = array(
         'id' => $amendment->id,
+        'number' => check_plain(ammo_amendment_number($amendment)),
+        'location' => check_plain(ammo_amendment_location($amendment, $locators)),
         'chapterized_id' => $amendment->chapterized_id,
         'chapter' => $amendment->chapter,
         'page' => $amendment->page,
@@ -879,7 +889,7 @@ function template_preprocess_print_amendments_by_location(&$variables) {
         'backers' => $backers,
         'vote_requests' => $vote_requests,
       );
-      foreach ($data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['pages'][$amendment->page]['amendments'][$amendment->id] as $key => &$value) {
+      foreach ($data['meeting']['documents'][$document->id]['chapters'][$group]['amendments'][$amendment->id] as $key => &$value) {
         if (in_array($key, array('owners_member', 'owners_branch', 'backers', 'vote_requests'))) continue;
         $value = ammo_sanitize_text($value);
       }
@@ -901,8 +911,10 @@ function template_preprocess_print_amendments_by_number(&$variables) {
       'meeting_id' => check_plain($document->meeting_id),
     );
     $statuses = array_filter($variables['values']['status']);
-    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states) ORDER BY chapter, chapterized_id";
-    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses));
+    $query = "SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND state IN (:states)";
+    $amendments_results = db_query($query, array(":document_id" => $document->id, ':states' => $statuses))->fetchAllAssoc('id');
+    $locators = ammo_document_locators($document);
+    ammo_sort_amendments($amendments_results, $locators, FALSE);
     foreach ($amendments_results as $amendment) {
       // Check if we should filter by vote requests
       if (!empty($variables['values']['vote_requested_only'])) {
@@ -917,10 +929,11 @@ function template_preprocess_print_amendments_by_number(&$variables) {
       $owners_branch = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'branch');
       $backers = ammo_get_related_contacts($amendment->id, 'amendment', 'backer');
       $vote_requests = ammo_get_vote_requests('amendment', $amendment->id);
-      $document = entity_load_single('document', $amendment->document_id);
       // Store amendment data.
       $data['meeting']['amendments'][$amendment->id] = array(
         'id' => $amendment->id,
+        'number' => check_plain(ammo_amendment_number($amendment)),
+        'location' => check_plain(ammo_amendment_location($amendment, $locators)),
         'chapterized_id' => $amendment->chapterized_id,
         'document_id' => check_plain($amendment->document_id),
         'document_title' => check_plain($document->title),
@@ -1042,17 +1055,24 @@ function template_preprocess_export_meeting_xml(&$variables) {
       'description' => $document->description,
       'meeting_id' => $document->meeting_id,
     );
-    $amendments_results = db_query("SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND (state = 'accepted') ORDER BY chapter, chapterized_id", array(":document_id" => $document->id));
+    $amendments_results = db_query("SELECT * FROM {ammo_amendments} WHERE document_id = :document_id AND (state = 'accepted')", array(":document_id" => $document->id))->fetchAllAssoc('id');
+    $locators = ammo_document_locators($document);
+    $grouping = ammo_grouping_locator($locators);
+    ammo_sort_amendments($amendments_results, $locators, FALSE);
     foreach ($amendments_results as $amendment) {
       // Get owners.
       $owners_member = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'member');
       $owners_branch = ammo_get_related_contacts($amendment->id, 'amendment', 'owner', 'branch');
       $backers = ammo_get_related_contacts($amendment->id, 'amendment', 'backer');
-      // Store chapter data.
-      $data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['chapter_nr'] = $amendment->chapter;
+      // Store group data.
+      $group = ammo_amendment_group($amendment);
+      $data['meeting']['documents'][$document->id]['chapters'][$group]['chapter_nr'] = htmlspecialchars($group, ENT_QUOTES | ENT_XML1);
+      $data['meeting']['documents'][$document->id]['chapters'][$group]['group_label'] = htmlspecialchars($grouping['label'], ENT_QUOTES | ENT_XML1);
       // Store amendment data.
-      $data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['amendments'][$amendment->id] = array(
+      $data['meeting']['documents'][$document->id]['chapters'][$group]['amendments'][$amendment->id] = array(
         'id' => $amendment->id,
+        'number' => ammo_amendment_number($amendment),
+        'location' => ammo_amendment_location($amendment, $locators, TRUE, TRUE),
         'chapterized_id' => $amendment->chapterized_id,
         'chapter' => $amendment->chapter,
         'page' => $amendment->page,
@@ -1066,7 +1086,7 @@ function template_preprocess_export_meeting_xml(&$variables) {
         'owners_branch' => $owners_branch,
         'backers' => $backers,
       );
-      foreach ($data['meeting']['documents'][$document->id]['chapters'][$amendment->chapter]['amendments'][$amendment->id] as $key => &$value) {
+      foreach ($data['meeting']['documents'][$document->id]['chapters'][$group]['amendments'][$amendment->id] as $key => &$value) {
         if (in_array($key, array('owners_member', 'owners_branch', 'backers'))) continue;
         $value = ammo_strip_invalid_xml($value);
         $value = htmlspecialchars($value, ENT_QUOTES | ENT_XML1);

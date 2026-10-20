@@ -29,10 +29,12 @@ function ammo_branch_overview_relations($type, $meeting_id, array $branch_ids) {
   $query->fields('r', array('contact_id', 'contact_type', 'contact_display_name'));
   if ($type === 'amendment') {
     $query->join('ammo_documents', 'd', 'd.id = t.document_id');
-    $query->fields('t', array('chapter', 'chapterized_id', 'page', 'line'));
+    $query->fields('t', array('document_id', 'chapter', 'group_value', 'chapterized_id', 'page', 'line', 'locator_values'));
     $query->addField('d', 'title', 'document_title');
     $query->condition('d.meeting_id', $meeting_id);
-    $query->orderBy('d.title')->orderBy('t.chapter')->orderBy('t.chapterized_id');
+    // Shorter group values first, so numeric groups sort as numbers.
+    $query->addExpression('LENGTH(t.group_value)', 'group_length');
+    $query->orderBy('d.title')->orderBy('t.chapter')->orderBy('group_length')->orderBy('t.group_value')->orderBy('t.chapterized_id');
   }
   else {
     $query->fields('t', array('motion_id', 'consideration_body'));
@@ -111,7 +113,7 @@ function ammo_branch_overview_state_label($type, $state, $meeting) {
  */
 function ammo_branch_overview_number_link($type, array $item) {
   if ($type === 'amendment') {
-    $number = ($item['chapter'] ?: 'X') . '.' . ($item['chapterized_id'] ?: $item['item_id']);
+    $number = ammo_amendment_number(array('id' => $item['item_id']) + $item);
   }
   else {
     $number = $item['motion_id'] ?: $item['item_id'];
@@ -124,8 +126,17 @@ function ammo_branch_overview_row($type, array $item, $meeting) {
   $cells = array(ammo_branch_overview_number_link($type, $item));
   if ($type === 'amendment') {
     $cells[] = check_plain($item['document_title']);
-    $cells[] = $item['chapter'] ? check_plain($item['chapter']) : '-';
-    $cells[] = $item['page'] || $item['line'] ? check_plain($item['page'] . ' / ' . $item['line']) : '';
+    $locators = ammo_document_locators($item['document_id']);
+    $group = ammo_amendment_group($item);
+    $cells[] = $group !== '' ? check_plain($group) : '-';
+    if (ammo_document_is_legacy(entity_load_single('document', $item['document_id']))) {
+      $values = ammo_amendment_locator_values($item, $locators);
+      unset($values['chapter']);
+      $cells[] = check_plain(implode(' / ', array_filter($values, 'strlen')));
+    }
+    else {
+      $cells[] = check_plain(ammo_amendment_location($item, $locators, FALSE));
+    }
   }
   else {
     $cells[] = check_plain(truncate_utf8(strip_tags($item['consideration_body']), 80, TRUE, TRUE));
@@ -146,7 +157,7 @@ function ammo_branch_overview_page($meeting_id, array $branches) {
     return $page;
   }
   $page['meeting_available'] = TRUE;
-  $types = array('amendment' => array('Wijzigingsvoorstellen', array('Nr', 'Document', 'Hoofdstuk', 'Pagina / regel', 'Status')));
+  $types = array('amendment' => array('Wijzigingsvoorstellen', array('Nr', 'Document', 'Groep', 'Locatie', 'Status')));
   if (ammo_show_motions() && empty($meeting->no_motions)) {
     $types['motion'] = array('Moties', array('Nr', 'Motie', 'Status'));
   }

@@ -33,8 +33,8 @@ if (!empty($document_title)): ?>
   <h2><?php print $document_title; ?></h2>
 <?php endif; ?>
 <?php foreach ($meeting['amendments'] as $amendment) : ?>
-  <h3><?php print $amendment['chapter'] . '.' . $amendment['chapterized_id']; ?></h3>
-  <p><strong>Hoofdstuk <?php print $amendment['chapter']; ?>, pagina <?php print $amendment['page']; ?>, regel <?php print $amendment['line']; ?></strong></p>
+  <h3><?php print $amendment['number']; ?></h3>
+  <p><strong><?php print $amendment['location']; ?></strong></p>
   <?php if (!empty($amendment['owners_branch'])) : ?>
     <?php $list = array(); ?>
     <?php foreach ($amendment['owners_branch'] as $owner_branch) : $list[] = $owner_branch['contact_display_name']; endforeach; ?>

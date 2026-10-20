@@ -33,10 +33,9 @@ if (!empty($document_title)): ?>
 <?php endif; ?>
 <?php foreach ($meeting['documents'] as $document) : ?>
   <?php foreach ($document['chapters'] as $chapter) : ?>
-    <?php foreach ($chapter['pages'] as $page) : ?>
-      <?php foreach ($page['amendments'] as $amendment) : ?>
-        <h3><?php print $amendment['chapter'] . '.' . $amendment['chapterized_id']; ?></h3>
-        <p><strong>Hoofdstuk <?php print $amendment['chapter']; ?>, pagina <?php print $amendment['page']; ?>, regel <?php print $amendment['line']; ?></strong></p>
+      <?php foreach ($chapter['amendments'] as $amendment) : ?>
+        <h3><?php print $amendment['number']; ?></h3>
+        <p><strong><?php print $amendment['location']; ?></strong></p>
         <?php if (!empty($amendment['owners_branch'])) : ?>
           <?php $list = array(); ?>
           <?php foreach ($amendment['owners_branch'] as $owner_branch) : $list[] = $owner_branch['contact_display_name']; endforeach; ?>
@@ -94,7 +93,6 @@ if (!empty($document_title)): ?>
           <br style="page-break-before: always">
         <?php endif; ?>
       <?php endforeach; ?>
-    <?php endforeach; ?>
   <?php endforeach; ?>
 <?php endforeach; ?>
 </body>
