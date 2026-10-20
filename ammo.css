@@ -407,3 +407,9 @@ h4.inline-title {
   box-sizing: border-box;
   width: 100%;
 }
+
+/* Delete opens a confirmation page; keep it apart from the save button. */
+#ajax_form_multistep_form a.ammo-delete-button {
+  margin-left: 1em;
+  color: #b00;
+}

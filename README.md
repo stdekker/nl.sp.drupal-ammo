@@ -88,6 +88,19 @@ page. After deployment rebuild the menu with `drush cc all`.
 Run the rollback-only check with
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/item-view.test.php`.
 
+### Verwijderen
+
+The status *Verwijderd* is no longer in the status dropdown of **status/advies**.
+Users who can manage all amendments and motions (`administer amendments and
+motions`) get a **Verwijderen** button there instead. It opens a confirmation
+page (`/ammo/amendment/delete/ID`, `/ammo/motion/delete/ID`) that asks for an
+explanation, which is mailed to the submitters. The item gets the status
+Verwijderd and is then only visible to admins. Choosing another status on
+status/advies restores it; for a deleted item *Verwijderd* stays in the
+dropdown. There is no database update; run `drush cc all` after deployment.
+Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/delete.test.php`.
+
 ### Locaties (locators)
 
 New documents describe where an amendment applies with a configurable list of

@@ -755,32 +755,97 @@ function ammo_select_meeting_form(&$form, &$form_state, $options = array()) {
   }
 }
 
+/**
+ * Confirmation page that soft-deletes an amendment or motion and mails the explanation.
+ */
 function ammo_delete_entity_form($type, $entity_id) {
   $entity = entity_load_single($type, $entity_id);
-  // check if exists.
-  if ($entity) {
-    $markup = theme($type, array('entity_id' => $entity_id, 'no_links' => TRUE));
-    $form['view'] = array(
-      '#type' => 'item',
-      '#markup' => $markup,
-    );
-
-    $form['mail_text'] = array(
-      '#type' => 'textarea',
-      '#title' => 'Uitleg',
-      '#required' => TRUE,
-    );
-
-    $form['delete'] = array(
-      '#type' => 'submit',
-      '#value' => 'Verwijder',
-      '#name' => 'delete_amot',
-      '#id' => 'delete_amot',
+  if (!$entity) {
+    drupal_set_message('Data kon niet worden opgehaald.', 'error');
+    return array();
+  }
+  $label = $type === 'amendment' ? 'wijzigingsvoorstel ' . ammo_amendment_number($entity) : 'motie ' . ($entity->motion_id ?: $entity->id);
+  $cancel = isset($_GET['destination']) && is_string($_GET['destination']) && !url_is_external($_GET['destination']) ? drupal_parse_url($_GET['destination']) : array('path' => ammo_item_view_path($type, $entity_id), 'query' => array(), 'fragment' => '');
+  $form['title'] = array(
+    '#markup' => '<h2>' . check_plain(drupal_ucfirst($label)) . ' verwijderen</h2>',
+  );
+  if ($entity->state === 'blocked') {
+    $form['deleted'] = array(
+      '#markup' => '<p>Dit ' . ($type === 'amendment' ? 'wijzigingsvoorstel' : 'motie') . ' is al verwijderd.</p><p>' . l('Terug', $cancel['path'], array('query' => $cancel['query'], 'fragment' => $cancel['fragment'])) . '</p>',
     );
     return $form;
   }
-  drupal_set_message('Data kon niet worden opgehaald.', 'error');
-  return array();
+  $form['question'] = array(
+    '#markup' => '<p><strong>Weet je zeker dat je ' . check_plain($label) . ' wilt verwijderen?</strong> Het krijgt de status Verwijderd en is daarna alleen nog zichtbaar voor beheerders. Je kunt het herstellen door bij status/advies een andere status te kiezen.</p>',
+  );
+  $form['view'] = array(
+    '#type' => 'item',
+    '#markup' => theme($type, array('entity_id' => $entity_id, 'no_links' => TRUE)),
+  );
+  $form['mail_text'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Uitleg',
+    '#description' => 'Deze uitleg wordt gemaild naar de indieners.',
+    '#required' => TRUE,
+  );
+  $form['entity_type'] = array(
+    '#type' => 'value',
+    '#value' => $type,
+  );
+  $form['entity_id'] = array(
+    '#type' => 'value',
+    '#value' => $entity->id,
+  );
+  $form['actions'] = array(
+    '#type' => 'actions',
+  );
+  $form['actions']['delete'] = array(
+    '#type' => 'submit',
+    '#value' => 'Verwijderen',
+    '#name' => 'delete_amot',
+    '#id' => 'delete_amot',
+    // Only the explanation needs validating, not the steps of the entry form.
+    '#validate' => array(),
+    '#submit' => array('ammo_delete_entity_form_submit'),
+  );
+  $form['actions']['cancel'] = array(
+    '#markup' => l('Annuleren', $cancel['path'], array('query' => $cancel['query'], 'fragment' => $cancel['fragment'])),
+  );
+  return $form;
+}
+
+/**
+ * The Verwijderen button of the status/advies step, which opens the confirmation page.
+ */
+function ammo_delete_button($type, $entity_id, $form_state) {
+  $destination = isset($form_state['storage']['destination']) ? $form_state['storage']['destination'] : array();
+  return array(
+    '#type' => 'link',
+    '#title' => 'Verwijderen',
+    '#href' => 'ammo/' . $type . '/delete/' . $entity_id,
+    '#options' => array('query' => $destination, 'attributes' => array('class' => array('button', 'ammo-delete-button'))),
+  );
+}
+
+/**
+ * Sets an amendment or motion to Verwijderd and mails the explanation.
+ */
+function ammo_delete_entity_form_submit($form, &$form_state) {
+  $type = $form_state['values']['entity_type'];
+  $entity = entity_load_single($type, $form_state['values']['entity_id']);
+  $form_state['redirect'] = 'ammo';
+  if (!$entity || !ammo_admin_access()) {
+    drupal_set_message('Het was niet mogelijk om dit te verwijderen.', 'error');
+    return;
+  }
+  $label = $type === 'amendment' ? 'Wijzigingsvoorstel ' . ammo_amendment_number($entity) : 'Motie ' . ($entity->motion_id ?: $entity->id);
+  $entity->state = 'blocked';
+  if (entity_save($type, $entity) === FALSE) {
+    drupal_set_message('Het was niet mogelijk om ' . check_plain(drupal_strtolower($label)) . ' te verwijderen.', 'error');
+    return;
+  }
+  ammo_delete_mail($type, $entity->id, ammo_get_meeting_id($type, $entity->id), $form_state['values']['mail_text']);
+  drupal_set_message(check_plain($label) . ' is verwijderd.');
 }
 
 function ammo_support_access($meeting_id) {
@@ -1507,6 +1572,17 @@ function ammo_cleanup_branch_name($branch_name) {
 
 function ammo_get_vote_requests($entity_type, $entity_id) {
   return ammo_get_related_contacts($entity_id, $entity_type, 'vote_request', 'branch');
+}
+
+/**
+ * States an admin can choose; Verwijderd only for items that are already deleted.
+ */
+function ammo_editable_states($current_state = NULL) {
+  $states = ammo_states();
+  if ($current_state !== 'blocked') {
+    unset($states['blocked']);
+  }
+  return $states;
 }
 
 /**

@@ -47,14 +47,10 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       }
       break;
     case 'delete':
-      if (ammo_superadmin_access()) {
-        if (ammo_populate_form('motion', $path_id, $form_state)) {
-          $form = ammo_delete_entity_form('motion', $path_id);
-          return $form;
-        }
+      if (ammo_admin_access()) {
+        return ammo_delete_entity_form('motion', $path_id);
       }
       return;
-      break;
     }
   }
   else {
@@ -226,7 +222,8 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     $form['state'] = array(
       '#type' => 'select',
       '#title' => 'Status',
-      '#options' => ammo_states(),
+      // Deleting has its own button with a confirmation page.
+      '#options' => ammo_editable_states(entity_load_single('motion', $form_state['storage']['motion'])->state),
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'state'),
     );
@@ -361,6 +358,9 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
         'callback' => 'ammo_motion_form_ajax_callback',
       ),
     );
+  if ($form_state['step'] == 5 && ammo_admin_access() && entity_load_single('motion', $form_state['storage']['motion'])->state !== 'blocked') {
+    $form['buttons']['delete'] = ammo_delete_button('motion', $form_state['storage']['motion'], $form_state);
+  }
   return $form;
 }
 
@@ -518,18 +518,6 @@ function ammo_motion_form_submit($form, &$form_state)
       $form_state['step']++;
     }
     break;
-  case 'delete_amot':
-    $motion = entity_load_single('motion', $storage['motion']);
-    $motion->state = 'blocked';
-    $result = entity_save('motion', $motion);
-    if ($result) {
-      drupal_set_message('Motie is verwijderd.');
-      ammo_delete_mail('motion', $motion->id, $motion->meeting_id, $values['mail_text']);
-    }
-    else {
-      drupal_set_message('Het was niet mogelijk om de motie te verwijderen.', 'error');
-    }
-    drupal_goto();
   }
 
   $form_state['rebuild'] = TRUE;

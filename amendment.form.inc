@@ -48,6 +48,11 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         return;
       }
       break;
+    case 'delete':
+      if (ammo_admin_access()) {
+        return ammo_delete_entity_form('amendment', $path_id);
+      }
+      return;
     }
   }
   elseif (empty($form_state['storage']['amendment'])) {
@@ -299,7 +304,8 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $form['state'] = array(
       '#type' => 'select',
       '#title' => 'Status',
-      '#options' => ammo_states(),
+      // Deleting has its own button with a confirmation page.
+      '#options' => ammo_editable_states(entity_load_single('amendment', $form_state['storage']['amendment'])->state),
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'state'),
     );
@@ -373,6 +379,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
         'callback' => 'ammo_amendment_form_ajax_callback',
       ),
     );
+  if ($form_state['step'] == 7 && ammo_admin_access() && entity_load_single('amendment', $form_state['storage']['amendment'])->state !== 'blocked') {
+    $form['buttons']['delete'] = ammo_delete_button('amendment', $form_state['storage']['amendment'], $form_state);
+  }
   return $form;
 }
 

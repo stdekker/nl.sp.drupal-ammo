@@ -71,7 +71,9 @@ The rules the code depends on:
 
 - **States** come from `ammo_states()`: `concept`, `submitted`, `accepted`,
   `rejected`, `withdrawn`, `invalid`, `blocked`, `spelling_grammar`.
-  - `blocked` (shown as "Verwijderd") is visible to admins only.
+  - `blocked` (shown as "Verwijderd") is visible to admins only. Admins set it
+    through the delete confirmation page (`ammo_delete_entity_form()`), not the
+    status dropdown; use `ammo_editable_states()` for state selects.
   - A `concept` is visible to admins and to its owners.
 - **First owner**: the owner relation with the lowest id is the submitter, and
   member owners take precedence over branch owners (`ammo_get_first_owner()`).
