@@ -162,7 +162,9 @@ New tests follow the same pattern:
   and `drupal_static('ammo_get_afdelingen')`.
 - Use contact and branch ids in the `999999xx` range.
 - Before finishing, lint the PHP files you changed with
-  `ddev exec php -l <path>` and run the tests that touch the area you changed.
+  `ddev exec php -l /var/www/html/public_html/sites/default/modules/custom/nl.sp.drupal-ammo/<file>`
+  and run the tests that touch the area you changed. `ddev exec` starts in the
+  docroot, so a path relative to the project root does not work.
 
 ## Deployment notes
 
@@ -174,8 +176,6 @@ New tests follow the same pattern:
 
 ## Known quirks
 
-- `ammo_theme()` registers `meeting_form` and `document_form` with templates
-  (`meeting-form`, `document-form`) that do not exist in the module.
 - The export page (`admin/ammo/export`) is disabled in the admin overview
   ("TEMPORARILY DISABLED").
 - In `ammo_show_motions()`, `isset($result)` checks the wrong variable, so the

@@ -516,14 +516,6 @@ function ammo_theme() {
       'render element' => 'form',
       'template' => 'motion-form',
     ),
-    'meeting_form' => array(
-      'render element' => 'form',
-      'template' => 'meeting-form',
-    ),
-    'document_form' => array(
-      'render element' => 'form',
-      'template' => 'document-form',
-    ),
     'amendment' => array(
       'variables' => array(),
       'template' => 'amendment',
