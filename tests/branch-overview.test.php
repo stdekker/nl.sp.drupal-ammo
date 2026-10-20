@@ -70,13 +70,15 @@ try {
   $tables = $page['branches'][$a]['submitted']['tables'];
   ammo_branch_overview_assert($page['branches'][$a]['submitted']['title'] === 'Ingediend door Afdeling A', 'Branch name cleaned in heading');
   ammo_branch_overview_assert(isset($tables['motion']) && $page['branches'][$a]['co_submitted']['tables']['motion']['rows'], 'Motions listed when the meeting has them');
-  $shared = $tables['amendment']['rows'][0];
+  $document_row = $tables['amendment']['rows'][0];
+  ammo_branch_overview_assert($document_row['class'] === array('document') && $document_row['data'][0]['data'] === 'Branch overview document' && $document_row['data'][0]['colspan'] === 5, 'Amendments grouped under a document heading row');
+  $shared = $tables['amendment']['rows'][1];
   ammo_branch_overview_assert(strpos($shared['data'][0], 'ammo/amendment/view/' . $ids['shared'] . '">2.1</a>') !== FALSE, 'Amendment number links to its page');
-  ammo_branch_overview_assert($shared['data'][2] === '2' && $shared['data'][3] === '14 / 220' && $shared['data'][4] === 'Ingediend' && $shared['data'][5] === 'Afdeling B', 'Chapter, location, status and co-submitter shown');
-  $draft = $tables['amendment']['rows'][2];
-  ammo_branch_overview_assert($draft['data'][4] === 'Concept' && strpos($draft['data'][0], 'ammo/amendment/view/' . $ids['draft'] . '"') !== FALSE, 'Draft labelled and linked to its page');
+  ammo_branch_overview_assert(count($shared['data']) === 5 && $shared['data'][1] === '2 / 14 / 220' && $shared['data'][2] === 'Ingediend' && $shared['data'][3] === '' && $shared['data'][4] === 'Afdeling B', 'All locators, status, empty advice and co-submitter shown, without Document and Groep columns');
+  $draft = $tables['amendment']['rows'][3];
+  ammo_branch_overview_assert($draft['data'][2] === 'Concept' && strpos($draft['data'][0], 'ammo/amendment/view/' . $ids['draft'] . '"') !== FALSE, 'Draft labelled and linked to its page');
   $motion_row = $page['branches'][$a]['co_submitted']['tables']['motion']['rows'][0];
-  ammo_branch_overview_assert(strpos($motion_row['data'][0], 'ammo/motion/view/' . $motion->id . '">7</a>') !== FALSE && $motion_row['data'][3] === 'Afdeling B', 'Motion link and first submitter shown');
+  ammo_branch_overview_assert(strpos($motion_row['data'][0], 'ammo/motion/view/' . $motion->id . '">7</a>') !== FALSE && $motion_row['data'][4] === 'Afdeling B', 'Motion link and first submitter shown');
   $markup = theme('overview_branch', array('meeting_id' => $meeting->id, 'selected_branches' => array($a => 'SP Afdeling A')));
   ammo_branch_overview_assert(strpos($markup, '<h2>Ingediend door Afdeling A</h2>') < strpos($markup, '<h2>Mede ingediend door Afdeling A</h2>') && strpos($markup, 'Geen wijzigingsvoorstellen.') !== FALSE, 'Template renders both parts in order with empty text');
   ammo_branch_overview_assert(strpos(theme('overview_branch', array('meeting_id' => $meeting->id, 'selected_branches' => array())), 'geen afdeling') !== FALSE, 'User without branch gets a message');
@@ -89,9 +91,23 @@ try {
   entity_save('meeting', $meeting);
   $page = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'));
   $rows = $page['branches'][$a]['submitted']['tables']['amendment']['rows'];
-  ammo_branch_overview_assert($rows[2]['data'][4] === 'Concept', 'Draft stays listed after the closing date');
-  ammo_branch_overview_assert($rows[3]['data'][4] === '' && !$rows[3]['class'], 'Hidden state is neither printed nor used as class');
+  ammo_branch_overview_assert($rows[3]['data'][2] === 'Concept', 'Draft stays listed after the closing date');
+  ammo_branch_overview_assert($rows[4]['data'][2] === '' && !$rows[4]['class'], 'Hidden state is neither printed nor used as class');
   ammo_branch_overview_assert(!isset($page['branches'][$a]['submitted']['tables']['motion']), 'No motions part for a meeting without motions');
+  $rejected = entity_load_single('amendment', $ids['rejected']);
+  $rejected->advice = 'reject';
+  entity_save('amendment', $rejected);
+  $rows = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'))['branches'][$a]['submitted']['tables']['amendment']['rows'];
+  ammo_branch_overview_assert($rows[4]['data'][3] === 'Afwijzen', 'Advice shown');
+  $meeting->hide_advice = 1;
+  entity_save('meeting', $meeting);
+  $rows = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'))['branches'][$a]['submitted']['tables']['amendment']['rows'];
+  ammo_branch_overview_assert($rows[4]['data'][3] === '', 'Hidden advice is not printed');
+  $later = ammo_save_entity('document', array('title' => 'Z later document', 'meeting_id' => $meeting->id));
+  $later_entry = ammo_save_entity('amendment', array('document_id' => $later->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 3, 'line' => 4, 'state' => 'submitted'));
+  ammo_branch_overview_test_owner('amendment', $later_entry->id, $a, 'Afdeling A');
+  $rows = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'))['branches'][$a]['submitted']['tables']['amendment']['rows'];
+  ammo_branch_overview_assert(count($rows) === 7 && $rows[5]['data'][0]['data'] === 'Z later document' && strpos($rows[6]['data'][0], 'ammo/amendment/view/' . $later_entry->id . '"') !== FALSE, 'Each document gets its own heading above its amendments');
   ammo_branch_overview_assert(ammo_branch_overview_state_label('motion', 'assessed', $meeting, 'reject') === 'Beoordeeld' && ammo_branch_overview_state_label('motion', 'assessed', $meeting, 'accept') === '', 'Motion assessed as rejected stays visible when states are hidden');
 
   $user = user_load(1);
@@ -101,11 +117,34 @@ try {
   ammo_branch_overview_assert(isset($admin_items[$a]['submitted'][$ids['blocked']]), 'Administrator sees blocked items');
   $admin_page = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'));
   $admin_rows = $admin_page['branches'][$a]['submitted']['tables']['amendment']['rows'];
-  ammo_branch_overview_assert($admin_rows[3]['data'][4] === 'Verwijderd' && $admin_rows[4]['data'][4] === 'Beoordeeld', 'Administrator sees blocked and hidden states');
+  ammo_branch_overview_assert($admin_rows[4]['data'][2] === 'Verwijderd' && $admin_rows[5]['data'][2] === 'Beoordeeld' && $admin_rows[5]['data'][3] === 'Afwijzen', 'Administrator sees blocked and hidden states and hidden advice');
   $_GET['afdeling'] = $b;
   $state = array();
   $form = ammo_branch_overview_form(array(), $state, $meeting->id);
-  ammo_branch_overview_assert($form['afdeling']['#default_value'] == $b && isset($form['submit']), 'Administrator gets the branch selector');
+  ammo_branch_overview_assert($form['afdeling']['#default_value'] === 'SP Afdeling B' && $form['afdeling']['#autocomplete_path'] === 'ammo/afdelingen/autocomplete' && isset($form['submit']), 'Administrator gets the branch autocomplete');
+
+  // The afdeling autocomplete suggests for the last typed name and maps names back to ids.
+  ob_start();
+  ammo_afdeling_autocomplete('SP Afdeling A, afdeling');
+  $matches = drupal_json_decode(ob_get_clean());
+  ammo_branch_overview_assert($matches === array('SP Afdeling A, SP Afdeling B' => 'SP Afdeling B'), 'Autocomplete suggests the other afdeling after the typed one');
+  $element = array('#parents' => array('afdelingen'), '#title' => 'Afdelingen', '#value' => 'sp afdeling b, SP Afdeling A') + ammo_afdeling_autocomplete_element('Afdelingen', '', array(), TRUE);
+  $validated = array('values' => array());
+  ammo_afdeling_autocomplete_validate($element, $validated);
+  ammo_branch_overview_assert($validated['values']['afdelingen'] == array($b => $b, $a => $a) && !form_get_errors(), 'Multiple names map to id => id');
+  $element['#ammo_multiple'] = FALSE;
+  ammo_afdeling_autocomplete_validate($element, $validated);
+  ammo_branch_overview_assert(form_get_errors(), 'A single field refuses two names');
+  form_clear_error();
+  $element['#value'] = 'SP Onbekend';
+  ammo_afdeling_autocomplete_validate($element, $validated);
+  ammo_branch_overview_assert(form_get_errors(), 'An unknown name is refused');
+  form_clear_error();
+  $element['#value'] = '';
+  $element['#ammo_empty_value'] = 0;
+  ammo_afdeling_autocomplete_validate($element, $validated);
+  ammo_branch_overview_assert($validated['values']['afdelingen'] === 0 && !form_get_errors(), 'An empty single field gives its empty value');
+  drupal_get_messages();
   $state = array('values' => array('meeting' => $meeting->id, 'afdeling' => $b));
   ammo_branch_overview_form_submit(array(), $state);
   ammo_branch_overview_assert($state['redirect'] === array('ammo/afdeling/' . $meeting->id, array('query' => array('afdeling' => $b))), 'Selection redirects with the branch');
@@ -118,7 +157,7 @@ try {
   ammo_branch_overview_assert(!$hidden['meeting_available'] && !$hidden['branches'], 'Hidden meeting lists nothing');
   ammo_branch_overview_assert(!ammo_branch_overview_page('invalid', array($a => 'SP Afdeling A'))['meeting_available'], 'Unknown meeting handled');
   $transaction->rollback();
-  print "PASS: first owner and co-submitter split, member and admin precedence, drafts, blocked and hidden states, links, motions, hidden meeting and branch selection. Fixtures rolled back.\n";
+  print "PASS: first owner and co-submitter split, member and admin precedence, drafts, blocked and hidden states, links, motions, hidden meeting, branch selection and the afdeling autocomplete. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

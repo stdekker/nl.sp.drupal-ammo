@@ -34,7 +34,7 @@ function ammo_branch_overview_relations($type, $meeting_id, array $branch_ids) {
     $query->condition('d.meeting_id', $meeting_id);
     // Shorter group values first, so numeric groups sort as numbers.
     $query->addExpression('LENGTH(t.group_value)', 'group_length');
-    $query->orderBy('d.title')->orderBy('t.chapter')->orderBy('group_length')->orderBy('t.group_value')->orderBy('t.chapterized_id');
+    $query->orderBy('d.title')->orderBy('d.id')->orderBy('t.chapter')->orderBy('group_length')->orderBy('t.group_value')->orderBy('t.chapterized_id');
   }
   else {
     $query->fields('t', array('motion_id', 'consideration_body'));
@@ -111,6 +111,17 @@ function ammo_branch_overview_state_label($type, $state, $meeting, $advice = NUL
 }
 
 /**
+ * Advice label, or an empty string when there is none or the meeting hides it from non-admins.
+ */
+function ammo_branch_overview_advice_label($type, $advice, $meeting) {
+  if (empty($advice) || (!empty($meeting->hide_advice) && !ammo_admin_access())) {
+    return '';
+  }
+  $advices = $type === 'amendment' ? ammo_amendment_advice() : ammo_motion_advice();
+  return isset($advices[$advice]) ? $advices[$advice] : check_plain($advice);
+}
+
+/**
  * Item number, linked to the page of the item.
  */
 function ammo_branch_overview_number_link($type, array $item) {
@@ -127,23 +138,19 @@ function ammo_branch_overview_row($type, array $item, $meeting) {
   $state = ammo_branch_overview_state_label($type, $item['state'], $meeting, $item['advice']);
   $cells = array(ammo_branch_overview_number_link($type, $item));
   if ($type === 'amendment') {
-    $cells[] = check_plain($item['document_title']);
     $locators = ammo_document_locators($item['document_id']);
-    $group = ammo_amendment_group($item);
-    $cells[] = $group !== '' ? check_plain($group) : '-';
     if (ammo_document_is_legacy(entity_load_single('document', $item['document_id']))) {
-      $values = ammo_amendment_locator_values($item, $locators);
-      unset($values['chapter']);
-      $cells[] = check_plain(implode(' / ', array_filter($values, 'strlen')));
+      $cells[] = check_plain(implode(' / ', array_filter(ammo_amendment_locator_values($item, $locators), 'strlen')));
     }
     else {
-      $cells[] = check_plain(ammo_amendment_location($item, $locators, FALSE));
+      $cells[] = check_plain(ammo_amendment_location($item, $locators));
     }
   }
   else {
     $cells[] = check_plain(truncate_utf8(strip_tags($item['consideration_body']), 80, TRUE, TRUE));
   }
   $cells[] = $state;
+  $cells[] = ammo_branch_overview_advice_label($type, $item['advice'], $meeting);
   $cells[] = $item['others'] ? check_plain(implode(', ', $item['others'])) : '-';
   // A hidden state must not be readable from the row class either.
   return array('data' => $cells, 'class' => $state === '' ? array() : array(drupal_html_class($item['state'])));
@@ -159,9 +166,9 @@ function ammo_branch_overview_page($meeting_id, array $branches) {
     return $page;
   }
   $page['meeting_available'] = TRUE;
-  $types = array('amendment' => array('Wijzigingsvoorstellen', array('Nr', 'Document', 'Groep', 'Locatie', 'Status')));
+  $types = array('amendment' => array('Wijzigingsvoorstellen', array('Nr', 'Locatie', 'Status', 'Advies')));
   if (ammo_show_motions() && ammo_meeting_has_motions($meeting)) {
-    $types['motion'] = array('Moties', array('Nr', 'Motie', 'Status'));
+    $types['motion'] = array('Moties', array('Nr', 'Motie', 'Status', 'Advies'));
   }
   $parts = array('submitted' => array('Ingediend door', 'Mede-indieners'), 'co_submitted' => array('Mede ingediend door', 'Hoofdindiener'));
   foreach ($branches as $branch_id => $name) {
@@ -173,7 +180,17 @@ function ammo_branch_overview_page($meeting_id, array $branches) {
     foreach ($overview as $branch_id => $branch_items) {
       foreach ($parts as $part => $labels) {
         $rows = array();
+        $document_id = NULL;
         foreach ($branch_items[$part] as $item) {
+          // Amendments are grouped under a heading row per document.
+          if ($type === 'amendment' && $item['document_id'] != $document_id) {
+            $document_id = $item['document_id'];
+            $rows[] = array(
+              'data' => array(array('data' => check_plain($item['document_title']), 'header' => TRUE, 'colspan' => count($header) + 1, 'scope' => 'colgroup')),
+              'class' => array('document'),
+              'no_striping' => TRUE,
+            );
+          }
           $rows[] = ammo_branch_overview_row($type, $item, $meeting);
         }
         $page['branches'][$branch_id][$part]['title'] = $labels[0] . ' ' . check_plain(ammo_cleanup_branch_name($branches[$branch_id]));

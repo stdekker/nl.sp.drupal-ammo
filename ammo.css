@@ -271,7 +271,20 @@ h4.inline-title {
 .branch-overview td {
   text-align: left;
   vertical-align: top;
-  padding: .3em 1em .3em 0;
+  padding: .3em 1em .3em .5em;
+}
+
+/* Light headers instead of the theme's black ones. */
+.branch-overview th {
+  background: #eee;
+  color: #333;
+}
+
+.branch-overview tr.document th {
+  background: #f7f7f7;
+  padding-top: .6em;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 
 .more-text {
