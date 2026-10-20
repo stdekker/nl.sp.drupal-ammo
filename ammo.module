@@ -605,7 +605,7 @@ function template_preprocess_amendment(&$variables) {
         if (array_key_exists($contact_id, $vote_requests_branch)) {
           $vote_requested_branches = TRUE;
         }
-        else {
+        elseif (ammo_vote_request_branch_allowed('amendment', $entity, $contact_id)) {
           $vote_unrequested_branches = TRUE;
         }
       }
@@ -614,7 +614,9 @@ function template_preprocess_amendment(&$variables) {
     $locators = ammo_document_locators($document);
     $vars = array(
       'amendment_number' => check_plain(ammo_amendment_number($entity)),
-      'location' => check_plain(ammo_amendment_location($entity, $locators, FALSE, TRUE)),
+      'location' => check_plain(ammo_amendment_location($entity, $locators, FALSE)),
+      'heading' => check_plain(ammo_item_heading('amendment', $entity)),
+      'show_heading' => !isset($variables['show_heading']) || $variables['show_heading'],
       'chapterized_id' => $entity->chapterized_id,
       'document_id' => $entity->document_id,
       'chapter' => $entity->chapter,
@@ -635,10 +637,14 @@ function template_preprocess_amendment(&$variables) {
       'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'amendment', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
+      // An item assessed as accepted (Overnemen) can no longer be withdrawn.
+      'withdraw_locked' => !ammo_admin_access() && ammo_assessed_as($entity, 'accept'),
       'admin_access' => ammo_admin_access(),
       'superadmin_access' => ammo_superadmin_access(),
       'owners_member' => $owners_member,
       'owners_branch' => $owners_branch,
+      'first_owner' => $first_owner,
+      'co_owners' => ammo_get_co_owners($owners_member, $owners_branch),
       'backers' => $backers,
       'backed_by_user' => $backed_by_user,
       'owned_by_user' => $owned_by_user,
@@ -654,7 +660,7 @@ function template_preprocess_amendment(&$variables) {
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests'))) continue;
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
@@ -713,7 +719,7 @@ function template_preprocess_motion(&$variables) {
         if (array_key_exists($contact_id, $vote_requests_branch)) {
           $vote_requested_branches = TRUE;
         }
-        else {
+        elseif (ammo_vote_request_branch_allowed('motion', $entity, $contact_id)) {
           $vote_unrequested_branches = TRUE;
         }
       }
@@ -721,6 +727,8 @@ function template_preprocess_motion(&$variables) {
     $code = ammo_shurly('motion', $entity->id);
     $vars = array(
       'motion_id' => $entity->motion_id,
+      'heading' => check_plain(ammo_item_heading('motion', $entity)),
+      'show_heading' => !isset($variables['show_heading']) || $variables['show_heading'],
       'rejected' => ammo_assessed_as($entity, 'reject'),
       'meeting_id' => $entity->meeting_id,
       'consideration_opening' => $entity->consideration_opening,
@@ -742,10 +750,14 @@ function template_preprocess_motion(&$variables) {
       'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'motion', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
+      // An item assessed as accepted (Overnemen) can no longer be withdrawn.
+      'withdraw_locked' => !ammo_admin_access() && ammo_assessed_as($entity, 'accept'),
       'admin_access' => ammo_admin_access(),
       'superadmin_access' => ammo_superadmin_access(),
       'owners_member' => $owners_member,
       'owners_branch' => $owners_branch,
+      'first_owner' => $first_owner,
+      'co_owners' => ammo_get_co_owners($owners_member, $owners_branch),
       'backers' => $backers,
       'backed_by_user' => $backed_by_user,
       'owned_by_user' => $owned_by_user,
@@ -761,7 +773,7 @@ function template_preprocess_motion(&$variables) {
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'backers', 'vote_requests'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests'))) continue;
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;

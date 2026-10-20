@@ -2,14 +2,16 @@
 global $base_url; 
 $is_withdrawn = ($state === 'withdrawn' || $rejected);
 ?>
+<?php if ($show_heading): ?>
 <h3 id="motion<?php print $entity_id; ?>" class="motion-header <?php print $is_withdrawn ? 'withdrawn-header' : ''; ?>">
-  Motie <?php print (!empty($motion_id)) ? $motion_id : $entity_id; ?>
+  <?php print $heading; ?>
   <?php if ($state === 'withdrawn'): ?>
     <span class="withdrawn-indicator"> - Ingetrokken</span>
   <?php elseif ($rejected): ?>
     <span class="withdrawn-indicator"> - Afgewezen</span>
   <?php endif; ?>
 </h3>
+<?php endif; ?>
 
 <?php if ($is_withdrawn): ?>
 <a href="#" class="withdrawn-toggle" data-target="motion-content-<?php print $entity_id; ?>">[Toon details]</a>
@@ -17,31 +19,21 @@ $is_withdrawn = ($state === 'withdrawn' || $rejected);
 <?php endif; ?>
 <?php //print '<p>' . $meeting_title . ' van de SP, in vergadering bijeen op ' . $meeting_date . '.</p>'; ?>
 
-<h4>Indiener(s):</h4>
+<?php if (!empty($first_owner)) : ?>
+<h4>Hoofdindiener:</h4>
 <div class="ammo-section-content">
-<?php if (!empty($owners_branch)) : ?>
-  <?php $list = array(); ?>
-  <?php foreach ($owners_branch as $owner_branch) : $list[] = $owner_branch['contact_display_name']; endforeach; ?>
-  <?php $last = array_pop($list); ?>
-  <?php if (count($list) === 0) : $owners_list = $last; else : $owners_list = implode(', ', $list) . ' en ' . $last; endif; ?>
-<?php endif; ?>
-<?php if (!empty($owners_member)) : ?>
-  <?php $list = array(); ?>
-  <?php foreach ($owners_member as $owner_member) : $list[] = $owner_member['contact_display_name']; endforeach; ?>
-  <?php $last = array_pop($list); ?>
-  <?php if (count($list) === 0) : $members_list = $last; else : $members_list = implode(', ', $list) . ' en ' . $last; endif; ?>
-  <p><?php print $members_list; ?>.</p>
-  <?php $number = count($backers) + count($owners_member); ?>
-  <?php if (!empty($owners_branch)) : ?>
-    <p>Ondersteund door <?php print $owners_list; ?>.</p>
+  <p><?php print ammo_contact_names(array($first_owner)); ?></p>
+  <?php if ($first_owner['contact_type'] === 'member') : ?>
+    <p>Ondersteund door 50 leden (voldoende steun).</p>
   <?php endif; ?>
-	<p>Ondersteund door 50 leden (voldoende steun).</p>
-<?php else: ?>
-  <?php if (!empty($owners_branch)) : ?>
-    <p><?php print $owners_list; ?></p>
-  <?php endif; ?>
-<?php endif; ?>
 </div>
+<?php if (!empty($co_owners)) : ?>
+<h4>Mede-indieners:</h4>
+<div class="ammo-section-content">
+  <p><?php print ammo_contact_names($co_owners); ?></p>
+</div>
+<?php endif; ?>
+<?php endif; ?>
 
 <h4><?php print $consideration_opening; ?></h4>
 <div class="ammo-section-content">
@@ -109,7 +101,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php if ((!empty($owners_branch) || !empty($owners_member)) || $admin_access || $superadmin_access) : ?>
       <?php if ($edit_access || $admin_access) : ?>
         <li>Bewerken:</li>
-        <li><?php print l('inhoud', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>
+        <li><?php print l('motie wijzigen', 'ammo/motion/edit/' . $entity_id, array('query' => $dest))?></li>
       <?php endif; ?>
       <?php if (($admin_access && $advice_access) || $superadmin_access) : ?>
         <li><?php print l('status/advies', 'ammo/motion/advice/' . $entity_id, array('query' => $dest))?></li>
@@ -129,10 +121,10 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
         <?php if ($unsupported_branches) : ?>
           <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
-        <?php if ($supported_branches && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)) : ?>
+        <?php if ($supported_branches && !$withdraw_locked && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)) : ?>
           <li><?php print l('intrekken als afdeling', 'ammo/support/withdraw/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
-        <?php if ($removable_member_owners) : ?>
+        <?php if ($removable_member_owners && !$withdraw_locked) : ?>
           <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
       <?php endif; ?>

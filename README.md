@@ -100,6 +100,10 @@ module treated the old statuses differently, it now follows the advice:
   and stay visible in Mijn afdeling when states are hidden;
 - the XML export contains items assessed with *Overnemen*;
 - vote requests default to *Beoordeeld* (see the vote request settings).
+- on items assessed with *Overnemen* only branches that are not the indiener
+  or a mede-indiener (also not the branch of a member indiener) can request a
+  vote; on *Afwijzen* any branch can. Admins are not bound by this. Run
+  `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/vote-request.test.php`.
 
 After deployment back up the database and run `drush updatedb`. Ammo update
 7015 sets existing Overgenomen and Afgewezen items to Beoordeeld, fills an
@@ -126,12 +130,18 @@ too and runs to the end of its day. Withdrawing, supporting and vote requests
 close then; supporting used to stay open until the meeting started. The
 status/advies form stays open until the meeting starts.
 
-A change by the submitter is saved on the proposal itself, which keeps its
-number unless its group changes. It gets the status **Gewijzigd** and keeps its
-advice until an admin assesses it again. The secretariat and all owner
-branches, co-submitters included, get a mail with the differences. Items with
-the status Gewijzigd are left out of the XML export and vote requests until
-they are assessed again.
+An item with the status Beoordeeld and the advice Overnemen can no longer be
+changed or withdrawn by its branches; admins still can. A change by the submitter is saved
+on the proposal itself. Through **voorstel
+wijzigen** the submitter changes only the text and the toelichting; the
+location and number stay as submitted (admins can still change the
+location). A change without differences is refused, and a change of less
+than 5% of the text shows a warning before it is confirmed (for motions the
+warning asks to submit again). It gets the status **Gewijzigd** and keeps its
+advice until an admin assesses it again; until then the submitter cannot
+change it again. The secretariat and all owner branches, co-submitters
+included, get a mail with the differences. Items with the status Gewijzigd are
+left out of the XML export and vote requests until they are assessed again.
 
 After deployment back up the database, run `drush updatedb` and `drush cc
 all`. Ammo update 7016 adds the ranges and fills their Tot dates from the old

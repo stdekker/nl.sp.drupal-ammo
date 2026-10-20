@@ -11,6 +11,17 @@ function ammo_support_add_allowed($action, $target_type, $entity_id) {
   return $amendment ? ammo_amendment_can_receive_support($amendment->state, $amendment->advice) : TRUE;
 }
 
+/**
+ * Prevent regular users from withdrawing an amendment or motion assessed as accepted (Overnemen).
+ */
+function ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id) {
+  if ($action !== 'withdraw' || $contact_type === 'member' || ammo_admin_access()) {
+    return TRUE;
+  }
+  $entity = entity_load_single($target_type, $entity_id);
+  return !$entity || !ammo_assessed_as($entity, 'accept');
+}
+
 function ammo_support_form($form, &$form_state, $action, $contact_type, $target_type = NULL, $entity_id = NULL) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
@@ -42,6 +53,10 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
   }
   if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
     form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
+    return array();
+  }
+  if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {
+    form_set_error('support', 'Een overgenomen wijzigingsvoorstel of motie kan niet meer worden ingetrokken.');
     return array();
   }
   $form['item'] = array(
@@ -199,6 +214,10 @@ function ammo_support_form_validate($form, &$form_state) {
     form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
     return;
   }
+  if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {
+    form_set_error('support', 'Een overgenomen wijzigingsvoorstel of motie kan niet meer worden ingetrokken.');
+    return;
+  }
   switch ($contact_type) {
   case 'member':
     if (!$form_state['values']['support']) {
@@ -281,6 +300,10 @@ function ammo_support_form_submit($form, &$form_state) {
   $entity = entity_load_single($target_type, $entity_id);
   if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
     drupal_set_message('Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.', 'error');
+    return;
+  }
+  if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {
+    drupal_set_message('Een overgenomen wijzigingsvoorstel of motie kan niet meer worden ingetrokken.', 'error');
     return;
   }
   $afdelingen = ammo_get_afdelingen('all');

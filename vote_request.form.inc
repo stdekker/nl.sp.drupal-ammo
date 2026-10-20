@@ -92,7 +92,7 @@ function ammo_vote_request_form($form, &$form_state, $action, $contact_type, $ta
       $vote_requested = ammo_is_related($entity_id, $target_type, 'vote_request', $contact_type, $contact_id);
       switch ($action) {
       case 'add':
-        if (empty($vote_requested)) {
+        if (empty($vote_requested) && ammo_vote_request_branch_allowed($target_type, $entity, $contact_id)) {
           $options[$contact_id] = $branch;
         }
         break;
@@ -144,6 +144,9 @@ function ammo_vote_request_form_validate($form, &$form_state) {
         case 'add':
           if ($vote_requested) {
             form_set_error('vote_request', 'Stemming aanvraag was al opgeslagen.');
+          }
+          elseif (!ammo_vote_request_branch_allowed($target_type, $entity, $value)) {
+            form_set_error('vote_request', 'Een (mede-)indiener kan geen stemming aanvragen over een overgenomen voorstel.');
           }
           break;
         case 'withdraw':

@@ -70,6 +70,22 @@ function ammo_item_view_access($type, array $loaded) {
   return ammo_item_view_is_owner($type, $loaded['item']->id);
 }
 
+/**
+ * The status suffix the item heading shows for collapsed items, such as " - Ingetrokken".
+ */
+function ammo_item_view_status_suffix($type, $item) {
+  if ($item->state === 'withdrawn') {
+    return ' - Ingetrokken';
+  }
+  if ($type === 'amendment' && $item->state === 'invalid') {
+    return ' - Ongeldig';
+  }
+  if ($type === 'motion' && ammo_assessed_as($item, 'reject')) {
+    return ' - Afgewezen';
+  }
+  return '';
+}
+
 function ammo_item_view_page($type, $id) {
   drupal_page_is_cacheable(FALSE);
   $loaded = ammo_item_view_load($type, $id);
@@ -82,7 +98,6 @@ function ammo_item_view_page($type, $id) {
   $item = $loaded['item'];
   $meeting = $loaded['meeting'];
   if ($type === 'amendment') {
-    drupal_set_title('Wijzigingsvoorstel ' . ammo_amendment_number($item));
     $context = check_plain($meeting->title) . ': ' . check_plain($loaded['document']->title);
     $overview = 'ammo/amendments/' . $meeting->id;
     // The amendment overview only loads the selected document and group.
@@ -90,11 +105,12 @@ function ammo_item_view_page($type, $id) {
     $options = array('query' => array('document' => $item->document_id, 'chapter' => $group === '' ? 0 : $group));
   }
   else {
-    drupal_set_title('Motie ' . ($item->motion_id ?: $item->id));
     $context = check_plain($meeting->title);
     $overview = 'ammo/motions/' . $meeting->id;
     $options = array();
   }
+  // The page title replaces the heading of the item.
+  drupal_set_title(ammo_item_heading($type, $item) . ammo_item_view_status_suffix($type, $item));
   // Drafts are not part of the overviews.
   if ($item->state === 'concept') {
     $back = l('Terug naar Mijn afdeling', 'ammo/afdeling/' . $meeting->id);
@@ -105,7 +121,7 @@ function ammo_item_view_page($type, $id) {
   return array(
     '#attached' => array('js' => array(drupal_get_path('module', 'ammo') . '/ammo.js')),
     'context' => array('#markup' => '<p class="ammo-item-context">' . $context . '</p>'),
-    'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id)) . '</li></ul>'),
+    'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id, 'show_heading' => FALSE)) . '</li></ul>'),
     'back' => array('#markup' => '<p class="ammo-item-back">' . $back . '</p>'),
   );
 }

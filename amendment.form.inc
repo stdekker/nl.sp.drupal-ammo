@@ -70,6 +70,11 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     drupal_set_message('U kunt dit voorstel niet meer wijzigen.', 'error');
     return array();
   }
+  // A submitter changing a submitted amendment may change its text and explanation only.
+  $text_only = !empty($form_state['storage']['submitted_edit']);
+  if ($text_only) {
+    drupal_set_title('Voorstel wijzigen');
+  }
 
   // Always set first step.
   if (empty($form_state['storage']['first_step'])) {
@@ -188,11 +193,17 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 5) {
-    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel bewerken');
-    
+    $form['title']['#markup'] = ammo_step_heading($text_only ? 'Voorstel wijzigen' : 'Wijzigingsvoorstel bewerken');
+    $document = isset($form_state['storage']['document']) ? entity_load_single('document', $form_state['storage']['document']) : NULL;
+
     // Show selected meeting, document and branch info
     $branch_info = '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '<br/>';
     $branch_info .= '<strong>Document:</strong> ' . check_plain($form_state['storage']['document_display_name']) . '<br/>';
+    if ($text_only) {
+      $amendment = entity_load_single('amendment', $form_state['storage']['amendment']);
+      $branch_info .= '<strong>Voorstel:</strong> ' . check_plain(ammo_amendment_number($amendment)) . '<br/>';
+      $branch_info .= '<strong>Locatie:</strong> ' . check_plain(ammo_amendment_location($amendment, ammo_document_locators($document))) . '<br/>';
+    }
     $branch_info .= '<strong>Afdeling:</strong> ' . check_plain($form_state['storage']['branch_display_name']) . '</p>';
     
     $form['info_display'] = array(
@@ -201,12 +212,13 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     );
     
     // One field per location indicator of the document, side by side.
-    $document = isset($form_state['storage']['document']) ? entity_load_single('document', $form_state['storage']['document']) : NULL;
-    $form['location'] = array(
-      '#type' => 'container',
-      '#attributes' => array('class' => array('amendment-location')),
-    );
-    foreach (ammo_document_locators($document) as $key => $locator) {
+    if (!$text_only) {
+      $form['location'] = array(
+        '#type' => 'container',
+        '#attributes' => array('class' => array('amendment-location')),
+      );
+    }
+    foreach ($text_only ? array() : ammo_document_locators($document) as $key => $locator) {
       $description = ammo_locator_range_description($locator);
       if (!empty($locator['legacy']) && $key === 'line') {
         $description = 'Het regelnummer waar de tekst begint die gewijzigd moet worden, of het regelnummer vanaf waar tekst moet worden toegevoegd.';
@@ -277,6 +289,12 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $summary .= '<p><strong>Status:</strong> ' . $submission_text . '</p>';
     $summary .= '</div>';
     
+    if (!empty($form_state['storage']['submitted_edit_small_change'])) {
+      $form['small_change_warning'] = array(
+        '#type' => 'item',
+        '#markup' => ammo_submitted_edit_small_change_warning(),
+      );
+    }
     $form['summary'] = array(
       '#type' => 'item',
       '#markup' => $summary,
@@ -408,12 +426,17 @@ function ammo_amendment_form_validate($form, &$form_state) {
     break;
   case 5:
     // Location indicators: required, format and range of the document.
-    $document = !empty($storage['document']) ? entity_load_single('document', $storage['document']) : NULL;
-    foreach (ammo_validate_locators($document, $values) as $field => $message) {
-      form_set_error($field, $message);
+    if (empty($storage['submitted_edit'])) {
+      $document = !empty($storage['document']) ? entity_load_single('document', $storage['document']) : NULL;
+      foreach (ammo_validate_locators($document, $values) as $field => $message) {
+        form_set_error($field, $message);
+      }
     }
     if (empty($values['amendment_text'])) {
       form_set_error('amendment_text', 'Vul de wijzigingsvoorstel tekst in.');
+    }
+    elseif (!empty($storage['submitted_edit']) && !ammo_submitted_edit_change_percentage('amendment', $values + $storage)) {
+      form_set_error('amendment_text', 'Er is niets gewijzigd aan het voorstel.');
     }
     break;
   case 6:
@@ -480,7 +503,13 @@ function ammo_amendment_form_submit($form, &$form_state)
       $form_state['storage']['branch_selected'] = TRUE;
       break;
     case 5:
-      // Store form data first
+      // Store form data first; a change to a submitted amendment keeps its location.
+      $form_state['storage']['amendment_text'] = $values['amendment_text'];
+      $form_state['storage']['supplement'] = $values['supplement'];
+      if (!empty($storage['submitted_edit'])) {
+        $form_state['storage']['submitted_edit_small_change'] = ammo_submitted_edit_small_change(ammo_submitted_edit_change_percentage('amendment', $form_state['storage']));
+        break;
+      }
       $document = entity_load_single('document', $storage['document']);
       $locator_fields = ammo_amendment_locator_fields($document, $values);
       foreach (ammo_document_locators($document) as $key => $locator) {

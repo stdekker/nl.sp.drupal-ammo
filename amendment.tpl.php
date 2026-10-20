@@ -4,52 +4,33 @@ global $base_url;
 $is_withdrawn = ($state === 'withdrawn');
 $is_collapsed = $is_withdrawn || $state === 'invalid';
 ?>
+<?php if ($show_heading): ?>
 <h3 id="amendment<?php print $entity_id; ?>" class="amendment-header <?php print $is_collapsed ? 'collapsed-header' : ''; ?>">
-  Voorstel <?php print $amendment_number; ?><?php if ($location !== ''): ?> (<?php print $location; ?>)<?php endif; ?>
+  <?php print $heading; ?>
   <?php if ($is_collapsed): ?>
     <span class="collapsed-indicator"> - <?php print $is_withdrawn ? 'Ingetrokken' : 'Ongeldig'; ?></span>
   <?php endif; ?>
 </h3>
+<?php endif; ?>
 
 <?php if ($is_collapsed): ?>
 <a href="#" class="amendment-details-toggle" data-target="amendment-content-<?php print $entity_id; ?>">[Toon details]</a>
 <div id="amendment-content-<?php print $entity_id; ?>" class="amendment-content-collapsed" style="display: none;">
 <?php endif; ?>
 
-<?php
-// Process owners - always use h4 heading for consistency
-print '<h4>Indiener(s):</h4>';
-
-// Process branch owners
-if (!empty($owners_branch)) {
-  $list = array();
-  foreach ($owners_branch as $owner_branch) {
-    $list[] = $owner_branch['contact_display_name'];
-  }
-  $last = array_pop($list);
-  $owners_list = (count($list) === 0) ? $last : implode(', ', $list) . ' en ' . $last;
-}
-
-// Process member owners
-if (!empty($owners_member)) {
-  $list = array();
-  foreach ($owners_member as $owner_member) {
-    $list[] = $owner_member['contact_display_name'];
-  }
-  $last = array_pop($list);
-  $members_list = (count($list) === 0) ? $last : implode(', ', $list) . ' en ' . $last;
-  
-  print '<p>Ingediend door ' . $members_list . '.</p>';
-  $number = count($backers) + count($owners_member);
-  
-  if (!empty($owners_branch)) {
-    print '<p>Mede ingediend door ' . $owners_list . '.</p>';
-  }
-  print '<p>Ondersteund door 50 leden (voldoende steun).</p>';
-} else if (!empty($owners_branch)) {
-  print '<p>' . $owners_list . '</p>';
-}
-?>
+<?php if (!empty($first_owner)): ?>
+<div class="ammo-owners">
+  <h4>Hoofdindiener:</h4>
+  <p><?php print ammo_contact_names(array($first_owner)); ?></p>
+  <?php if ($first_owner['contact_type'] === 'member'): ?>
+    <p>Ondersteund door 50 leden (voldoende steun).</p>
+  <?php endif; ?>
+  <?php if (!empty($co_owners)): ?>
+    <h4>Mede-indieners:</h4>
+    <p><?php print ammo_contact_names($co_owners); ?></p>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <h4>Voorstel:</h4>
 <div class="text-limit"><?php print $amendment_text; ?></div>
@@ -101,7 +82,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
   <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
     <?php if ($edit_access): ?>
       <li>Bewerken:</li>
-      <li><?php print l('inhoud', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
+      <li><?php print l('voorstel wijzigen', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
     <?php if (($admin_access && $advice_access) || $superadmin_access): ?>
       <li><?php print l('status/advies', 'ammo/amendment/advice/' . $entity_id, array('query' => $dest)); ?></li>
@@ -118,10 +99,10 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <?php if ($unsupported_branches && ammo_amendment_can_receive_support($state, $advice)): ?>
         <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
-      <?php if ($supported_branches && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
+      <?php if ($supported_branches && !$withdraw_locked && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
         <li><?php print l('voorstel / steun intrekken', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
-      <?php if ($removable_member_owners): ?>
+      <?php if ($removable_member_owners && !$withdraw_locked): ?>
         <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/amendment/' . $entity_id, array('query' => $dest)); ?></li>
       <?php endif; ?>
     <?php endif; ?>

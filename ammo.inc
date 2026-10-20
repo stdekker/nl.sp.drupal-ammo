@@ -893,6 +893,22 @@ function ammo_withdraw_access($meeting_id) {
   return FALSE;
 }
 
+/**
+ * Whether a branch may request a vote: on an item assessed as accepted only when it is not one of its (co-)submitters.
+ */
+function ammo_vote_request_branch_allowed($type, $entity, $branch_id) {
+  if (ammo_admin_access() || !ammo_assessed_as($entity, 'accept')) {
+    return TRUE;
+  }
+  foreach (ammo_get_related_contacts($entity->id, $type, 'owner') as $owner) {
+    // A member owner submits on behalf of their own branch.
+    if ($owner['branch_id'] == $branch_id || ($owner['contact_type'] === 'branch' && $owner['contact_id'] == $branch_id)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 function ammo_vote_request_access($meeting_id, $status) {
   // Check if withdrawal date has passed
   if (ammo_passed_date($meeting_id, 'withdraw')) {
@@ -933,7 +949,10 @@ function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_
   if (!$entity || empty($entity->state) || $entity->state === 'concept') {
     return ammo_meeting_range_open($meeting, $entity_type . '_submission');
   }
-  return !in_array($entity->state, array('withdrawn', 'blocked'), TRUE)
+  // An item assessed as accepted (Overnemen) is final, and a changed item
+  // (Gewijzigd) waits for a new assessment before the next change.
+  return !in_array($entity->state, array('withdrawn', 'blocked', 'changed'), TRUE)
+    && !ammo_assessed_as($entity, 'accept')
     && ammo_add_access()
     && ammo_meeting_range_open($meeting, $entity_type . '_change');
 }
@@ -1404,6 +1423,39 @@ function ammo_get_first_owner($entity_type, $entity_id) {
     return $first_owner;
   }
   return FALSE;
+}
+
+/**
+ * The plain-text heading of an amendment or motion, such as "Voorstel 2.1 - Artikel 1, Lid 2".
+ */
+function ammo_item_heading($type, $item) {
+  if ($type === 'motion') {
+    return 'Motie ' . (!empty($item->motion_id) ? $item->motion_id : $item->id);
+  }
+  $document = entity_load_single('document', $item->document_id);
+  $location = $document ? ammo_amendment_location($item, ammo_document_locators($document), FALSE) : '';
+  return 'Voorstel ' . ammo_amendment_number($item) . ($location === '' ? '' : ' - ' . $location);
+}
+
+/**
+ * The owners of an item other than the first owner: the co-submitters.
+ */
+function ammo_get_co_owners($owners_member, $owners_branch) {
+  $owners = array_merge(array_values($owners_member), array_values($owners_branch));
+  array_shift($owners);
+  return $owners;
+}
+
+/**
+ * The escaped display names of contacts as a Dutch list, such as "A, B en C".
+ */
+function ammo_contact_names($contacts) {
+  $names = array();
+  foreach ($contacts as $contact) {
+    $names[] = check_plain($contact['contact_display_name']);
+  }
+  $last = array_pop($names);
+  return empty($names) ? (string) $last : implode(', ', $names) . ' en ' . $last;
 }
 
 function ammo_passed_date($meeting_id, $date_type) {

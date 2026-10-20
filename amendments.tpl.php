@@ -17,12 +17,17 @@
   <div class="first">
     <?php if ($meeting['admin_access']):
       $states = ammo_states();
-      $rows = array();
+      $header = array();
+      $counts = array();
       foreach ($document['totals'] as $key => $value) {
-        $rows[] = array(isset($states[$key]) ? $states[$key] : check_plain($key), $value);
+        $header[] = isset($states[$key]) ? $states[$key] : check_plain($key);
+        $counts[] = $value;
       }
-      print theme('table', array('rows' => $rows));
-    endif; ?>
+      ?>
+      <div class="ammo-state-totals">
+        <?php print theme('table', array('header' => $header, 'rows' => array($counts))); ?>
+      </div>
+    <?php endif; ?>
     <ul class="amendments">
       <?php foreach ($document['amendments'] as $amendment): ?>
         <li class="ammo-element <?php print check_plain($amendment['state']); ?>">

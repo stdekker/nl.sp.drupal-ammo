@@ -38,8 +38,42 @@ function ammo_submitted_edit_fields($type, $entity) {
       'supplement' => 'supplement',
     );
   }
-  $fields = drupal_map_assoc(ammo_amendment_locator_columns($entity->document_id));
-  return $fields + array('amendment_text' => 'amendment_text', 'supplement' => 'supplement');
+  // The location, and with it the number, stays as submitted.
+  return array('amendment_text' => 'amendment_text', 'supplement' => 'supplement');
+}
+
+/**
+ * How much of the editable text a change alters, from 0 (nothing) to 100 percent.
+ */
+function ammo_submitted_edit_change_percentage($type, $values) {
+  $original = entity_load_single($type, $values['submitted_edit']);
+  $old = $new = array();
+  foreach (ammo_submitted_edit_fields($type, $original) as $field => $key) {
+    // Line endings and surrounding whitespace from the browser are not a change.
+    $old[] = trim(str_replace("\r\n", "\n", (string) $original->$field));
+    $new[] = trim(str_replace("\r\n", "\n", isset($values[$key]) ? (string) $values[$key] : ''));
+  }
+  $old = implode("\n", $old);
+  $new = implode("\n", $new);
+  if ($old === $new) {
+    return 0;
+  }
+  similar_text($old, $new, $similarity);
+  return max(100 - $similarity, 0.01);
+}
+
+/**
+ * Whether a change is so small that the submitter is asked to make sure.
+ */
+function ammo_submitted_edit_small_change($percentage) {
+  return $percentage > 0 && $percentage < 5;
+}
+
+/**
+ * The warning shown above the confirmation of a small change.
+ */
+function ammo_submitted_edit_small_change_warning() {
+  return '<div class="messages warning">Het lijkt er op dat de wijziging heel beperkt is, weet je zeker dat je dit zo wil indienen?</div>';
 }
 
 /**
@@ -121,10 +155,7 @@ function ammo_save_submitted_edit($type, $storage) {
 
   try {
     $differences = array();
-    if (isset($fields['locator_values'])) {
-      $differences += ammo_locator_differences($original->document_id, $original, $fields);
-    }
-    foreach (array_diff_key($fields, array('locator_values' => TRUE, 'group_value' => TRUE)) as $field => $value) {
+    foreach ($fields as $field => $value) {
       $description = ammo_diff_fields($editable[$field]);
       $differences[$field] = array('fieldname' => $description['name'], 'diff' => ammo_diffline($original->$field, $value));
     }

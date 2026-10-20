@@ -51,6 +51,27 @@ try {
   ammo_save_entity('contact_relation', array('target_id' => $amendment->id, 'target_type' => 'amendment', 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => 99999998, 'branch_id' => 99999998, 'contact_display_name' => 'Bestaande indiener', 'branch_display_name' => 'Bestaande indiener'));
   $branches = &drupal_static('ammo_get_afdelingen');
   $branches[99999999] = array(99999999 => 'Andere afdeling');
+  // An amendment assessed as accepted can no longer be withdrawn by its branches.
+  $own = ammo_save_entity('contact_relation', array('target_id' => $amendment->id, 'target_type' => 'amendment', 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Andere afdeling', 'branch_display_name' => 'Andere afdeling'));
+  ammo_invalid_support_assert(!ammo_support_withdraw_allowed('withdraw', 'branch', 'amendment', $amendment->id) && !ammo_support_withdraw_allowed('withdraw', 'branchmembers', 'amendment', $amendment->id), 'Accepted amendment cannot be withdrawn');
+  ammo_invalid_support_assert(ammo_support_withdraw_allowed('withdraw', 'member', 'amendment', $amendment->id) && ammo_support_withdraw_allowed('add', 'branch', 'amendment', $amendment->id), 'Member support and adding stay unaffected');
+  $state = array();
+  $form = ammo_support_form(array(), $state, 'withdraw', 'branch', 'amendment', $amendment->id);
+  ammo_invalid_support_assert(empty($form['submit']), 'Direct withdraw URL has no submit button for an accepted amendment');
+  $_GET['q'] = 'ammo/support/withdraw/branch/amendment/' . $amendment->id;
+  $state['values'] = array('branch_id' => array(99999999 => 99999999));
+  ammo_support_form_submit(array(), $state);
+  entity_get_controller('amendment')->resetCache();
+  ammo_invalid_support_assert(entity_load_single('amendment', $amendment->id)->state === 'assessed' && entity_load_single('contact_relation', $own->id), 'Withdraw submit leaves an accepted amendment and its owner');
+  form_clear_error();
+  drupal_get_messages('error');
+  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'voorstel / steun intrekken') === FALSE, 'Accepted amendment hides the withdraw link');
+  $amendment->advice = 'reject';
+  entity_save('amendment', $amendment);
+  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'voorstel / steun intrekken') !== FALSE, 'Rejected amendment keeps the withdraw link');
+  $amendment->advice = 'accept';
+  entity_save('amendment', $amendment);
+  entity_delete('contact_relation', $own->id);
   foreach (array('invalid' => array('invalid', NULL), 'rejected' => array('assessed', 'reject')) as $blocked_state => $fields) {
     list($amendment->state, $amendment->advice) = $fields;
     entity_save('amendment', $amendment);
@@ -85,6 +106,7 @@ try {
   entity_save('motion', $motion);
   ammo_invalid_support_assert(strpos(theme('motion', array('entity_id' => $motion->id)), 'withdrawn-toggle') === FALSE, 'Motion assessed as accepted stays open');
   $user = user_load(1);
+  ammo_invalid_support_assert(ammo_support_withdraw_allowed('withdraw', 'branch', 'motion', $motion->id), 'Administrator can withdraw an accepted motion');
   foreach (array('invalid' => array('invalid', NULL), 'rejected' => array('assessed', 'reject')) as $blocked_state => $fields) {
     list($amendment->state, $amendment->advice) = $fields;
     entity_save('amendment', $amendment);
@@ -94,7 +116,7 @@ try {
     ammo_invalid_support_assert(isset($form['submit']), 'Administrator can open support form for ' . $blocked_state);
   }
   $transaction->rollback();
-  print "PASS: invalid amendments and those assessed as rejected block ordinary member and branch support on open and submit; withdrawal, motions and administrator access preserved. Fixtures rolled back.\n";
+  print "PASS: invalid amendments and those assessed as rejected block ordinary member and branch support on open and submit; accepted items cannot be withdrawn by branches; withdrawal, motions and administrator access preserved. Fixtures rolled back.\n";
 }
 catch (Exception $e) {
   $transaction->rollback();

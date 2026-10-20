@@ -163,7 +163,7 @@ function ammo_branch_overview_page($meeting_id, array $branches) {
   if (ammo_show_motions() && ammo_meeting_has_motions($meeting)) {
     $types['motion'] = array('Moties', array('Nr', 'Motie', 'Status'));
   }
-  $parts = array('submitted' => array('Ingediend door', 'Mede-indieners'), 'co_submitted' => array('Mede ingediend door', 'Indiener'));
+  $parts = array('submitted' => array('Ingediend door', 'Mede-indieners'), 'co_submitted' => array('Mede ingediend door', 'Hoofdindiener'));
   foreach ($branches as $branch_id => $name) {
     $page['branches'][$branch_id] = array_fill_keys(array_keys($parts), array('tables' => array()));
   }

@@ -215,6 +215,12 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     );
 
     if (!empty($form_state['storage']['submitted_edit'])) {
+      if (!empty($form_state['storage']['submitted_edit_warned'])) {
+        $form['small_change_warning'] = array(
+          '#type' => 'item',
+          '#markup' => ammo_submitted_edit_small_change_warning(),
+        );
+      }
       $form['confirm'] = array(
         '#type' => 'checkbox',
         '#title' => ammo_submitted_edit_confirmation(),
@@ -409,6 +415,9 @@ function ammo_motion_form_validate($form, &$form_state)
     if (empty($values['follow_up_text'])) {
       form_set_error('follow_up_text', 'Vul de vervolg inhoud in.');
     }
+    if (!empty($storage['submitted_edit']) && !form_get_errors() && !ammo_submitted_edit_change_percentage('motion', $values + $storage)) {
+      form_set_error('consideration_text', 'Er is niets gewijzigd aan de motie.');
+    }
     break;
   case 5:
     ammo_validate_assessed_advice($values);
@@ -466,7 +475,15 @@ function ammo_motion_form_submit($form, &$form_state)
       break;
     case 4:
       if (!empty($storage['submitted_edit'])) {
-        $edit = array_intersect_key($values, array_flip(ammo_submitted_edit_fields('motion', NULL))) + $storage;
+        $changed = array_intersect_key($values, array_flip(ammo_submitted_edit_fields('motion', NULL)));
+        $edit = $changed + $storage;
+        // A small change is saved only when it is submitted again after the warning.
+        $hash = md5(serialize($changed));
+        if (ammo_submitted_edit_small_change(ammo_submitted_edit_change_percentage('motion', $edit)) && ($storage['submitted_edit_warned'] ?? NULL) !== $hash) {
+          $form_state['storage'] = array('submitted_edit_warned' => $hash) + $changed + $form_state['storage'];
+          $form_state['rebuild'] = TRUE;
+          return;
+        }
         $motion = ammo_save_submitted_edit('motion', $edit);
         if ($motion === FALSE) {
           $form_state['rebuild'] = TRUE;

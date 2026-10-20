@@ -78,8 +78,8 @@ try {
   drupal_static_reset('drupal_get_destination');
   $page = ammo_item_view_page('amendment', $ids['foreign']);
   $markup = drupal_render($page);
-  ammo_item_view_assert(drupal_get_title() === 'Wijzigingsvoorstel 2.1', 'Page title carries the amendment number');
-  ammo_item_view_assert(strpos($markup, 'Item view test: Item view document') !== FALSE && strpos($markup, 'id="amendment' . $ids['foreign'] . '"') !== FALSE && strpos($markup, 'Tekst foreign') !== FALSE, 'Page shows meeting, document and the item');
+  ammo_item_view_assert(strpos(drupal_get_title(), 'Voorstel 2.1') === 0, 'Page title carries the amendment heading');
+  ammo_item_view_assert(strpos($markup, 'Item view test: Item view document') !== FALSE && strpos($markup, '<h3') === FALSE && strpos($markup, 'Tekst foreign') !== FALSE, 'Page shows meeting, document and the item without its heading');
   ammo_item_view_assert(strpos($markup, 'ammo/support/add/branch/amendment/' . $ids['foreign'] . '?destination=ammo/amendment/view/' . $ids['foreign']) !== FALSE, 'Actions return to the item page');
   ammo_item_view_assert(strpos($markup, 'ammo/amendments/' . $meeting->id . '?document=' . $document->id . '&amp;chapter=2#amendment' . $ids['foreign']) !== FALSE, 'Back link targets document, chapter and anchor');
   ammo_item_view_assert(strpos(implode(' ', array_keys(drupal_add_js())), 'ammo.js') !== FALSE, 'Script for collapsed details attached');

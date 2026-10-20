@@ -236,6 +236,24 @@ h4.inline-title {
   padding: 0 1em 0 0;
 }
 
+/* State totals above the amendments, for admins */
+
+.ammo-state-totals {
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.ammo-state-totals table {
+  width: 100%;
+}
+
+.ammo-state-totals th,
+.ammo-state-totals td {
+  text-align: center;
+  white-space: nowrap;
+  padding: .3em .5em;
+}
+
 /* Branch overview */
 
 .branch-overview table {
@@ -267,11 +285,10 @@ h4.inline-title {
 .ammo-element h4 {
 	font-family: sans-serif;
 	text-transform: none;
-	font-size: .9rem;
 	margin-top: 1em;
 	margin-bottom: 4px;
 	font-weight: 600;
-	color: #a2a2a2;
+	color: #757575;
 }
 
 .ammo-section-content .button-group {
@@ -293,14 +310,19 @@ h4.inline-title {
 } 
 
 .ammo-section-content .button-group ul li {
-  display: block;
+  /* Buttons in a row share the height of the tallest one. */
+  display: flex;
   margin: 0;
   flex: 1;
   min-width: 300px;
 }
 
 .ammo-section-content .button-group ul li a {
-  display: block;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
   width: 100%;
   padding: 2em 1em;
   text-decoration: none;

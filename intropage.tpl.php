@@ -27,9 +27,9 @@
       <p>Loop je tegen problemen aan met het gebruik van dit programma? Stuur een e-mail naar <a href="mailto:webteam@sp.nl">webteam@sp.nl</a></p>
       <nav class="button-group">
         <ul>
-          <li><a href="ammo/amendment">Wijzigingsvoorstel <span class="ammo-button-label">Voor inoudelijke toevoegingen en wijzigingen</span></a></li>
+          <li><a href="ammo/amendment">Wijzigingsvoorstel indienen <span class="ammo-button-label">Voor inhoudelijke toevoegingen en wijzigingen</span></a></li>
           <?php if ($show_motions): ?>
-          <li><a href="ammo/motion">Motie <span class="ammo-button-label">Om de partij op te roepen tot een specifiek actie</span></a></li>
+          <li><a href="ammo/motion">Motie indienen <span class="ammo-button-label">Om de partij op te roepen tot een specifieke actie</span></a></li>
           <?php endif; ?>
         </ul>
       </nav>
