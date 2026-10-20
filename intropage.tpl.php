@@ -1,5 +1,4 @@
 <div class="ammo-content">
-  <h1>Wijzigingsvoorstellen en moties</h1>
  
   <?php if ($has_any_access): ?>
 

@@ -7,6 +7,9 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   // Store destination before ajax call.
   ammo_set_destination($form_state);
 
+  $titles = array('edit' => 'Wijzigingsvoorstel bewerken', 'advice' => 'Wijzigingsvoorstel advies');
+  drupal_set_title(!empty($path_id) && isset($titles[$form_action]) ? $titles[$form_action] : 'Wijzigingsvoorstel indienen');
+
   // Check if amendment is set in path and preset form if so.
   if (!empty($path_id) && !empty($form_action) && empty($form_state['storage']['first_step'])) {
     switch ($form_action) {
@@ -92,7 +95,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
 
   // Handle submissions closed case
   if (isset($submissions_closed) && $submissions_closed) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     $form['closed_info'] = array(
       '#type' => 'item',
       '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van wijzigingsvoorstellen is verstreken. Het is niet meer mogelijk om nieuwe wijzigingsvoorstellen in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
@@ -102,7 +105,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     $options = ammo_get_meetings('submit');
     if (count($options) == 1) {
       $form_state['step'] ++;
@@ -121,7 +124,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 2) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     // Check if confirmation should be shown for this meeting
     if (isset($form_state['storage']['meeting'])) {
       $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
@@ -137,7 +140,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 3) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     $options = ammo_get_documents($form_state);
     if (count($options) == 1) {
       $form_state['step'] ++;
@@ -159,7 +162,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 4) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
     $options = ammo_afdelingen_access($meeting->admin_owner);
     if (empty($options)) {
@@ -185,7 +188,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 5) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel bewerken</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel bewerken');
     
     // Show selected meeting, document and branch info
     $branch_info = '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '<br/>';
@@ -255,7 +258,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 6) {
-    $form['title']['#markup'] = '<h2>Bevestiging</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Bevestiging');
     
     // Show summary of what will be submitted (only for definitive submissions)
     $submission_type = ammo_default($form_state, 'submission_type') ?: 'submit';
@@ -295,7 +298,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   }
 
   if ($form_state['step'] == 7) {
-    $form['title']['#markup'] = '<h2>Wijzigingsvoorstel advies</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel advies');
     $form['item'] = array(
       '#type' => 'item',
       '#markup' => theme('amendment', array('entity_id' => $form_state['storage']['amendment'], 'no_links' => TRUE)),

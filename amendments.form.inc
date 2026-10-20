@@ -2,6 +2,7 @@
 
 function ammo_overview_amendments_form($form, &$form_state, $meeting_id = NULL) {
   drupal_page_is_cacheable(FALSE);
+  drupal_set_title('Ingediende wijzigingsvoorstellen');
   // Preserve the overview location for amendment actions.
   ammo_set_destination($form_state);
 

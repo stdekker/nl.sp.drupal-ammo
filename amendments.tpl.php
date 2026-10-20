@@ -1,5 +1,3 @@
-<h2 id="inhoud">Ingediende wijzigingsvoorstelen</h2>
-
 <?php if (!empty($meeting['selected_document']) && empty($meeting['hide'])) : ?>
   <nav class="chapter-navigation" aria-label="Hoofdstukken bovenaan">
     <?php print $chapter_navigation; ?>

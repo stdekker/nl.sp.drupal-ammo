@@ -1,5 +1,3 @@
-<h1 id="inhoud">Ingediende moties</h1>
-
 <?php if ($meeting['admin_access']) : ?>
   <?php $states = ammo_states(); ?>
   <?php if (isset($meeting['motion_totals'])) : ?>

@@ -2,6 +2,7 @@
 
 function ammo_branch_overview_form($form, &$form_state, $meeting_id = NULL) {
   drupal_page_is_cacheable(FALSE);
+  drupal_set_title('Mijn afdeling');
   module_load_include('inc', 'ammo', 'branch-overview');
 
   // Check if there is choice.

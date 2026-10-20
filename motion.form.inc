@@ -7,6 +7,9 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   // Store destination before ajax call.
   ammo_set_destination($form_state);
 
+  $titles = array('edit' => 'Motie bewerken', 'advice' => 'Motie advies');
+  drupal_set_title(!empty($path_id) && isset($titles[$form_action]) ? $titles[$form_action] : 'Motie indienen');
+
   // Check if motion is set in path and preset form if so.
   if (!empty($path_id) && !empty($form_action) && empty($form_state['storage']['first_step'])) {
     switch ($form_action) {
@@ -88,7 +91,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
 
   // Handle submissions closed case
   if (isset($submissions_closed) && $submissions_closed) {
-    $form['title']['#markup'] = '<h2>Motie indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie indienen');
     $form['closed_info'] = array(
       '#type' => 'item',
       '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van moties is verstreken. Het is niet meer mogelijk om nieuwe moties in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
@@ -98,7 +101,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
-    $form['title']['#markup'] = '<h2>Motie indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie indienen');
     $options = ammo_get_meetings('submit');
     if (count($options) == 1) {
       $form_state['step'] ++;
@@ -117,7 +120,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   if ($form_state['step'] == 2) {
-    $form['title']['#markup'] = '<h2>Motie indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie indienen');
     // Check if confirmation should be shown for this meeting
     if (isset($form_state['storage']['meeting'])) {
       $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
@@ -133,7 +136,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   if ($form_state['step'] == 3) {
-    $form['title']['#markup'] = '<h2>Motie indienen</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie indienen');
     $meeting = entity_load_single('meeting', $form_state['storage']['meeting']);
     $options = ammo_afdelingen_access($meeting->admin_owner);
     if (empty($options)) {
@@ -158,7 +161,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   if ($form_state['step'] == 4) {
-    $form['title']['#markup'] = '<h2>Motie bewerken</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie bewerken');
     
     // Show selected meeting and branch info
     $branch_info = '<p><strong>Bijeenkomst:</strong> ' . check_plain($form_state['storage']['meeting_display_name']) . '<br/>';
@@ -213,7 +216,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   }
 
   if ($form_state['step'] == 5) {
-    $form['title']['#markup'] = '<h2>Motie advies</h2>';
+    $form['title']['#markup'] = ammo_step_heading('Motie advies');
     $form['item'] = array(
       '#type' => 'item',
       '#markup' => theme('motion', array('entity_id' => $form_state['storage']['motion'], 'no_links' => TRUE)),

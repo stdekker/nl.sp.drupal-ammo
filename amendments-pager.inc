@@ -110,7 +110,8 @@ function ammo_amendments_page($meeting_id, array $selection) {
   $bottom_navigation = '';
   foreach ($meeting['documents'] as $document) {
     $title = $document['title'];
-    $heading = $document['id'] == $document_id ? 'h1' : 'h2';
+    // The page title is the h1.
+    $heading = $document['id'] == $document_id ? 'h2' : 'h3';
     $grouping = $groupings[$document['id']];
     $links = '<ul class="chapters tab"><li class="chapter"><span>' . check_plain($grouping['label']) . ':</span></li>';
     foreach ($document['chapters'] as $number) {

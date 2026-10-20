@@ -1202,6 +1202,7 @@ function ammo_entity_info() {
 
 
 function ammo_intropage() {
+  drupal_set_title('Wijzigingsvoorstellen en moties');
   $has_any_access = ammo_add_access() || ammo_view_overview_access();
   return theme('intropage', array(
     'add_access' => ammo_add_access(),

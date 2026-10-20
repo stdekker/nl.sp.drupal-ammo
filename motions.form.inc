@@ -2,6 +2,7 @@
 
 function ammo_overview_motions_form($form, &$form_state, $meeting_id = NULL) {
   drupal_page_is_cacheable(FALSE);
+  drupal_set_title('Ingediende moties');
   // Store destination before ajax call.
   ammo_set_destination($form_state);
 

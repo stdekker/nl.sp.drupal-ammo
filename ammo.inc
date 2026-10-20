@@ -766,9 +766,7 @@ function ammo_delete_entity_form($type, $entity_id) {
   }
   $label = $type === 'amendment' ? 'wijzigingsvoorstel ' . ammo_amendment_number($entity) : 'motie ' . ($entity->motion_id ?: $entity->id);
   $cancel = isset($_GET['destination']) && is_string($_GET['destination']) && !url_is_external($_GET['destination']) ? drupal_parse_url($_GET['destination']) : array('path' => ammo_item_view_path($type, $entity_id), 'query' => array(), 'fragment' => '');
-  $form['title'] = array(
-    '#markup' => '<h2>' . check_plain(drupal_ucfirst($label)) . ' verwijderen</h2>',
-  );
+  drupal_set_title(drupal_ucfirst($label) . ' verwijderen');
   if ($entity->state === 'blocked') {
     $form['deleted'] = array(
       '#markup' => '<p>Dit ' . ($type === 'amendment' ? 'wijzigingsvoorstel' : 'motie') . ' is al verwijderd.</p><p>' . l('Terug', $cancel['path'], array('query' => $cancel['query'], 'fragment' => $cancel['fragment'])) . '</p>',
@@ -1572,6 +1570,13 @@ function ammo_cleanup_branch_name($branch_name) {
 
 function ammo_get_vote_requests($entity_type, $entity_id) {
   return ammo_get_related_contacts($entity_id, $entity_type, 'vote_request', 'branch');
+}
+
+/**
+ * A step heading of a multistep form, left out when the page title already says it.
+ */
+function ammo_step_heading($heading) {
+  return check_plain($heading) === drupal_get_title() ? '' : '<h2>' . check_plain($heading) . '</h2>';
 }
 
 /**
