@@ -12,6 +12,17 @@ function ammo_support_add_allowed($action, $target_type, $entity_id) {
 }
 
 /**
+ * Prevent regular users from letting a branch co-submit an amendment or motion that is not submitted (Ingediend).
+ */
+function ammo_support_co_submit_allowed($action, $contact_type, $target_type, $entity_id) {
+  if ($action !== 'add' || $contact_type !== 'branch' || ammo_admin_access()) {
+    return TRUE;
+  }
+  $entity = entity_load_single($target_type, $entity_id);
+  return !$entity || ammo_can_co_submit($entity->state);
+}
+
+/**
  * Prevent regular users from withdrawing an amendment or motion assessed as accepted (Overnemen).
  */
 function ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id) {
@@ -53,6 +64,10 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
   }
   if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
     form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
+    return array();
+  }
+  if (!ammo_support_co_submit_allowed($action, $contact_type, $target_type, $entity_id)) {
+    form_set_error('support', 'Alleen een ingediend wijzigingsvoorstel of motie kan mede worden ingediend.');
     return array();
   }
   if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {
@@ -214,6 +229,10 @@ function ammo_support_form_validate($form, &$form_state) {
     form_set_error('support', 'Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.');
     return;
   }
+  if (!ammo_support_co_submit_allowed($action, $contact_type, $target_type, $entity_id)) {
+    form_set_error('support', 'Alleen een ingediend wijzigingsvoorstel of motie kan mede worden ingediend.');
+    return;
+  }
   if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {
     form_set_error('support', 'Een overgenomen wijzigingsvoorstel of motie kan niet meer worden ingetrokken.');
     return;
@@ -300,6 +319,10 @@ function ammo_support_form_submit($form, &$form_state) {
   $entity = entity_load_single($target_type, $entity_id);
   if (!ammo_support_add_allowed($action, $target_type, $entity_id)) {
     drupal_set_message('Een ongeldig of afgewezen wijzigingsvoorstel kan niet worden ondersteund of mede ingediend.', 'error');
+    return;
+  }
+  if (!ammo_support_co_submit_allowed($action, $contact_type, $target_type, $entity_id)) {
+    drupal_set_message('Alleen een ingediend wijzigingsvoorstel of motie kan mede worden ingediend.', 'error');
     return;
   }
   if (!ammo_support_withdraw_allowed($action, $contact_type, $target_type, $entity_id)) {

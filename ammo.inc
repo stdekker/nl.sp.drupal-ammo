@@ -59,6 +59,13 @@ function ammo_amendment_can_receive_support($state, $advice = NULL) {
 }
 
 /**
+ * Whether the current user may let a branch co-submit an item; only while it is submitted (Ingediend).
+ */
+function ammo_can_co_submit($state) {
+  return ammo_admin_access() || $state === 'submitted';
+}
+
+/**
  * The states on which vote requests are allowed.
  */
 function ammo_vote_request_allowed_statuses() {

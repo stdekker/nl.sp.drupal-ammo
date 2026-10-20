@@ -118,7 +118,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
     <?php endif; ?>
     <?php if (!empty($owners_branch) || !empty($owners_member)) : ?>
       <?php if (($withdraw_access && $state !== 'withdrawn' && !$rejected && $state !== 'spelling_grammar') || $admin_access) : ?>
-        <?php if ($unsupported_branches) : ?>
+        <?php if ($unsupported_branches && ammo_can_co_submit($state)) : ?>
           <li><?php print l('mede indienen als afdeling', 'ammo/support/add/branch/motion/' . $entity_id, array('query' => $dest))?></li>
         <?php endif; ?>
         <?php if ($supported_branches && !$withdraw_locked && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)) : ?>

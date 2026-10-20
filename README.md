@@ -154,6 +154,18 @@ on. Every end, the withdrawal date included, is moved to the end of its day
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/meeting-ranges.test.php`
 and `.../tests/submitted-edit.test.php`.
 
+### Mede-indienen
+
+A branch can co-submit (**mede indienen**) an amendment or motion only while
+its status is *Ingediend*. On any other status, *Gewijzigd* and *Beoordeeld*
+included, the link is hidden and the form refuses it, also through a direct
+URL. Admins are not bound by this. Revoking a co-submission and member support
+are not bound by the status; they stay open until the *Uiterste
+intrek/ondersteuningsdatum* (except where described under Termijnen). There is
+no database update; run `drush cc all` after deployment. Run the rollback-only
+check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/co-submit.test.php`.
+
 ### Toelichting
 
 The status/advies form has one **Toelichting** field instead of *Toelichting
