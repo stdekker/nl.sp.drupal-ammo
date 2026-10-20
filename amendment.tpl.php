@@ -48,18 +48,6 @@ $is_collapsed = $is_withdrawn || $state === 'invalid';
 ?>
 <?php endif; ?>
 
-<?php
-// Process vote requests - only show when there are actual vote requests
-if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) {
-  print '<h4>Stemming aangevraagd door:</h4>';
-  $vote_list = array();
-  foreach ($vote_requests as $vote_request) {
-    $vote_list[] = $vote_request['contact_display_name'];
-  }
-  print '<p>' . implode(', ', $vote_list) . '.</p>';
-}
-?>
-
 <?php $show_advice = !$hide_advice || ($admin_access && empty($mail)); ?>
 <?php if (!empty($advice) && $show_advice): ?>
 <h4>Advies:</h4>
@@ -75,6 +63,18 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 <h4>Toelichting:</h4>
 <p><?php print $advice_supplement; ?></p>
 <?php endif; ?>
+
+<?php
+// Process vote requests - only show when there are actual vote requests
+if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) > 0) {
+  print '<h4>Stemming aangevraagd door:</h4>';
+  $vote_list = array();
+  foreach ($vote_requests as $vote_request) {
+    $vote_list[] = $vote_request['contact_display_name'];
+  }
+  print '<p>' . implode(', ', $vote_list) . '.</p>';
+}
+?>
 
 <?php if (empty($no_links)): ?>
 <?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>

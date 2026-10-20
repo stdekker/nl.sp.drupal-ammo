@@ -57,13 +57,24 @@ try {
   ammo_save_entity('contact_relation', array('target_id' => $motion->id, 'target_type' => 'motion', 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => 99999998, 'branch_id' => 99999998, 'contact_display_name' => 'Indiener', 'branch_display_name' => 'Indiener'));
   ammo_vote_request_assert(!ammo_vote_request_branch_allowed('motion', $motion, 99999998) && ammo_vote_request_branch_allowed('motion', $motion, 99999999), 'Accepted motion: only other branches may request a vote');
 
+  // The vote requests are the last part of an item, after the advice and its Toelichting.
+  foreach (array('amendment' => $amendment, 'motion' => $motion) as $type => $item) {
+    $item->supplement = 'Toelichting voorstel';
+    $item->advice_supplement = 'Toelichting advies';
+    entity_save($type, $item);
+    ammo_save_entity('contact_relation', array('target_id' => $item->id, 'target_type' => $type, 'relation_type' => 'vote_request', 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Andere afdeling', 'branch_display_name' => 'Andere afdeling'));
+    $markup = theme($type, array('entity_id' => $item->id));
+    $vote_heading = strpos($markup, '<h4>Stemming aangevraagd door:</h4>');
+    ammo_vote_request_assert($vote_heading !== FALSE && $vote_heading === strrpos($markup, '<h4>') && $vote_heading > strpos($markup, 'Toelichting advies'), 'Stemming aangevraagd door is the last part of the ' . $type);
+  }
+
   $permissions[$user->uid]['administer amendments and motions'] = TRUE;
   $amendment->advice = 'accept';
   entity_save('amendment', $amendment);
   ammo_vote_request_assert(ammo_vote_request_branch_allowed('amendment', $amendment, 99999998), 'Admins are not bound by the submitter rule');
 
   $transaction->rollback();
-  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, motions and admins. Fixtures rolled back.\n";
+  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, vote requests shown last, motions and admins. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

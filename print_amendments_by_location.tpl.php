@@ -69,6 +69,14 @@ if (!empty($document_title)): ?>
         <?php endif; ?>
         <?php $options = ammo_states(); ?>
         <p><strong>Status:</strong> <?php print $options[$amendment['state']]; ?></p>
+        <?php if (!empty($amendment['advice'])) : ?>
+          <?php $options = ammo_amendment_advice(); ?>
+          <p><strong>Advies:</strong> <?php print $options[$amendment['advice']]; ?></p>
+          <?php if (!empty($amendment['advice_supplement'])) : ?>
+            <p><?php print $amendment['advice_supplement']; ?></p>
+          <?php endif; ?>
+          <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
+        <?php endif; ?>
         <?php if (!empty($amendment['vote_requests']) && is_array($amendment['vote_requests']) && count($amendment['vote_requests']) > 0) : ?>
           <p><strong>Stemming aangevraagd door:</strong> 
           <?php
@@ -79,14 +87,6 @@ if (!empty($document_title)): ?>
             print implode(', ', $vote_list) . '.';
           ?>
           </p>
-          <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
-        <?php endif; ?>
-        <?php if (!empty($amendment['advice'])) : ?>
-          <?php $options = ammo_amendment_advice(); ?>
-          <p><strong>Advies:</strong> <?php print $options[$amendment['advice']]; ?></p>
-          <?php if (!empty($amendment['advice_supplement'])) : ?>
-            <p><?php print $amendment['advice_supplement']; ?></p>
-          <?php endif; ?>
           <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
         <?php endif; ?>
         <?php if ($variables['values']['pagebreaks']) : ?>
