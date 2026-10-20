@@ -68,13 +68,16 @@ try {
     ammo_vote_request_assert($vote_heading !== FALSE && $vote_heading === strrpos($markup, '<h4>') && $vote_heading > strpos($markup, 'Toelichting advies'), 'Stemming aangevraagd door is the last part of the ' . $type);
   }
 
+  // Only the allowed statuses take vote requests, except for admins.
+  ammo_vote_request_assert(!ammo_vote_request_access($meeting->id, 'submitted'), 'A regular user may not manage vote requests on a submitted item');
   $permissions[$user->uid]['administer amendments and motions'] = TRUE;
+  ammo_vote_request_assert(ammo_vote_request_access($meeting->id, 'submitted'), 'Admins may manage vote requests on a submitted item');
   $amendment->advice = 'accept';
   entity_save('amendment', $amendment);
   ammo_vote_request_assert(ammo_vote_request_branch_allowed('amendment', $amendment, 99999998), 'Admins are not bound by the submitter rule');
 
   $transaction->rollback();
-  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, vote requests shown last, motions and admins. Fixtures rolled back.\n";
+  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, vote requests shown last, motions, the allowed statuses and admins. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

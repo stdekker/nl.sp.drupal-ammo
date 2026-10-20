@@ -107,6 +107,8 @@ The module defines four permissions: `administer ammo` (superadmin),
     `ammo_vote_request_access()` and `ammo_advice_access()` for the actions on
     one entry. Supporting, withdrawing and vote requests close at the end of
     `withdrawal_closing_date`; the status/advies form at the meeting `date`.
+    Vote requests are further limited to the statuses in
+    `ammo_vote_request_allowed_statuses()`; admins bypass both limits.
 - Submitting and changing follow the meeting ranges through
   `ammo_meeting_range_open()`; `ammo_edit_access()` applies them. A concept
   follows the submission range, a submitted item the change range, and only

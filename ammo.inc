@@ -916,15 +916,19 @@ function ammo_vote_request_branch_allowed($type, $entity, $branch_id) {
   return TRUE;
 }
 
+/**
+ * Whether the user may manage vote requests: admins always, otherwise only for the allowed statuses until the withdrawal date.
+ */
 function ammo_vote_request_access($meeting_id, $status) {
+  if (ammo_admin_access()) {
+    return TRUE;
+  }
+
   // Check if withdrawal date has passed
   if (ammo_passed_date($meeting_id, 'withdraw')) {
-    // Allow admins to bypass date restrictions
-    if (!ammo_admin_access()) {
-      return FALSE;
-    }
+    return FALSE;
   }
-  
+
   if (!ammo_add_access()) {
     return FALSE;
   }
