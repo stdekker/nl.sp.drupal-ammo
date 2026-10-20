@@ -54,7 +54,7 @@ $is_withdrawn = ($state === 'withdrawn' || $rejected);
 </div>
 
 <?php if (!empty($supplement)) : ?>
-<h4>Toelichting:</h4>
+<h4>Toelichting voorstel:</h4>
 <div class="ammo-section-content">
   <p class="text-limit"><?php print $supplement; ?></p>
 </div>
@@ -66,23 +66,25 @@ $is_withdrawn = ($state === 'withdrawn' || $rejected);
 <p>
   <?php $options = ammo_states(); ?>
   <?php print ucfirst(strtolower($options[$state])); ?>
-  <?php if (!empty($state_supplement)) : ?>
-    <br/><?php print $state_supplement; ?>
-  <?php endif; ?>
 </p>
 </div>
 <?php endif; ?>
 
-<?php if (!empty($advice) && (!$hide_advice || ($admin_access && empty($mail)))) : ?>
+<?php $show_advice = !$hide_advice || ($admin_access && empty($mail)); ?>
+<?php if (!empty($advice) && $show_advice) : ?>
 <h4>Advies:</h4>
 <div class="ammo-section-content">
 <p>
   <?php $options = ammo_motion_advice(); ?>
   <?php print ucfirst(strtolower($options[$advice])); ?>
-  <?php if (!empty($advice_supplement)) : ?>
-    <br/><?php print $advice_supplement; ?>
-  <?php endif; ?>
 </p>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($advice_supplement) && $show_advice) : ?>
+<h4>Toelichting:</h4>
+<div class="ammo-section-content">
+  <p><?php print $advice_supplement; ?></p>
 </div>
 <?php endif; ?>
 

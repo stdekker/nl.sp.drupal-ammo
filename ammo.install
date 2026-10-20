@@ -229,11 +229,7 @@ function ammo_schema() {
         'length' => '255',
       ),
       'advice_supplement' => array(
-        'description' => 'Supplementary information about the advice.',
-        'type' => 'text',
-      ),
-      'state_supplement' => array(
-        'description' => 'Supplementary information about the state change.',
+        'description' => 'Explanation of the status and advice.',
         'type' => 'text',
       ),
     ),
@@ -297,7 +293,7 @@ function ammo_schema() {
         'length' => '255',
       ),
       'advice_supplement' => array(
-        'description' => 'Supplementary information about the advice.',
+        'description' => 'Explanation of the status and advice.',
         'type' => 'text',
       ),
       'advice_consideration_opening' => array(
@@ -316,10 +312,6 @@ function ammo_schema() {
       ),
       'advice_follow_up_body' => array(
         'description' => 'Advice body text of the advice follow up.',
-        'type' => 'text',
-      ),
-      'state_supplement' => array(
-        'description' => 'Supplementary information about the state change.',
         'type' => 'text',
       ),
     ),
@@ -484,13 +476,15 @@ function ammo_update_7006() {
  * Add state change field to  {ammo_motions} and {ammo_amendments} tables.
  */
 function ammo_update_7007() {
-  $schema = ammo_schema();
+  // Update 7017 removes the field from the schema again.
+  $spec = array(
+    'description' => 'Supplementary information about the state change.',
+    'type' => 'text',
+  );
   if (!db_field_exists('ammo_amendments', 'state_supplement')) {
-    $spec = $schema['ammo_amendments']['fields']['state_supplement'];
     db_add_field('ammo_amendments', 'state_supplement', $spec);
   }
   if (!db_field_exists('ammo_motions', 'state_supplement')) {
-    $spec = $schema['ammo_motions']['fields']['state_supplement'];
     db_add_field('ammo_motions', 'state_supplement', $spec);
   }
 }
@@ -723,4 +717,23 @@ function ammo_update_7016() {
     db_drop_field('ammo_meetings', $field);
   }
   return 'De inleverdatum, Geen moties en Ingediende wijzigingsvoorstellen wijzigen toestaan zijn vervangen door vier termijnen per bijeenkomst.';
+}
+
+/**
+ * Merge the explanation of the status into the explanation of the advice.
+ */
+function ammo_update_7017() {
+  foreach (array('ammo_amendments', 'ammo_motions') as $table) {
+    if (!db_field_exists($table, 'state_supplement')) {
+      continue;
+    }
+    // Keep both texts, advice first, unless one is empty or they are the same.
+    db_update($table)
+      ->expression('advice_supplement', "CASE WHEN advice_supplement IS NULL OR advice_supplement = '' OR advice_supplement = state_supplement THEN state_supplement ELSE CONCAT(advice_supplement, :separator, state_supplement) END", array(':separator' => "\n\n"))
+      ->isNotNull('state_supplement')
+      ->condition('state_supplement', '', '<>')
+      ->execute();
+    db_drop_field($table, 'state_supplement');
+  }
+  return 'Toelichting advies en Toelichting status zijn samengevoegd tot Toelichting.';
 }

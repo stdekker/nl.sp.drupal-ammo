@@ -64,10 +64,6 @@ if (!empty($owners_member)) {
 <?php
   $options = ammo_states();
   print $options[$state];
-  if (!empty($state_supplement)) {
-    print '<h4>Toelichting status:</h4>';
-    print '<p>' . $state_supplement . '</p>';
-  }
 ?>
 <?php endif; ?>
 
@@ -83,17 +79,20 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 }
 ?>
 
-<?php if ((!empty($advice)) && (!$hide_advice || ($admin_access && empty($mail)))): ?>
+<?php $show_advice = !$hide_advice || ($admin_access && empty($mail)); ?>
+<?php if (!empty($advice) && $show_advice): ?>
 <h4>Advies:</h4>
 <p>
 <?php
   $options = ammo_amendment_advice();
   print $options[$advice];
-  if (!empty($advice_supplement)) {
-    print ' &ndash; ' . $advice_supplement;
-  }
 ?>
 </p>
+<?php endif; ?>
+
+<?php if (!empty($advice_supplement) && $show_advice): ?>
+<h4>Toelichting:</h4>
+<p><?php print $advice_supplement; ?></p>
 <?php endif; ?>
 
 <?php if (empty($no_links)): ?>

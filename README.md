@@ -144,6 +144,23 @@ on. Every end, the withdrawal date included, is moved to the end of its day
 `ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/meeting-ranges.test.php`
 and `.../tests/submitted-edit.test.php`.
 
+### Toelichting
+
+The status/advies form has one **Toelichting** field instead of *Toelichting
+statuswijziging* and *Toelichting advies*. Item pages and overviews show it
+under its own heading right after the advice, with the same visibility as the
+advice (hidden when the meeting hides advice, except for admins). The
+submitter's own explanation is now headed *Toelichting voorstel* on motions
+too. When the submitter changes a submitted item, the Toelichting stays, like
+the advice.
+
+After deployment back up the database, run `drush updatedb` and `drush cc
+all`. Ammo update 7017 moves the old status explanation into the Toelichting
+(after the advice explanation, separated by a blank line, unless the two are
+the same) and drops `state_supplement` from `ammo_amendments` and
+`ammo_motions`. Run the rollback-only check with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/submitted-edit.test.php`.
+
 ### Verwijderen
 
 The status *Verwijderd* is no longer in the status dropdown of **status/advies**.

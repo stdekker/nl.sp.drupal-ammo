@@ -37,7 +37,7 @@ try {
   // Submission closed, changes open: only the change range matters for submitted items.
   $meeting = ammo_save_entity('meeting', array('title' => 'AMMO edit test', 'date' => '2099-02-01', 'amendment_submission_end' => '1999-01-01', 'motion_submission_end' => '1999-01-01', 'amendment_change_end' => '2099-01-01', 'motion_change_end' => '2099-01-01', 'withdrawal_closing_date' => '1999-01-01', 'email' => 'ammo-test@example.invalid'));
   $document = ammo_save_entity('document', array('title' => 'Testdocument', 'meeting_id' => $meeting->id));
-  $original = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Oude tekst', 'supplement' => 'Toelichting', 'state' => 'assessed', 'advice' => 'accept', 'advice_supplement' => 'Advies', 'state_supplement' => 'Beoordeling'));
+  $original = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Oude tekst', 'supplement' => 'Toelichting', 'state' => 'assessed', 'advice' => 'accept', 'advice_supplement' => 'Advies'));
   $owner = ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'amendment', 'target_id' => $original->id, 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling', 'contact_email' => 'owner@example.invalid'));
   $coowner = ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'amendment', 'target_id' => $original->id, 'contact_type' => 'branch', 'contact_id' => 99999997, 'branch_id' => 99999997, 'contact_display_name' => 'Mede-indiener', 'branch_display_name' => 'Mede-indiener', 'contact_email' => 'coowner@example.invalid'));
   ammo_edit_test_assert(ammo_add_access() && ammo_access(99999999) && ammo_access(99999997), 'Fixture must have submission permission and both branches.');
@@ -72,8 +72,7 @@ try {
   $storage['amendment_text'] = 'Gewijzigde tekst';
   $saved = ammo_save_submitted_edit('amendment', $storage);
   ammo_edit_test_assert($saved && $saved->id == $original->id && $saved->chapterized_id == 1, 'The change is made in place and keeps its number.');
-  ammo_edit_test_assert($saved->state === 'changed' && $saved->advice === 'accept' && $saved->advice_supplement === 'Advies', 'The status becomes Gewijzigd and the advice is kept.');
-  ammo_edit_test_assert($saved->state_supplement === '', 'The explanation of the old status is cleared.');
+  ammo_edit_test_assert($saved->state === 'changed' && $saved->advice === 'accept' && $saved->advice_supplement === 'Advies', 'The status becomes Gewijzigd and the advice and its explanation are kept.');
   ammo_edit_test_assert(entity_load_single('contact_relation', $owner->id)->target_id == $original->id && entity_load_single('contact_relation', $coowner->id)->target_id == $original->id, 'Owner and co-submitter stay attached.');
   $recipients = array_map(function ($mail) { return $mail['to']; }, variable_get('drupal_test_email_collector', array()));
   ammo_edit_test_assert(in_array('coowner@example.invalid', $recipients, TRUE) && in_array('owner@example.invalid', $recipients, TRUE), 'The change mail reaches the owner and the co-submitter.');

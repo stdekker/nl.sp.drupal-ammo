@@ -309,11 +309,6 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'state'),
     );
-    $form['state_supplement'] = array(
-      '#type' => 'textarea',
-      '#title' => 'Toelichting statuswijziging',
-      '#default_value' => ammo_default($form_state, 'state_supplement'),
-    );
     $form['advice'] = array(
       '#type' => 'select',
       '#title' => 'Advies',
@@ -326,7 +321,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     );
     $form['advice_supplement'] = array(
       '#type' => 'textarea',
-      '#title' => 'Toelichting advies',
+      '#title' => 'Toelichting',
       '#default_value' => ammo_default($form_state, 'advice_supplement'),
     );
   }
@@ -604,7 +599,6 @@ function ammo_amendment_form_submit($form, &$form_state)
         'advice' => 'advice',
         'advice_supplement' => 'advice_supplement',
         'state' => 'state',
-        'state_supplement' => 'state_supplement',
       );
       ammo_store('amendment', $storage['amendment'], $mapping, $form, $form_state);
       drupal_set_message('Het advies is opgeslagen.');

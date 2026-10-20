@@ -94,9 +94,8 @@ function ammo_save_submitted_edit($type, $storage) {
     foreach ($fields as $field => $value) {
       $saved->$field = $value;
     }
-    // The advice stays so the assessment can be redone against the new text; the explanation of the old status goes.
+    // The advice and its explanation stay so the assessment can be redone against the new text.
     $saved->state = 'changed';
-    $saved->state_supplement = '';
     if ($type === 'amendment') {
       $group = ammo_amendment_group($saved);
       if ($group !== ammo_amendment_group($original) || empty($original->chapterized_id)) {

@@ -442,7 +442,7 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
           }
         }
         // Skip differences for state when hide state is set.
-        if (in_array($database_field, ['state', 'state_supplement'])) {
+        if ($database_field === 'state') {
           if ($hide_state) {
             continue;
           }
@@ -585,7 +585,6 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
           'advice' => 'advice',
           'advice_supplement' => 'advice_supplement',
           'state' => 'state',
-          'state_supplement' => 'state_supplement',
           'chapterized_id' => 'chapterized_id',
           'amendment_text' => 'amendment_text',
           'locator_values' => 'locator_values',
@@ -597,7 +596,6 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
           'advice' => 'advice',
           'advice_supplement' => 'advice_supplement',
           'state' => 'state',
-          'state_supplement' => 'state_supplement',
           'motion_id' => 'motion_id',
           'consideration_opening' => 'consideration_opening',
           'consideration_body' => 'consideration_text',
@@ -1373,7 +1371,7 @@ function ammo_diff_fields($source) {
       'type' => 'text',
     ),
     'supplement' => array(
-      'name' => 'Toelichting',
+      'name' => 'Toelichting voorstel',
       'type' => 'text',
     ),
     'amendment_text' => array(
@@ -1385,16 +1383,12 @@ function ammo_diff_fields($source) {
       'type' => 'value',
     ),
     'advice_supplement' => array(
-      'name' => 'Toelichting op advies',
+      'name' => 'Toelichting',
       'type' => 'text',
     ),
     'state' => array(
       'name' => 'Status',
       'type' => 'value',
-    ),
-    'state_supplement' => array(
-      'name' => 'Toelichting op statuswijziging',
-      'type' => 'text',
     ),
   );
   return (isset($translation[$source])) ? $translation[$source] : FALSE;

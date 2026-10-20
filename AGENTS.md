@@ -153,7 +153,7 @@ The module defines four permissions: `administer ammo` (superadmin),
   helpers in `ammo.inc`. Do not send mail from test data or from test scripts.
 - To change the schema:
   1. Change `ammo_schema()`.
-  2. Add the next `ammo_update_70NN()` (currently 7017). Guard it with
+  2. Add the next `ammo_update_70NN()` (currently 7018). Guard it with
      `db_field_exists()` or `db_table_exists()`, and reuse the definition from
      `ammo_schema()`.
 - To change data access, prefer `db_select` and `EntityFieldQuery`. Load and

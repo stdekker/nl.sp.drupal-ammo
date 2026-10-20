@@ -150,7 +150,7 @@ function ammo_test_data_generate($meeting_id, $type, $count, $document_id = NULL
     for ($i = 0; $i < $count; $i++) {
       $topic = $topics[$i % count($topics)];
       $label = '[TEST] ' . ($i + 1) . ': ' . $topic;
-      $values = array('state' => $states[$i % count($states)], 'supplement' => $label . '. Dit is gegenereerde testdata.', 'advice' => $i % 2 ? 'reject' : 'accept', 'advice_supplement' => 'Testadvies over ' . $topic . '.', 'state_supplement' => 'Teststatus.');
+      $values = array('state' => $states[$i % count($states)], 'supplement' => $label . '. Dit is gegenereerde testdata.', 'advice' => $i % 2 ? 'reject' : 'accept', 'advice_supplement' => 'Testadvies over ' . $topic . '.');
       if ($document) {
         $fields = ammo_amendment_locator_fields($document, ammo_test_data_locator_input($locators, $i));
         $values += $fields + array('document_id' => $document_id, 'amendment_text' => $label . '. Voeg toe: Wij zetten ons in voor ' . $topic . '.', 'chapterized_id' => ammo_next_chapterized_id($document_id, ammo_amendment_group($fields)));

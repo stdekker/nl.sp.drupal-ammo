@@ -238,12 +238,6 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       '#empty_option' => 'kies:',
       '#default_value' => ammo_default($form_state, 'state'),
     );
-    $form['state_supplement'] = array(
-      '#type' => 'textarea',
-      '#title' => 'Toelichting statuswijziging',
-      '#default_value' => ammo_default($form_state, 'state_supplement'),
-    );
-
     $form['advice'] = array(
       '#type' => 'select',
       '#title' => 'Advies',
@@ -532,7 +526,6 @@ function ammo_motion_form_submit($form, &$form_state)
         'advice_follow_up_opening' => 'advice_follow_up_opening',
         'advice_follow_up_body' => 'advice_follow_up_text',
         'state' => 'state',
-        'state_supplement' => 'state_supplement',
       );
       ammo_store('motion', $storage['motion'], $mapping, $form, $form_state);
       drupal_set_message('Het advies is opgeslagen.');
