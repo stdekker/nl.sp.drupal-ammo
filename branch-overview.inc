@@ -160,7 +160,7 @@ function ammo_branch_overview_page($meeting_id, array $branches) {
   }
   $page['meeting_available'] = TRUE;
   $types = array('amendment' => array('Wijzigingsvoorstellen', array('Nr', 'Document', 'Groep', 'Locatie', 'Status')));
-  if (ammo_show_motions() && empty($meeting->no_motions)) {
+  if (ammo_show_motions() && ammo_meeting_has_motions($meeting)) {
     $types['motion'] = array('Moties', array('Nr', 'Motie', 'Status'));
   }
   $parts = array('submitted' => array('Ingediend door', 'Mede-indieners'), 'co_submitted' => array('Mede ingediend door', 'Indiener'));

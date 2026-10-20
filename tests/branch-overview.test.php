@@ -30,7 +30,7 @@ try {
   $branches[99999999] = array($a => 'SP Afdeling A');
   $branches['all'] = array($a => 'SP Afdeling A', $b => 'SP Afdeling B');
 
-  $meeting = ammo_save_entity('meeting', array('title' => 'Branch overview test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'no_motions' => 0, 'hide_state' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Branch overview test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'hide_state' => 0, 'motion_submission_end' => '2099-01-01'));
   $document = ammo_save_entity('document', array('title' => 'Branch overview document', 'meeting_id' => $meeting->id));
   $ids = array();
   foreach (array('shared' => 'submitted', 'admin_first' => 'submitted', 'member_first' => 'submitted', 'vote_only' => 'submitted', 'second' => 'submitted', 'draft' => 'concept', 'blocked' => 'blocked', 'rejected' => 'assessed') as $key => $state) {
@@ -85,7 +85,7 @@ try {
   ammo_branch_overview_assert(!isset($form['afdeling']) && !isset($form['submit']), 'Regular user has no branch selector');
 
   $meeting->hide_state = 1;
-  $meeting->no_motions = 1;
+  $meeting->motion_submission_end = NULL;
   entity_save('meeting', $meeting);
   $page = ammo_branch_overview_page($meeting->id, array($a => 'SP Afdeling A'));
   $rows = $page['branches'][$a]['submitted']['tables']['amendment']['rows'];

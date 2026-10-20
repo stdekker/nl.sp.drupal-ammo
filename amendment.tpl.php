@@ -104,7 +104,7 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
       <li>Bewerken:</li>
       <li><?php print l('inhoud', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
-    <?php if (($admin_access && $support_access) || $superadmin_access): ?>
+    <?php if (($admin_access && $advice_access) || $superadmin_access): ?>
       <li><?php print l('status/advies', 'ammo/amendment/advice/' . $entity_id, array('query' => $dest)); ?></li>
     <?php endif; ?>
     <?php if ($admin_access): ?>

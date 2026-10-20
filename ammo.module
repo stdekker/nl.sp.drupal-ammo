@@ -427,14 +427,6 @@ function ammo_mail($key, &$message, $params) {
 
   // Create messages.
   switch($key) {
-  case 'amendment_replacement':
-    $message['subject'] .= ' - nieuw voorstel na wijziging';
-    $old_path = url(ammo_item_view_path('amendment', $params['old_id']), array('absolute' => TRUE));
-    $message['body'][] = '<p>' . check_plain($params['first_owner']) . ' heeft een nieuw voorstel ingediend en steunt het oude voorstel niet meer.</p>';
-    $message['body'][] = '<p>Uw mede-indiening blijft bij <a href="' . check_plain($old_path) . '">voorstel ' . check_plain($params['old_number']) . '</a>. U steunt het nieuwe voorstel niet automatisch.</p>';
-    $message['body'][] = $params['markup'];
-    $message['body'][] = '<p><a href="' . check_plain($path) . '">Bekijk het nieuwe voorstel</a></p>';
-    break;
   case 'vote_request':
     $message['subject'] .= ' - stemming aangevraagd door afdeling ' . $params['branch_display_name'];
     $message['body'][] = '<h3>Stemming aangevraagd door ' . $params['branch_display_name'] . '</h3>';
@@ -618,7 +610,6 @@ function template_preprocess_amendment(&$variables) {
         }
       }
     }
-    $withdraw_access = ammo_support_access($meeting->id);
     $code = ammo_shurly('amendment', $entity->id);
     $locators = ammo_document_locators($document);
     $vars = array(
@@ -642,7 +633,7 @@ function template_preprocess_amendment(&$variables) {
       'meeting_description' => $meeting->description,
       'meeting_date' => $meeting_date_formatted,
       'meeting_hide' => $meeting_hide,
-      'support_access' => ammo_support_access($meeting->id),
+      'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'amendment', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
       'admin_access' => ammo_admin_access(),
@@ -750,7 +741,7 @@ function template_preprocess_motion(&$variables) {
       'meeting_description' => $meeting->description,
       'meeting_date' => $meeting_date_formatted,
       'meeting_hide' => $meeting_hide,
-      'support_access' => ammo_support_access($meeting->id),
+      'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'motion', $entity->id),
       'withdraw_access' => ammo_withdraw_access($meeting->id),
       'admin_access' => ammo_admin_access(),
@@ -796,7 +787,6 @@ function template_preprocess_overview_motions(&$variables) {
       'title' => check_plain($meeting->title),
       'description' => check_plain($meeting->description),
       'date' => $meeting->date,
-      'submission_closing_date' => $meeting->submission_closing_date,
       'hide' => $meeting->hide_meeting,
       'admin_access' => ammo_admin_access(),
     );
@@ -1131,7 +1121,6 @@ function _ammo_preprocess_meeting_data($meeting_id) {
     'title' => check_plain($meeting->title),
     'description' => check_plain($meeting->description),
     'date' => $meeting->date,
-    'submission_closing_date' => $meeting->submission_closing_date,
     'withdrawal_closing_date' => $meeting->withdrawal_closing_date,
   );
   return $data;
@@ -1244,10 +1233,11 @@ function ammo_admin_overview_page() {
 function ammo_show_motions() {
   $value = &drupal_static(__FUNCTION__);
   if (!isset($result)) {
+    // A meeting without a motion submission range has no motions.
     $query = db_select('ammo_meetings', 'm')
       ->fields('m', array('id'))
       ->condition('m.hide_meeting', 0)
-      ->condition('m.no_motions', 0)
+      ->isNotNull('m.motion_submission_end')
       ->countQuery();
     $result = $query->execute()->fetchField();
     $value = ($result > 0) ? TRUE : FALSE;

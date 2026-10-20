@@ -18,8 +18,43 @@ function ammo_schema() {
         'type' => 'datetime',
         'mysql_type' => 'datetime',
       ),
-      'submission_closing_date' => array(
-        'description' => 'The date amendments and motions can no longer be submitted/changed.',
+      'amendment_submission_start' => array(
+        'description' => 'Start of the range in which amendments can be submitted (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_submission_end' => array(
+        'description' => 'End of the range in which amendments can be submitted.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_submission_start' => array(
+        'description' => 'Start of the range in which motions can be submitted; empty means no motions (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_submission_end' => array(
+        'description' => 'End of the range in which motions can be submitted; empty means no motions.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_change_start' => array(
+        'description' => 'Start of the range in which submitted amendments can be changed by their owner; empty means never (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_change_end' => array(
+        'description' => 'End of the range in which submitted amendments can be changed by their owner; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_change_start' => array(
+        'description' => 'Start of the range in which submitted motions can be changed by their owner; empty means never (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_change_end' => array(
+        'description' => 'End of the range in which submitted motions can be changed by their owner; empty means never.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
       ),
@@ -58,21 +93,10 @@ function ammo_schema() {
         'type' => 'int',
         'size' => 'tiny',
       ),
-      'no_motions' => array(
-        'type' => 'int',
-        'size' => 'tiny',
-      ),
       'admin_owner' => array(
         'description' => 'Owner name of amendments, motions and changes made by admin user.',
         'type' => 'varchar',
         'length' => '255',
-      ),
-      'allow_submitted_amendment_edit' => array(
-        'description' => 'Allow the primary owner to edit submitted amendments regardless of dates.',
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
       ),
       'disable_confirmation_checkbox' => array(
         'description' => 'Disable the confirmation checkbox at the start of amendment forms.',
@@ -656,4 +680,47 @@ function ammo_update_7015() {
     watchdog('ammo', 'Update 7015: advies wijkt af van de oude status bij @items.', array('@items' => implode('; ', $conflicts)), WATCHDOG_WARNING);
   }
   return $message;
+}
+
+/**
+ * Replace the submission deadline and the switches no_motions and allow_submitted_amendment_edit with four date ranges per meeting.
+ */
+function ammo_update_7016() {
+  module_load_include('inc', 'ammo', 'ammo');
+  $schema = ammo_schema();
+  foreach (array_keys(ammo_meeting_ranges()) as $range) {
+    foreach (array('_start', '_end') as $part) {
+      if (!db_field_exists('ammo_meetings', $range . $part)) {
+        db_add_field('ammo_meetings', $range . $part, $schema['ammo_meetings']['fields'][$range . $part]);
+      }
+    }
+  }
+  if (!db_field_exists('ammo_meetings', 'submission_closing_date')) {
+    return 'De termijnen bestonden al.';
+  }
+  // Ranges hold whole days: an end runs to the end of its day.
+  $end_of_day = "CONCAT(DATE(%s), ' 23:59:59')";
+  db_update('ammo_meetings')
+    ->expression('amendment_submission_end', sprintf($end_of_day, 'submission_closing_date'))
+    ->isNotNull('submission_closing_date')
+    ->execute();
+  db_update('ammo_meetings')
+    ->expression('motion_submission_end', sprintf($end_of_day, 'submission_closing_date'))
+    ->isNotNull('submission_closing_date')
+    ->condition(db_or()->isNull('no_motions')->condition('no_motions', 0))
+    ->execute();
+  db_update('ammo_meetings')
+    ->expression('withdrawal_closing_date', sprintf($end_of_day, 'withdrawal_closing_date'))
+    ->isNotNull('withdrawal_closing_date')
+    ->execute();
+  // The switch allowed changes without an end date; the meeting day ends them now.
+  db_update('ammo_meetings')
+    ->expression('amendment_change_end', sprintf($end_of_day, 'date'))
+    ->isNotNull('date')
+    ->condition('allow_submitted_amendment_edit', 1)
+    ->execute();
+  foreach (array('submission_closing_date', 'no_motions', 'allow_submitted_amendment_edit') as $field) {
+    db_drop_field('ammo_meetings', $field);
+  }
+  return 'De inleverdatum, Geen moties en Ingediende wijzigingsvoorstellen wijzigen toestaan zijn vervangen door vier termijnen per bijeenkomst.';
 }

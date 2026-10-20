@@ -31,7 +31,7 @@ try {
   $user = user_save(NULL, array('name' => 'ammo-delete-test-' . uniqid(), 'mail' => 'ammo-test@example.invalid', 'status' => 1));
   $permissions = &drupal_static('user_access');
   $permissions[$user->uid] = array('administer amendments and motions' => TRUE, 'add amendments and motions' => TRUE);
-  $meeting = ammo_save_entity('meeting', array('title' => 'Delete test', 'date' => '2099-01-01', 'submission_closing_date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'email' => 'ammo-test@example.invalid', 'hide_meeting' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Delete test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'email' => 'ammo-test@example.invalid', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Delete document', 'meeting_id' => $meeting->id));
   $amendment = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 2, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Tekst', 'state' => 'submitted'));
   $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 1, 'consideration_body' => 'Overweging', 'state' => 'submitted'));

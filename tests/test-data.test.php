@@ -18,8 +18,8 @@ try {
   $branch_ids = array_keys($branches);
   ammo_test_data_assert(count($branches) > 1, 'Integration fixture requires multiple existing branches');
   $branch_count = db_query('SELECT COUNT(*) FROM {node} WHERE type = :type', array(':type' => 'afdeling'))->fetchField();
-  $meeting = ammo_save_entity('meeting', array('title' => 'Generator test', 'date' => '2000-01-01', 'no_motions' => 0));
-  $other = ammo_save_entity('meeting', array('title' => 'Other generator test', 'date' => '2000-01-01', 'no_motions' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Generator test', 'date' => '2000-01-01', 'motion_submission_end' => '2099-01-01'));
+  $other = ammo_save_entity('meeting', array('title' => 'Other generator test', 'date' => '2000-01-01', 'motion_submission_end' => '2099-01-01'));
   $document = ammo_save_entity('document', array('title' => 'Test document', 'meeting_id' => $meeting->id, 'chapter_min' => 3, 'chapter_max' => 4, 'page_min' => 7, 'page_max' => 9, 'line_max' => 2));
   $real = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 3, 'chapterized_id' => 1, 'amendment_text' => 'Real entry'));
   foreach (array('amendment', 'motion') as $type) {
@@ -74,7 +74,7 @@ try {
   ammo_test_data_assert(ammo_test_data_delete($other->id) === 10, 'Cleanup works without branches');
   $no_branches->rollback();
   unset($no_branches);
-  $meeting->no_motions = 1;
+  $meeting->motion_submission_end = NULL;
   entity_save('meeting', $meeting);
   $invalid = array(array($meeting->id, 'motion', 10, NULL), array($meeting->id, 'amendment', 11, $document->id), array($other->id, 'amendment', 10, $document->id), array($other->id, 'amendment', 10, NULL), array($meeting->id, 'invalid', 10, NULL));
   foreach ($invalid as $arguments) {

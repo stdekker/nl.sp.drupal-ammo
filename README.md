@@ -106,6 +106,44 @@ After deployment back up the database and run `drush updatedb`. Ammo update
 empty advice from the old status, maps the vote request setting, and reports
 items whose advice contradicts their old status (also in the watchdog log).
 
+### Termijnen
+
+Each meeting has four date ranges (*termijnen*) on its admin form, each with a
+**Van** and a **Tot** date:
+
+- **Indienen wijzigingsvoorstellen**: new amendments can be submitted. Required.
+- **Indienen moties**: new motions can be submitted. Empty means the meeting
+  has no motions; this replaces the old *Geen moties* checkbox.
+- **Wijzigen ingediende wijzigingsvoorstellen**: the submitter can change a
+  submitted amendment. Empty means it cannot be changed.
+- **Wijzigen ingediende moties**: the same for motions.
+
+A range without Van is open right away; Van without Tot is refused. A concept
+follows the submission range of its type. Only the submitting branch (the
+first owner) can change a proposal; co-submitting branches cannot. Admins are
+not bound by the ranges. The *Uiterste intrek/ondersteuningsdatum* is a date
+too and runs to the end of its day. Withdrawing, supporting and vote requests
+close then; supporting used to stay open until the meeting started. The
+status/advies form stays open until the meeting starts.
+
+A change by the submitter is saved on the proposal itself, which keeps its
+number unless its group changes. It gets the status **Gewijzigd** and keeps its
+advice until an admin assesses it again. The secretariat and all owner
+branches, co-submitters included, get a mail with the differences. Items with
+the status Gewijzigd are left out of the XML export and vote requests until
+they are assessed again.
+
+After deployment back up the database, run `drush updatedb` and `drush cc
+all`. Ammo update 7016 adds the ranges and fills their Tot dates from the old
+settings: both submission ranges from the old submission deadline (no motion
+range for meetings with *Geen moties*), and the amendment change range up to
+the meeting date where *Ingediende wijzigingsvoorstellen wijzigen toestaan* was
+on. Every end, the withdrawal date included, is moved to the end of its day
+(23:59:59). It then drops `submission_closing_date`, `no_motions` and
+`allow_submitted_amendment_edit`. Run the rollback-only checks with
+`ddev drush scr sites/default/modules/custom/nl.sp.drupal-ammo/tests/meeting-ranges.test.php`
+and `.../tests/submitted-edit.test.php`.
+
 ### Verwijderen
 
 The status *Verwijderd* is no longer in the status dropdown of **status/advies**.

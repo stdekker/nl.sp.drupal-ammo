@@ -29,7 +29,7 @@ function ammo_test_data_form($form, &$form_state, $meeting) {
   if ($documents) {
     $types['amendment'] = t('Wijzigingsvoorstellen');
   }
-  if (empty($meeting->no_motions)) {
+  if (ammo_meeting_has_motions($meeting)) {
     $types['motion'] = t('Moties');
   }
   if (!ammo_test_data_branches()) {
@@ -58,7 +58,7 @@ function ammo_test_data_validate_selection($meeting_id, $type, $count, $document
   if (!$meeting || !in_array((string) $count, array('10', '25', '50', '100'), TRUE)) {
     throw new InvalidArgumentException('Kies een bestaande bijeenkomst en een geldig aantal.');
   }
-  if ($type === 'motion' && empty($meeting->no_motions)) {
+  if ($type === 'motion' && ammo_meeting_has_motions($meeting)) {
     return;
   }
   if ($type === 'amendment' && !empty($document_id)) {

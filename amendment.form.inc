@@ -36,7 +36,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
       if (ammo_admin_access()) {
         if (ammo_populate_form('amendment', $path_id, $form_state)) {
           $meeting_id = ammo_get_meeting_id('amendment', $form_state['storage']['amendment']);
-          if (ammo_support_access($meeting_id) || ammo_superadmin_access()) {
+          if (ammo_advice_access($meeting_id) || ammo_superadmin_access()) {
             $form_state['storage']['first_step'] = 7;
           }
           else {
@@ -59,7 +59,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     }
   }
   elseif (empty($form_state['storage']['amendment'])) {
-    $meetings = ammo_get_meetings('submit');
+    $meetings = ammo_get_meetings('amendment_submission');
     if (empty($meetings) && !ammo_admin_access()) {
       // Instead of showing a warning notice and returning, we'll show the page with info text
       $submissions_closed = TRUE;
@@ -98,7 +98,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
     $form['closed_info'] = array(
       '#type' => 'item',
-      '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van wijzigingsvoorstellen is verstreken. Het is niet meer mogelijk om nieuwe wijzigingsvoorstellen in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
+      '#markup' => '<p><strong>Let op:</strong> Er is op dit moment geen termijn open voor het indienen van wijzigingsvoorstellen. Voor vragen kun je contact opnemen met het secretariaat.</p>',
     );
     return $form;
   }
@@ -106,7 +106,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
     $form['title']['#markup'] = ammo_step_heading('Wijzigingsvoorstel indienen');
-    $options = ammo_get_meetings('submit');
+    $options = ammo_get_meetings('amendment_submission');
     if (count($options) == 1) {
       $form_state['step'] ++;
       $form_state['storage']['meeting'] = key($options);
@@ -284,10 +284,7 @@ function ammo_amendment_form($form, &$form_state, $form_action = NULL, $path_id 
     
     $confirm_text = 'Weet u zeker dat u dit wijzigingsvoorstel definitief wilt indienen? Dit kan niet ongedaan worden gemaakt.';
     if (!empty($form_state['storage']['submitted_edit'])) {
-      $split = count(ammo_amendment_edit_owners($form_state['storage']['submitted_edit'])) > 1;
-      $confirm_text = $split
-        ? 'Ik bevestig de wijziging. Er ontstaat een nieuw voorstel; mijn steun voor het oude voorstel vervalt. De mede-indieners blijven bij het oude voorstel en krijgen een e-mail.'
-        : 'Ik bevestig de wijziging van dit voorstel. Het voorstel wordt opnieuw ingediend; het eerdere advies en de beoordeling vervallen.';
+      $confirm_text = ammo_submitted_edit_confirmation();
     }
     
     $form['confirm'] = array(
@@ -398,7 +395,7 @@ function ammo_amendment_form_validate($form, &$form_state) {
     form_set_error('', 'U kunt dit voorstel niet meer wijzigen.');
     return;
   }
-  if (!empty($storage['submitted_edit']) && ammo_amendment_edit_signature($storage['submitted_edit']) !== $storage['submitted_edit_signature']) {
+  if (!empty($storage['submitted_edit']) && ammo_submitted_edit_signature('amendment', $storage['submitted_edit']) !== $storage['submitted_edit_signature']) {
     form_set_error('', 'Het voorstel of de indieners zijn gewijzigd. Open het voorstel opnieuw.');
     return;
   }
@@ -547,7 +544,7 @@ function ammo_amendment_form_submit($form, &$form_state)
       break;
     case 6:
       if (!empty($storage['submitted_edit'])) {
-        $amendment = ammo_save_submitted_amendment($storage);
+        $amendment = ammo_save_submitted_edit('amendment', $storage);
         if ($amendment === FALSE) {
           $form_state['rebuild'] = TRUE;
           return;
@@ -556,7 +553,7 @@ function ammo_amendment_form_submit($form, &$form_state)
           drupal_set_message('Er zijn geen wijzigingen opgeslagen.');
         }
         else {
-          drupal_set_message('Voorstel ' . check_plain(ammo_amendment_number($amendment)) . ' is ingediend.');
+          drupal_set_message('Voorstel ' . check_plain(ammo_amendment_number($amendment)) . ' is gewijzigd. De indieners krijgen een e-mail.');
         }
         break;
       }

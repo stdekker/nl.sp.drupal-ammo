@@ -36,7 +36,7 @@ try {
   $branches = &drupal_static('ammo_get_afdelingen');
   $branches[99999999] = array($a => 'SP Afdeling A');
 
-  $meeting = ammo_save_entity('meeting', array('title' => 'Item view test', 'date' => '2099-01-01', 'submission_closing_date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'no_motions' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Item view test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Item view document', 'meeting_id' => $meeting->id));
   $orphan_document = ammo_save_entity('document', array('title' => 'Orphan document', 'meeting_id' => 99999999));
   $ids = array();
@@ -92,8 +92,8 @@ try {
   $markup = drupal_render($page);
   ammo_item_view_assert(drupal_get_title() === 'Motie 7' && strpos($markup, 'ammo/motions/' . $meeting->id . '#motion' . $motion->id) !== FALSE, 'Motion page has title and back link');
 
-  $params = array('reply_to' => 'ammo-test@example.invalid', 'entity_type' => 'amendment', 'entity_id' => $ids['foreign'], 'id' => '2.1', 'meeting_id' => $meeting->id, 'document_title' => 'Item view document', 'markup' => '', 'first_owner' => 'Indiener', 'differences' => array(), 'old_id' => $ids['withdrawn'], 'old_number' => '2.6');
-  foreach (array('change_message' => array('foreign'), 'amendment_replacement' => array('foreign', 'withdrawn')) as $key => $linked) {
+  $params = array('reply_to' => 'ammo-test@example.invalid', 'entity_type' => 'amendment', 'entity_id' => $ids['foreign'], 'id' => '2.1', 'meeting_id' => $meeting->id, 'document_title' => 'Item view document', 'markup' => '', 'first_owner' => 'Indiener', 'differences' => array());
+  foreach (array('change_message' => array('foreign')) as $key => $linked) {
     $message = array('subject' => '', 'body' => array(), 'headers' => array());
     ammo_mail($key, $message, $params);
     $body = implode(' ', $message['body']);

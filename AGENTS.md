@@ -32,10 +32,10 @@ deployment notes.
 | --- | --- |
 | `ammo.module` | Hooks: menu, permissions, access callbacks, `hook_mail`, `hook_theme`, `template_preprocess_*`, `hook_entity_info`, intro and admin pages. |
 | `ammo.inc` | Shared helpers: states, advice, afdelingen/contacts, relations, saving (`ammo_save_entity`, `ammo_store`), access (`ammo_edit_access`, `ammo_access`, …), diff and mail helpers, document range validation. Loaded on every request by `ammo_init()`. |
-| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7015`. |
+| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7016`. |
 | `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `print`, `export`, `branch-overview`, …). |
 | `locators.inc` | Location indicators (locators) of documents and amendments: definitions with the legacy fallback, validation, storage fields, grouping, numbering, location text and sorting. Required by `ammo.inc`. |
-| `amendment-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
+| `submitted-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
 | `*.tpl.php` | Templates registered in `ammo_theme()`; their variables come from the matching `template_preprocess_*` in `ammo.module`. |
 | `ammo.css`, `ammo.js` | Front-end assets. `ammo.css` is added through `ammo.info`. |
 | `tests/*.test.php` | Integration checks run with `drush scr`. |
@@ -45,10 +45,13 @@ deployment notes.
 Five Entity API entities with no fields (`fieldable => FALSE`), each backed
 by its own table:
 
-- `meeting` → `ammo_meetings`. Holds the deadlines (`submission_closing_date`,
-  `withdrawal_closing_date`, `date`) and switches such as `hide_meeting`,
-  `no_motions`, `hide_state`, `hide_advice` and
-  `allow_submitted_amendment_edit`.
+- `meeting` → `ammo_meetings`. Holds four date ranges, each a `_start` and
+  `_end` column: `amendment_submission`, `motion_submission`,
+  `amendment_change` and `motion_change` (see `ammo_meeting_ranges()`). It
+  also holds the deadlines `withdrawal_closing_date` and `date`, and switches
+  such as `hide_meeting`, `hide_state` and `hide_advice`. An empty motion
+  submission range means the meeting has no motions
+  (`ammo_meeting_has_motions()`).
 - `document` → `ammo_documents`, which belongs to a meeting. `locators` holds
   a JSON list of location indicators (key, label, type `numeric|letter|text`,
   min, max, grouping, required). When it is NULL the document is legacy and
@@ -69,7 +72,7 @@ by its own table:
 
 The rules the code depends on:
 
-- **States** come from `ammo_states()`: `concept`, `submitted`, `assessed`,
+- **States** come from `ammo_states()`: `concept`, `submitted`, `changed`, `assessed`,
   `withdrawn`, `invalid`, `blocked`, `spelling_grammar`.
   - `assessed` ("Beoordeeld") replaced `accepted` and `rejected` in update
     7015. The outcome is the advice (`accept` or `reject`); test it with
@@ -100,10 +103,21 @@ The module defines four permissions: `administer ammo` (superadmin),
   - `ammo_add_access()` and `ammo_view_overview_access()` for submitting and
     viewing.
   - `ammo_*_motions_access()` for motion pages.
-  - `ammo_edit_access()`, `ammo_support_access()`, `ammo_withdraw_access()`
-    and `ammo_vote_request_access()` for the actions on one entry.
-- Deadlines are enforced through `ammo_passed_date()`. Admins can bypass some
-  of them, and the existing checks show which ones.
+  - `ammo_edit_access()`, `ammo_support_access()`, `ammo_withdraw_access()`,
+    `ammo_vote_request_access()` and `ammo_advice_access()` for the actions on
+    one entry. Supporting, withdrawing and vote requests close at the end of
+    `withdrawal_closing_date`; the status/advies form at the meeting `date`.
+- Submitting and changing follow the meeting ranges through
+  `ammo_meeting_range_open()`; `ammo_edit_access()` applies them. A concept
+  follows the submission range, a submitted item the change range, and only
+  the first owner's branch may change it. Admins bypass the ranges.
+  - The owner's change to a submitted item goes through
+    `ammo_save_submitted_edit()` in `submitted-edit.inc`. It is saved in place
+    with the state `changed` ("Gewijzigd"), the advice is kept, and every owner
+    branch is mailed.
+- The other deadlines (`withdraw`, `event`) are enforced through
+  `ammo_passed_date()`. Admins can bypass some of them, and the existing
+  checks show which ones.
 - A user's branches come from `ammo_get_afdelingen($contact_id)`.
   - The result is cached in `drupal_static` and in the `ammo_data` cache entry
     for 24 hours.
@@ -139,7 +153,7 @@ The module defines four permissions: `administer ammo` (superadmin),
   helpers in `ammo.inc`. Do not send mail from test data or from test scripts.
 - To change the schema:
   1. Change `ammo_schema()`.
-  2. Add the next `ammo_update_70NN()` (currently 7016). Guard it with
+  2. Add the next `ammo_update_70NN()` (currently 7017). Guard it with
      `db_field_exists()` or `db_table_exists()`, and reuse the definition from
      `ammo_schema()`.
 - To change data access, prefer `db_select` and `EntityFieldQuery`. Load and

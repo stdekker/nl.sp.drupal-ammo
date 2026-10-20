@@ -34,7 +34,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     case 'advice':
       if (ammo_admin_access()) {
         if (ammo_populate_form('motion', $path_id, $form_state)) {
-          if (ammo_support_access($form_state['storage']['meeting']) || ammo_superadmin_access()) {
+          if (ammo_advice_access($form_state['storage']['meeting']) || ammo_superadmin_access()) {
             $form_state['storage']['first_step'] = 5;
           }
           else {
@@ -56,8 +56,8 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       return;
     }
   }
-  else {
-    $meetings = ammo_get_meetings('submit');
+  elseif (empty($form_state['storage']['motion'])) {
+    $meetings = ammo_get_meetings('motion_submission');
     if (empty($meetings) && !ammo_admin_access()) {
       // Instead of showing a warning notice and returning, we'll show the page with info text
       $submissions_closed = TRUE;
@@ -94,7 +94,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
     $form['title']['#markup'] = ammo_step_heading('Motie indienen');
     $form['closed_info'] = array(
       '#type' => 'item',
-      '#markup' => '<p><strong>Let op:</strong> De termijn voor het indienen van moties is verstreken. Het is niet meer mogelijk om nieuwe moties in te dienen. Voor aanpassingen kun je contact opnemen met het secretariaat.</p>',
+      '#markup' => '<p><strong>Let op:</strong> Er is op dit moment geen termijn open voor het indienen van moties. Voor vragen kun je contact opnemen met het secretariaat.</p>',
     );
     return $form;
   }
@@ -102,7 +102,7 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
   // Depending on which step of the form we are on, we output different form fields
   if ($form_state['step'] == 1) {
     $form['title']['#markup'] = ammo_step_heading('Motie indienen');
-    $options = ammo_get_meetings('submit');
+    $options = ammo_get_meetings('motion_submission');
     if (count($options) == 1) {
       $form_state['step'] ++;
       $form_state['storage']['meeting'] = key($options);
@@ -213,6 +213,14 @@ function ammo_motion_form($form, &$form_state, $form_action, $path_id = NULL)
       '#title' => 'Toelichting',
       '#default_value' => ammo_default($form_state, 'supplement'),
     );
+
+    if (!empty($form_state['storage']['submitted_edit'])) {
+      $form['confirm'] = array(
+        '#type' => 'checkbox',
+        '#title' => ammo_submitted_edit_confirmation(),
+        '#required' => TRUE,
+      );
+    }
   }
 
   if ($form_state['step'] == 5) {
@@ -373,6 +381,15 @@ function ammo_motion_form_validate($form, &$form_state)
 {
   $values = $form_state['values'];
   $step = $form_state['step'];
+  $storage = $form_state['storage'];
+  if (!empty($storage['motion']) && !ammo_edit_access($storage['meeting'], $storage['branch_id'], 'motion', $storage['motion'])) {
+    form_set_error('', 'U kunt deze motie niet meer wijzigen.');
+    return;
+  }
+  if (!empty($storage['submitted_edit']) && ammo_submitted_edit_signature('motion', $storage['submitted_edit']) !== $storage['submitted_edit_signature']) {
+    form_set_error('', 'De motie of de indieners zijn gewijzigd. Open de motie opnieuw.');
+    return;
+  }
 
   // First we set up a switch for each of our three steps
   switch($step) {
@@ -454,6 +471,16 @@ function ammo_motion_form_submit($form, &$form_state)
       $form_state['storage']['branch_selected'] = TRUE;
       break;
     case 4:
+      if (!empty($storage['submitted_edit'])) {
+        $edit = array_intersect_key($values, array_flip(ammo_submitted_edit_fields('motion', NULL))) + $storage;
+        $motion = ammo_save_submitted_edit('motion', $edit);
+        if ($motion === FALSE) {
+          $form_state['rebuild'] = TRUE;
+          return;
+        }
+        drupal_set_message($motion === NULL ? 'Er zijn geen wijzigingen opgeslagen.' : 'Motie ' . check_plain($motion->motion_id ?: $motion->id) . ' is gewijzigd. De indieners krijgen een e-mail.');
+        break;
+      }
       // Create motion entity now that we have valid content to save
       if (empty($storage['motion'])) {
         $form_state['storage']['state'] = 'concept';

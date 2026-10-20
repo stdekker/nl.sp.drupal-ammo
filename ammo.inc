@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/amendment-edit.inc';
+require_once __DIR__ . '/submitted-edit.inc';
 require_once __DIR__ . '/locators.inc';
 
 function ammo_entity_check_title($type, $title) {
@@ -23,6 +23,8 @@ function ammo_states() {
   return array(
     'concept' => 'Concept',
     'submitted' => 'Ingediend',
+    // The owner changed it after submitting; it waits for a new assessment.
+    'changed' => 'Gewijzigd',
     // The outcome of an assessment is the advice: Overnemen or Afwijzen.
     'assessed' => 'Beoordeeld',
     'withdrawn' => 'Ingetrokken',
@@ -611,10 +613,11 @@ function ammo_populate_form($type, $entity_id, &$form_state) {
         $storage['document_display_name'] = $document->title;
         // The form edits each locator in its own field.
         $storage += ammo_amendment_locator_values($entity, ammo_document_locators($document));
-        if (!ammo_admin_access() && !empty($entity->state) && $entity->state !== 'concept') {
-          $storage['submitted_edit'] = $entity->id;
-          $storage['submitted_edit_signature'] = ammo_amendment_edit_signature($entity->id);
-        }
+      }
+      // An owner's change to a submitted item is saved through ammo_save_submitted_edit().
+      if (!ammo_admin_access() && !empty($entity->state) && $entity->state !== 'concept') {
+        $storage['submitted_edit'] = $entity->id;
+        $storage['submitted_edit_signature'] = ammo_submitted_edit_signature($type, $entity->id);
       }
       return TRUE;
     }
@@ -868,14 +871,18 @@ function ammo_delete_entity_form_submit($form, &$form_state) {
   drupal_set_message(check_plain($label) . ' is verwijderd.');
 }
 
+/**
+ * Whether supporting is open: until the end of the Uiterste intrek/ondersteuningsdatum.
+ */
 function ammo_support_access($meeting_id) {
-  if (ammo_passed_date($meeting_id, 'event')) {
-    return FALSE;
-  }
-  if (ammo_add_access()) {
-    return TRUE;
-  }
-  return FALSE;
+  return !ammo_passed_date($meeting_id, 'withdraw') && ammo_add_access();
+}
+
+/**
+ * Whether the status/advies form is open, which it is until the meeting starts.
+ */
+function ammo_advice_access($meeting_id) {
+  return !ammo_passed_date($meeting_id, 'event') && ammo_add_access();
 }
 
 function ammo_withdraw_access($meeting_id) {
@@ -905,39 +912,32 @@ function ammo_vote_request_access($meeting_id, $status) {
   return in_array($status, ammo_vote_request_allowed_statuses());
 }
 
+/**
+ * Whether the user may change an amendment or motion: admins always, otherwise only its submitting branch within the meeting's range.
+ */
 function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_id = NULL) {
   if (ammo_admin_access()) {
     return TRUE;
   }
-  if ($entity_type === 'amendment' && !empty($entity_id)) {
-    $entity = entity_load_single('amendment', $entity_id);
-    if (!empty($entity->state) && $entity->state !== 'concept') {
-      $meeting = entity_load_single('meeting', $meeting_id);
-      $owner = ammo_get_first_owner('amendment', $entity_id);
-      return !empty($meeting->allow_submitted_amendment_edit)
-        && !in_array($entity->state, array('withdrawn', 'blocked'), TRUE)
-        && ammo_get_meeting_id('amendment', $entity_id) == $meeting_id
-        && ammo_add_access() && !empty($owner)
-        && $owner['branch_id'] == $branch_id && ammo_access($owner['branch_id']);
-    }
-  }
-  if (ammo_passed_date($meeting_id, 'submit')) {
+  $entity_type = $entity_type ?: 'amendment';
+  $meeting = entity_load_single('meeting', $meeting_id);
+  if (!$meeting || !ammo_access($branch_id)) {
     return FALSE;
   }
-  
-  // Check if proposal has been submitted (no longer a draft)
-  if (!empty($entity_type) && !empty($entity_id)) {
-    $entity = entity_load_single($entity_type, $entity_id);
-    if (!empty($entity) && !empty($entity->state) && $entity->state !== 'concept') {
-      // Only ammo admins can edit submitted proposals
+  $entity = empty($entity_id) ? NULL : entity_load_single($entity_type, $entity_id);
+  if ($entity) {
+    // Co-submitting branches are owners too, but only the first owner may change it.
+    $owner = ammo_get_first_owner($entity_type, $entity_id);
+    if (empty($owner) || $owner['branch_id'] != $branch_id || ammo_get_meeting_id($entity_type, $entity_id) != $meeting_id) {
       return FALSE;
     }
   }
-  
-  if (ammo_access($branch_id)) {
-    return TRUE;
+  if (!$entity || empty($entity->state) || $entity->state === 'concept') {
+    return ammo_meeting_range_open($meeting, $entity_type . '_submission');
   }
-  return FALSE;
+  return !in_array($entity->state, array('withdrawn', 'blocked'), TRUE)
+    && ammo_add_access()
+    && ammo_meeting_range_open($meeting, $entity_type . '_change');
 }
 
 /*
@@ -1417,9 +1417,6 @@ function ammo_passed_date($meeting_id, $date_type) {
   case 'event':
     $field = 'date';
     break;
-  case 'submit':
-    $field = 'submission_closing_date';
-    break;
   case 'withdraw':
     $field = 'withdrawal_closing_date';
     break;
@@ -1433,6 +1430,62 @@ function ammo_passed_date($meeting_id, $date_type) {
     }
   }
   return TRUE;
+}
+
+/**
+ * The date ranges of a meeting for submitting and changing amendments and motions.
+ */
+function ammo_meeting_ranges() {
+  return array(
+    'amendment_submission' => array(
+      'label' => 'Indienen wijzigingsvoorstellen',
+      'empty' => 'Verplicht.',
+      'required' => TRUE,
+    ),
+    'motion_submission' => array(
+      'label' => 'Indienen moties',
+      'empty' => 'Leeg: geen moties bij deze bijeenkomst.',
+      'required' => FALSE,
+    ),
+    'amendment_change' => array(
+      'label' => 'Wijzigen ingediende wijzigingsvoorstellen',
+      'empty' => 'Leeg: de indiener kan ingediende wijzigingsvoorstellen niet wijzigen.',
+      'required' => FALSE,
+    ),
+    'motion_change' => array(
+      'label' => 'Wijzigen ingediende moties',
+      'empty' => 'Leeg: de indiener kan ingediende moties niet wijzigen.',
+      'required' => FALSE,
+    ),
+  );
+}
+
+/**
+ * A stored range date, or NULL when it is empty.
+ */
+function ammo_meeting_range_date($meeting, $field) {
+  $value = isset($meeting->$field) ? trim((string) $meeting->$field) : '';
+  return ($value === '' || strpos($value, '0000-00-00') === 0) ? NULL : $value;
+}
+
+/**
+ * Whether a range of a meeting is open now: after its start (or without one) and before its end.
+ */
+function ammo_meeting_range_open($meeting, $range) {
+  $end = ammo_meeting_range_date($meeting, $range . '_end');
+  if (!$end) {
+    return FALSE;
+  }
+  $now = new DateTime();
+  $start = ammo_meeting_range_date($meeting, $range . '_start');
+  return (!$start || $now >= new DateTime($start)) && $now < new DateTime($end);
+}
+
+/**
+ * Whether a meeting takes motions, which an empty motion submission range turns off.
+ */
+function ammo_meeting_has_motions($meeting) {
+  return (bool) ammo_meeting_range_date($meeting, 'motion_submission_end');
 }
 
 /*
@@ -1478,10 +1531,13 @@ function ammo_get_meetings($filter_type = NULL) {
       if (empty($filter_type)) {
         $options[$meeting->id] = $meeting->title;
       }
-      else {
-        if (!ammo_passed_date($meeting->id, $filter_type)) {
+      elseif (isset(ammo_meeting_ranges()[$filter_type])) {
+        if (ammo_meeting_range_open($meeting, $filter_type)) {
           $options[$meeting->id] = $meeting->title;
         }
+      }
+      elseif (!ammo_passed_date($meeting->id, $filter_type)) {
+        $options[$meeting->id] = $meeting->title;
       }
     }
   }

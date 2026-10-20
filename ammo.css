@@ -413,3 +413,29 @@ h4.inline-title {
   margin-left: 1em;
   color: #b00;
 }
+
+/* Amendment and motion ranges as two columns, each with Van and Tot side by side. */
+.ammo-meeting-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 3em;
+}
+
+.ammo-meeting-ranges-column {
+  flex: 1 1 22em;
+  min-width: 0;
+}
+
+.ammo-meeting-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5em;
+  align-items: flex-start;
+  margin-bottom: 1em;
+}
+
+.ammo-meeting-range h4,
+.ammo-meeting-range .description {
+  flex: 1 1 100%;
+  margin: 0;
+}

@@ -14,6 +14,7 @@ function ammo_meeting_list_page() {
     'Beschrijving', 
     'Datum', 
     'Contact e-mail', 
+    'Termijnen',
     'Instellingen',
     'Operaties'
   );
@@ -32,7 +33,7 @@ function ammo_meeting_list_page() {
     if ($meeting->hide_meeting) {
       $settings[] = 'Bijeenkomst verborgen';
     }
-    if ($meeting->no_motions) {
+    if (!ammo_meeting_has_motions($meeting)) {
       $settings[] = 'Geen moties';
     }
     if ($meeting->disable_confirmation_checkbox) {
@@ -46,6 +47,7 @@ function ammo_meeting_list_page() {
       check_plain($meeting->description),
       $date->format('d-m-Y'),
       check_plain($meeting->email),
+      ammo_meeting_ranges_summary($meeting),
       $settings_text,
       l('Bewerken', 'admin/ammo/meeting/' . $meeting->id . '/edit') . ' | ' .
       l('Testgegevens', 'admin/ammo/meeting/' . $meeting->id . '/test-data') . ' | ' .
@@ -83,18 +85,7 @@ function ammo_meeting_form($form, &$form_state) {
     '#date_format' => 'd-m-Y',
   );
 
-  $form['submission_closing_date'] = array(
-    '#title' => 'Uiterste inlever/wijzigingsdatum',
-    '#description' => 'Na deze datum kunnen er geen nieuwe wijzigingsvoorstellen en moties meer worden ingeleverd, en kunnen bestaande wijzigingsvoorstellen en moties niet meer worden gewijzigd.',
-    '#type' => 'date_popup',
-    '#date_format' => 'd-m-Y H:i',
-  );
-
-  $form['withdrawal_closing_date'] = array(
-    '#title' => 'Uiterste intrek/ondersteuningsdatum',
-    '#type' => 'date_popup',
-    '#date_format' => 'd-m-Y H:i',
-  );
+  ammo_meeting_ranges_form($form);
 
   $form['hide_state'] = array(
     '#type' => 'checkbox',
@@ -109,18 +100,6 @@ function ammo_meeting_form($form, &$form_state) {
   $form['hide_meeting'] = array(
     '#type' => 'checkbox',
     '#title' => 'Verberg bijeenkomst.',
-  );
-
-  $form['no_motions'] = array(
-    '#type' => 'checkbox',
-    '#title' => 'Geen moties.',
-  );
-
-  $form['allow_submitted_amendment_edit'] = array(
-    '#type' => 'checkbox',
-    '#title' => 'Ingediende wijzigingsvoorstellen wijzigen toestaan',
-    '#description' => 'De hoofdindiener mag wijzigen zolang dit is aangevinkt, ook na de inleverdatum en beoordeling. Bij mede-indieners ontstaat een nieuw voorstel.',
-    '#default_value' => 0,
   );
 
   $form['disable_confirmation_checkbox'] = array(
@@ -156,9 +135,7 @@ function ammo_meeting_form_validate($form, &$form_state) {
   if (empty($values['date'])) {
     form_set_error('date', 'Kies een datum.');
   }
-  if (empty($values['submission_closing_date'])) {
-    form_set_error('submission_closing_date', 'Kies een laatste inleverdatum.');
-  }
+  ammo_meeting_ranges_validate($values);
   if (empty($values['withdrawal_closing_date'])) {
     form_set_error('withdrawal_closing_date', 'Kies een laatste intrekdatum.');
   }
@@ -180,18 +157,15 @@ function ammo_meeting_form_submit($form, &$form_state) {
     'title' => $values['title'],
     'description' => $values['description'],
     'date' => $values['date'],
-    'submission_closing_date' => $values['submission_closing_date'],
-    'withdrawal_closing_date' => $values['withdrawal_closing_date'],
+    'withdrawal_closing_date' => ammo_meeting_end_of_day($values['withdrawal_closing_date']),
     'email' => $values['email'],
     'no_member_owners' => 1,
     'hide_state' => $values['hide_state'],
     'hide_advice' => $values['hide_advice'],
     'hide_meeting' => $values['hide_meeting'],
-    'no_motions' => $values['no_motions'],
     'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
-    'allow_submitted_amendment_edit' => $values['allow_submitted_amendment_edit'],
     'admin_owner' => $values['admin_owner'],
-  );
+  ) + ammo_meeting_ranges_values($values);
   
   $saved = ammo_save_entity('meeting', $entity_values, NULL);
   
@@ -242,24 +216,7 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#required' => TRUE,
   );
 
-  $submission_date = new DateTime($meeting->submission_closing_date);
-  $form['submission_closing_date'] = array(
-    '#title' => 'Uiterste inlever/wijzigingsdatum',
-    '#description' => 'Na deze datum kunnen er geen nieuwe wijzigingsvoorstellen en moties meer worden ingeleverd, en kunnen bestaande wijzigingsvoorstellen en moties niet meer worden gewijzigd.',
-    '#type' => 'date_popup',
-    '#date_format' => 'd-m-Y H:i',
-    '#default_value' => $submission_date->format('Y-m-d H:i'),
-    '#required' => TRUE,
-  );
-
-  $withdrawal_date = new DateTime($meeting->withdrawal_closing_date);
-  $form['withdrawal_closing_date'] = array(
-    '#title' => 'Uiterste intrek/ondersteuningsdatum',
-    '#type' => 'date_popup',
-    '#date_format' => 'd-m-Y H:i',
-    '#default_value' => $withdrawal_date->format('Y-m-d H:i'),
-    '#required' => TRUE,
-  );
+  ammo_meeting_ranges_form($form, $meeting);
 
   $form['hide_state'] = array(
     '#type' => 'checkbox',
@@ -277,19 +234,6 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#type' => 'checkbox',
     '#title' => 'Verberg bijeenkomst.',
     '#default_value' => $meeting->hide_meeting,
-  );
-
-  $form['no_motions'] = array(
-    '#type' => 'checkbox',
-    '#title' => 'Geen moties.',
-    '#default_value' => $meeting->no_motions,
-  );
-
-  $form['allow_submitted_amendment_edit'] = array(
-    '#type' => 'checkbox',
-    '#title' => 'Ingediende wijzigingsvoorstellen wijzigen toestaan',
-    '#description' => 'De hoofdindiener mag wijzigen zolang dit is aangevinkt, ook na de inleverdatum en beoordeling. Bij mede-indieners ontstaat een nieuw voorstel.',
-    '#default_value' => !empty($meeting->allow_submitted_amendment_edit),
   );
 
   $form['disable_confirmation_checkbox'] = array(
@@ -334,9 +278,7 @@ function ammo_meeting_edit_form_validate($form, &$form_state) {
   if (empty($values['date'])) {
     form_set_error('date', 'Kies een datum.');
   }
-  if (empty($values['submission_closing_date'])) {
-    form_set_error('submission_closing_date', 'Kies een laatste inleverdatum.');
-  }
+  ammo_meeting_ranges_validate($values);
   if (empty($values['withdrawal_closing_date'])) {
     form_set_error('withdrawal_closing_date', 'Kies een laatste intrekdatum.');
   }
@@ -353,18 +295,15 @@ function ammo_meeting_edit_form_submit($form, &$form_state) {
     'title' => $values['title'],
     'description' => $values['description'],
     'date' => $values['date'],
-    'submission_closing_date' => $values['submission_closing_date'],
-    'withdrawal_closing_date' => $values['withdrawal_closing_date'],
+    'withdrawal_closing_date' => ammo_meeting_end_of_day($values['withdrawal_closing_date']),
     'email' => $values['email'],
     'no_member_owners' => 1,
     'hide_state' => $values['hide_state'],
     'hide_advice' => $values['hide_advice'],
     'hide_meeting' => $values['hide_meeting'],
-    'no_motions' => $values['no_motions'],
     'disable_confirmation_checkbox' => $values['disable_confirmation_checkbox'],
-    'allow_submitted_amendment_edit' => $values['allow_submitted_amendment_edit'],
     'admin_owner' => $values['admin_owner'],
-  );
+  ) + ammo_meeting_ranges_values($values);
 
   $saved = ammo_save_entity('meeting', $entity_values, $meeting->id);
 
@@ -397,4 +336,122 @@ function ammo_meeting_delete_confirm_form_submit($form, &$form_state) {
 function ammo_meeting_edit_form_delete_submit($form, &$form_state) {
   $meeting = $form_state['meeting'];
   $form_state['redirect'] = 'admin/ammo/meeting/' . $meeting->id . '/delete';
+}
+
+/**
+ * Adds the Termijnen fieldset with a Van and Tot date for each range of the meeting.
+ */
+function ammo_meeting_ranges_form(&$form, $meeting = NULL) {
+  $form['ranges'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Termijnen',
+    '#description' => 'Een termijn loopt van het begin van de Van-dag (00:00) tot het einde van de Tot-dag (23:59). Zonder Van is de termijn direct open. Beheerders zijn niet aan de termijnen gebonden.',
+  );
+  // Amendments and motions side by side, each with its submission and change range.
+  $form['ranges']['columns'] = array(
+    '#type' => 'container',
+    '#attributes' => array('class' => array('ammo-meeting-ranges')),
+  );
+  $columns = array('amendment' => 'Wijzigingsvoorstellen', 'motion' => 'Moties');
+  $short = array('submission' => 'Indienen', 'change' => 'Wijzigen na indienen');
+  foreach ($columns as $type => $heading) {
+    $column = &$form['ranges']['columns'][$type];
+    $column = array(
+      '#type' => 'container',
+      '#attributes' => array('class' => array('ammo-meeting-ranges-column')),
+      'heading' => array('#markup' => '<h3>' . $heading . '</h3>'),
+    );
+    foreach ($short as $kind => $label) {
+      $range = $type . '_' . $kind;
+      $definition = ammo_meeting_ranges()[$range];
+      $column[$range] = array(
+        '#type' => 'container',
+        '#attributes' => array('class' => array('ammo-meeting-range')),
+        'label' => array('#markup' => '<h4>' . $label . '</h4>'),
+      );
+      foreach (array('_start' => 'Van', '_end' => 'Tot') as $part => $title) {
+        // An empty date stays empty: new DateTime(NULL) would fill in the current time.
+        $date = $meeting ? ammo_meeting_range_date($meeting, $range . $part) : NULL;
+        $column[$range][$range . $part] = array(
+          '#type' => 'date_popup',
+          '#title' => $title,
+          '#date_format' => 'd-m-Y',
+          '#date_label_position' => 'none',
+          '#default_value' => $date ? substr($date, 0, 10) : NULL,
+        );
+      }
+      $column[$range]['description'] = array('#markup' => '<div class="description">' . check_plain($definition['empty']) . '</div>');
+    }
+    unset($column);
+  }
+
+  $withdrawal = $meeting ? ammo_meeting_range_date($meeting, 'withdrawal_closing_date') : NULL;
+  $form['ranges']['withdrawal_closing_date'] = array(
+    '#title' => 'Uiterste intrek/ondersteuningsdatum',
+    '#description' => 'Tot en met deze dag (23:59).',
+    '#type' => 'date_popup',
+    '#date_format' => 'd-m-Y',
+    '#date_label_position' => 'none',
+    '#default_value' => $withdrawal ? substr($withdrawal, 0, 10) : NULL,
+    '#required' => !empty($meeting),
+  );
+}
+
+/**
+ * A form date as the end of its day, or NULL when it is empty.
+ */
+function ammo_meeting_end_of_day($value) {
+  return empty($value) ? NULL : substr($value, 0, 10) . ' 23:59:59';
+}
+
+/**
+ * Validates the ranges: Tot is needed with Van or for a required range, and Van is not after Tot.
+ */
+function ammo_meeting_ranges_validate(array $values) {
+  foreach (ammo_meeting_ranges() as $range => $definition) {
+    $start = isset($values[$range . '_start']) ? $values[$range . '_start'] : '';
+    $end = isset($values[$range . '_end']) ? $values[$range . '_end'] : '';
+    // An unreadable date stays an array, and date_popup has already reported it.
+    if (!is_string($start) || !is_string($end)) {
+      continue;
+    }
+    if (empty($end)) {
+      if (!empty($start)) {
+        form_set_error($range . '_end', check_plain($definition['label']) . ': kies ook een Tot-datum, of maak Van leeg.');
+      }
+      elseif ($definition['required']) {
+        form_set_error($range . '_end', check_plain($definition['label']) . ': kies een Tot-datum.');
+      }
+    }
+    elseif (!empty($start) && substr($start, 0, 10) > substr($end, 0, 10)) {
+      form_set_error($range . '_start', check_plain($definition['label']) . ': Van mag niet na Tot liggen.');
+    }
+  }
+}
+
+/**
+ * The range values of the meeting form as entity values: Van from 00:00, Tot until 23:59:59, and NULL for an empty date.
+ */
+function ammo_meeting_ranges_values(array $values) {
+  $entity_values = array();
+  foreach (array_keys(ammo_meeting_ranges()) as $range) {
+    $start = isset($values[$range . '_start']) ? $values[$range . '_start'] : '';
+    $entity_values[$range . '_start'] = empty($start) ? NULL : substr($start, 0, 10) . ' 00:00:00';
+    $entity_values[$range . '_end'] = ammo_meeting_end_of_day(isset($values[$range . '_end']) ? $values[$range . '_end'] : '');
+  }
+  return $entity_values;
+}
+
+/**
+ * The ranges of a meeting for the meeting list, one line per range.
+ */
+function ammo_meeting_ranges_summary($meeting) {
+  $lines = array();
+  foreach (ammo_meeting_ranges() as $range => $definition) {
+    $start = ammo_meeting_range_date($meeting, $range . '_start');
+    $end = ammo_meeting_range_date($meeting, $range . '_end');
+    $text = $end ? ($start ? date('d-m-Y', strtotime($start)) : 'direct') . ' – ' . date('d-m-Y', strtotime($end)) : 'niet';
+    $lines[] = check_plain($definition['label'] . ': ' . $text);
+  }
+  return implode('<br />', $lines);
 }
