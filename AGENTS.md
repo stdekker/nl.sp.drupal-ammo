@@ -2,8 +2,8 @@
 
 Drupal 7 module for submitting and managing amendments (*wijzigingsvoorstellen*)
 and motions (*moties*) for SP meetings (*bijeenkomsten*, e.g. a congress).
-Machine name `ammo`. See `README.md` for the feature list and per-feature
-deployment notes.
+Machine name `ammo`. See `README.md` for the basic functions and
+`STATUSSES.md` for the flow of a proposal through its states.
 
 ## Environment
 
@@ -200,8 +200,10 @@ New tests follow the same pattern:
 - After a change to menu items or theme hooks, run `ddev drush cc all`.
 - After a schema change, run `ddev drush updatedb`, and take a database backup
   first.
-- When a feature changes user-visible behaviour, add or update its section in
-  `README.md`, with the drush steps and the test command.
+- When a feature changes user-visible behaviour, keep `README.md` (a short
+  list of functions) and `STATUSSES.md` (what is possible in each state) up to
+  date. Put the drush steps of a change in its commit message, not in the
+  README.
 
 ## Known quirks
 
