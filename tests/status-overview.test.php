@@ -34,7 +34,8 @@ try {
   $permissions[$user->uid] = array('administer amendments and motions' => TRUE);
   // Mail as with default settings, whatever the site has switched off.
   variable_del('ammo_mail_enabled');
-  variable_del('ammo_mail_steps');
+  // Every step on, so the mails of this test do not depend on the defaults.
+  variable_set('ammo_mail_steps', array_fill_keys(array_keys(ammo_mail_steps()), array('user' => TRUE, 'admin' => TRUE)));
   $meeting = ammo_save_entity('meeting', array('title' => 'Status test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'email' => 'secretariaat@example.invalid', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Status document', 'meeting_id' => $meeting->id));
   $long = '<p>Een twee drie vier vijf zes zeven acht negen tien elf twaalf</p>';

@@ -1320,14 +1320,28 @@ function ammo_mail_recipients() {
 }
 
 /**
- * Per step and recipient whether it is mailed, apart from the main switch; a step that was never saved is on.
+ * The steps that mail a recipient until the settings are saved: the contacts of the proposal hear about changes by the submitter, co-submitting, withdrawing, vote requests and deleting; the meeting's address gets nothing.
+ */
+function ammo_mail_step_defaults() {
+  $user_steps = array('submitted_edit', 'support', 'support_withdraw', 'withdraw', 'vote_request', 'vote_request_withdraw', 'delete');
+  $defaults = array();
+  foreach (array_keys(ammo_mail_steps()) as $step) {
+    $defaults[$step] = array('user' => in_array($step, $user_steps, TRUE), 'admin' => FALSE);
+  }
+  return $defaults;
+}
+
+/**
+ * Per step and recipient whether it is mailed, apart from the main switch; a step that was never saved follows ammo_mail_step_defaults().
  */
 function ammo_mail_step_settings() {
   $saved = variable_get('ammo_mail_steps', array());
-  $settings = array();
-  foreach (array_keys(ammo_mail_steps()) as $step) {
-    foreach (array_keys(ammo_mail_recipients()) as $recipient) {
-      $settings[$step][$recipient] = !isset($saved[$step][$recipient]) || !empty($saved[$step][$recipient]);
+  $settings = ammo_mail_step_defaults();
+  foreach ($settings as $step => $recipients) {
+    foreach ($recipients as $recipient => $default) {
+      if (isset($saved[$step][$recipient])) {
+        $settings[$step][$recipient] = !empty($saved[$step][$recipient]);
+      }
     }
   }
   return $settings;

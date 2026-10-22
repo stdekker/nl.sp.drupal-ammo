@@ -169,7 +169,7 @@ The last one stands apart: the admin permissions do not include it.
     contacts of the proposal) or `admin` (the meeting's address).
   - Users with `administer ammo mail settings` switch steps per recipient at
     `admin/ammo/mail-settings`. The settings are stored in `ammo_mail_steps`,
-    and a step that was never saved is on. The main switch `ammo_mail_enabled`
+    and a step that was never saved follows `ammo_mail_step_defaults()`. The main switch `ammo_mail_enabled`
     stops all mail but keeps the steps.
   - A new mail needs a new step in `ammo_mail_steps()`. `ammo_store()` picks
     its step itself (`ammo_store_mail_step()`); the other callers pass theirs.

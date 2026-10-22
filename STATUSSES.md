@@ -9,10 +9,13 @@ status to the next, and what is still possible in each status.
 the proposal; *co-submitters* (*mede-indieners*) are afdelingen that joined it
 later.
 
-The mails described below are sent by default. Users with the permission
-`administer ammo mail settings` can switch each one off at
-`/admin/ammo/mail-settings` (*E-mailinstellingen*), or switch all of them off
-at once.
+The mails described below can be switched on and off per recipient by users
+with the permission `administer ammo mail settings` at
+`/admin/ammo/mail-settings` (*E-mailinstellingen*), or all at once. Until those
+settings are saved, only the owner afdelingen are mailed, and only when the
+submitter changes a submitted proposal, on co-submitting and leaving, on
+withdrawing, on vote requests and their withdrawal, and on deleting. The
+meeting's address gets no mail by default.
 
 ## The flow
 

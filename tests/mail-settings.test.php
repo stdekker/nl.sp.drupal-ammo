@@ -44,9 +44,11 @@ try {
   variable_del('ammo_mail_enabled');
   variable_del('ammo_mail_steps');
 
-  // Without saved settings every step mails everyone, as before the settings page.
+  // Without saved settings only the contacts of the proposal get the mails of these steps, and the meeting's address none.
+  $user_steps = array('submitted_edit', 'support', 'support_withdraw', 'withdraw', 'vote_request', 'vote_request_withdraw', 'delete');
   foreach (ammo_mail_step_settings() as $step => $recipients) {
-    ammo_mail_settings_test_assert($recipients === array('user' => TRUE, 'admin' => TRUE) && ammo_mail_enabled($step, 'user') && ammo_mail_enabled($step, 'admin'), $step . ' is on by default');
+    $user_default = in_array($step, $user_steps, TRUE);
+    ammo_mail_settings_test_assert($recipients === array('user' => $user_default, 'admin' => FALSE) && ammo_mail_enabled($step, 'user') === $user_default && !ammo_mail_enabled($step, 'admin'), $step . ' has its default');
   }
   ammo_mail_settings_test_assert(count(ammo_mail_steps()) === 12, 'Every mail step is listed');
 
@@ -64,7 +66,8 @@ try {
   $owner = ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'amendment', 'target_id' => $amendment->id, 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling', 'contact_email' => 'owner@example.invalid'));
   $both = array('owner@example.invalid', 'secretariaat@example.invalid');
 
-  // Saving a concept mails both, until the concept step is off for the submitters.
+  // With every step on, saving a concept mails both, until the concept step is off for the submitters.
+  variable_set('ammo_mail_steps', array_fill_keys(array_keys(ammo_mail_steps()), array('user' => TRUE, 'admin' => TRUE)));
   $store = function ($text) use ($amendment, $meeting, $document) {
     $form_state = array('values' => array('amendment_text' => $text, 'state' => 'concept'), 'storage' => array('meeting' => $meeting->id, 'document' => $document->id, 'state' => 'concept'));
     ammo_store('amendment', $amendment->id, array('amendment_text' => 'amendment_text', 'state' => 'state'), array(), $form_state);
