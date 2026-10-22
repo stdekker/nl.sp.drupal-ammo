@@ -453,6 +453,19 @@ function ammo_item_view_path($type, $id) {
 }
 
 /**
+ * The title of the link with which branches give up ownership, after what they may do now: withdraw as first owner, leave as co-submitter, or both; '' when neither.
+ */
+function ammo_withdraw_link_title(array $withdrawable, $withdraw, $support_withdraw, $both) {
+  if ($withdrawable['withdraw'] && $withdrawable['support_withdraw']) {
+    return $both;
+  }
+  if ($withdrawable['withdraw']) {
+    return $withdraw;
+  }
+  return $withdrawable['support_withdraw'] ? $support_withdraw : '';
+}
+
+/**
  * The action links of an amendment or motion for the current user, as theme('links') items, from the variables of its template_preprocess_*().
  */
 function ammo_item_action_links($type, array $v) {
@@ -475,14 +488,15 @@ function ammo_item_action_links($type, array $v) {
           $links[] = array('title' => 'stemming', 'href' => 'ammo/amendment/vote-request/' . $id) + $options;
         }
       }
-      if ($v['withdraw_access'] && $v['state'] !== 'withdrawn' && $v['state'] !== 'spelling_grammar') {
-        if ($v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
+      if ($v['state'] !== 'withdrawn' && $v['state'] !== 'spelling_grammar') {
+        if ($v['co_submit_access'] && $v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
           $links[] = array('title' => 'mede indienen', 'href' => 'ammo/support/add/branch/amendment/' . $id) + $options;
         }
-        if ($v['supported_branches'] && !$v['withdraw_locked'] && $no_vote_requests) {
-          $links[] = array('title' => 'voorstel / steun intrekken', 'href' => 'ammo/support/withdraw/branch/amendment/' . $id) + $options;
+        $title = ammo_withdraw_link_title($v['withdrawable_branches'], 'voorstel intrekken', 'steun intrekken', 'voorstel / steun intrekken');
+        if ($title && !$v['withdraw_locked'] && $no_vote_requests) {
+          $links[] = array('title' => $title, 'href' => 'ammo/support/withdraw/branch/amendment/' . $id) + $options;
         }
-        if ($v['removable_member_owners'] && !$v['withdraw_locked']) {
+        if ($v['support_withdraw_access'] && $v['removable_member_owners'] && !$v['withdraw_locked']) {
           $links[] = array('title' => 'intrekken individuele indieners', 'href' => 'ammo/support/withdraw/branchmembers/amendment/' . $id) + $options;
         }
       }
@@ -513,14 +527,20 @@ function ammo_item_action_links($type, array $v) {
     }
   }
   if ($owned) {
-    if (($v['withdraw_access'] && $v['state'] !== 'withdrawn' && !$v['rejected'] && $v['state'] !== 'spelling_grammar') || $v['admin_access']) {
-      if ($v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
+    // Admins see these links outside the ranges too.
+    $open = ($v['state'] !== 'withdrawn' && !$v['rejected'] && $v['state'] !== 'spelling_grammar') || $v['admin_access'];
+    if ($open) {
+      if (($v['co_submit_access'] || $v['admin_access']) && $v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
         $links[] = array('title' => 'mede indienen als afdeling', 'href' => 'ammo/support/add/branch/motion/' . $id) + $options;
       }
-      if ($v['supported_branches'] && !$v['withdraw_locked'] && $no_vote_requests) {
-        $links[] = array('title' => 'intrekken als afdeling', 'href' => 'ammo/support/withdraw/branch/motion/' . $id) + $options;
+      $title = ammo_withdraw_link_title($v['withdrawable_branches'], 'motie intrekken als afdeling', 'steun intrekken als afdeling', 'intrekken als afdeling');
+      if (!$title && $v['admin_access'] && $v['supported_branches']) {
+        $title = 'intrekken als afdeling';
       }
-      if ($v['removable_member_owners'] && !$v['withdraw_locked']) {
+      if ($title && !$v['withdraw_locked'] && $no_vote_requests) {
+        $links[] = array('title' => $title, 'href' => 'ammo/support/withdraw/branch/motion/' . $id) + $options;
+      }
+      if (($v['support_withdraw_access'] || $v['admin_access']) && $v['removable_member_owners'] && !$v['withdraw_locked']) {
         $links[] = array('title' => 'intrekken individuele indieners', 'href' => 'ammo/support/withdraw/branchmembers/motion/' . $id) + $options;
       }
     }
@@ -764,7 +784,9 @@ function template_preprocess_amendment(&$variables) {
       'meeting_hide' => $meeting_hide,
       'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'amendment', $entity->id),
-      'withdraw_access' => ammo_withdraw_access($meeting->id),
+      'co_submit_access' => ammo_co_submit_access($meeting->id, 'amendment'),
+      'support_withdraw_access' => ammo_support_withdraw_access($meeting->id, 'amendment'),
+      'withdrawable_branches' => ammo_withdrawable_branches('amendment', $entity->id, array_keys((array) $branches)),
       // An item assessed as accepted (Overnemen) can no longer be withdrawn.
       'withdraw_locked' => !ammo_admin_access() && ammo_assessed_as($entity, 'accept'),
       'admin_access' => ammo_admin_access(),
@@ -780,7 +802,7 @@ function template_preprocess_amendment(&$variables) {
       'unsupported_branches' => $unsupported_branches,
       'vote_requested_branches' => $vote_requested_branches,
       'vote_unrequested_branches' => $vote_unrequested_branches,
-      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state),
+      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state, 'amendment'),
       'vote_requests' => ammo_get_vote_requests('amendment', $entity->id),
       'removable_member_owners' => ammo_removable_member_owners('amendment', $entity->id),
       'hide_advice' => $hide_advice,
@@ -788,7 +810,7 @@ function template_preprocess_amendment(&$variables) {
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests', 'withdrawable_branches'))) continue;
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
@@ -878,7 +900,9 @@ function template_preprocess_motion(&$variables) {
       'meeting_hide' => $meeting_hide,
       'advice_access' => ammo_advice_access($meeting->id),
       'edit_access' => empty($first_owner) ? FALSE : ammo_edit_access($meeting->id, $first_owner['branch_id'], 'motion', $entity->id),
-      'withdraw_access' => ammo_withdraw_access($meeting->id),
+      'co_submit_access' => ammo_co_submit_access($meeting->id, 'motion'),
+      'support_withdraw_access' => ammo_support_withdraw_access($meeting->id, 'motion'),
+      'withdrawable_branches' => ammo_withdrawable_branches('motion', $entity->id, array_keys((array) $branches)),
       // An item assessed as accepted (Overnemen) can no longer be withdrawn.
       'withdraw_locked' => !ammo_admin_access() && ammo_assessed_as($entity, 'accept'),
       'admin_access' => ammo_admin_access(),
@@ -894,7 +918,7 @@ function template_preprocess_motion(&$variables) {
       'unsupported_branches' => $unsupported_branches,
       'vote_requested_branches' => $vote_requested_branches,
       'vote_unrequested_branches' => $vote_unrequested_branches,
-      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state),
+      'vote_request_access' => ammo_vote_request_access($meeting->id, $entity->state, 'motion'),
       'vote_requests' => ammo_get_vote_requests('motion', $entity->id),
       'removable_member_owners' => ammo_removable_member_owners('motion', $entity->id),
       'hide_state' => $hide_state,
@@ -902,7 +926,7 @@ function template_preprocess_motion(&$variables) {
       'shurly' => $base_url . '/' . $code,
     );
     foreach($vars as $key => &$value) {
-      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests'))) continue;
+      if (in_array($key, array('owners_member', 'owners_branch', 'first_owner', 'co_owners', 'backers', 'vote_requests', 'withdrawable_branches'))) continue;
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
@@ -1275,7 +1299,6 @@ function _ammo_preprocess_meeting_data($meeting_id) {
     'title' => check_plain($meeting->title),
     'description' => check_plain($meeting->description),
     'date' => $meeting->date,
-    'withdrawal_closing_date' => $meeting->withdrawal_closing_date,
   );
   return $data;
 }

@@ -30,7 +30,7 @@ try {
   $branches[99999999] = array($a => 'SP Afdeling A');
   $branches['all'] = array($a => 'SP Afdeling A', $b => 'SP Afdeling B');
 
-  $meeting = ammo_save_entity('meeting', array('title' => 'Branch overview test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'hide_state' => 0, 'motion_submission_end' => '2099-01-01'));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Branch overview test', 'date' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'hide_meeting' => 0, 'hide_state' => 0, 'motion_submission_end' => '2099-01-01'));
   $document = ammo_save_entity('document', array('title' => 'Branch overview document', 'meeting_id' => $meeting->id));
   $ids = array();
   foreach (array('shared' => 'submitted', 'admin_first' => 'submitted', 'member_first' => 'submitted', 'vote_only' => 'submitted', 'second' => 'submitted', 'draft' => 'concept', 'blocked' => 'blocked', 'rejected' => 'assessed') as $key => $state) {

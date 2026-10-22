@@ -36,7 +36,7 @@ try {
   $branches = &drupal_static('ammo_get_afdelingen');
   $branches[99999999] = array($a => 'SP Afdeling A');
 
-  $meeting = ammo_save_entity('meeting', array('title' => 'Item view test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Item view test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Item view document', 'meeting_id' => $meeting->id));
   $orphan_document = ammo_save_entity('document', array('title' => 'Orphan document', 'meeting_id' => 99999999));
   $ids = array();

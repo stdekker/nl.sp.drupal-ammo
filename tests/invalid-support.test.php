@@ -18,7 +18,7 @@ try {
   $user = user_save(NULL, array('name' => 'ammo-invalid-support-' . uniqid(), 'status' => 1, 'field_contact_id' => array(LANGUAGE_NONE => array(array('value' => 99999999)))));
   $permissions = &drupal_static('user_access');
   $permissions[$user->uid] = array('add amendments and motions' => TRUE);
-  $meeting = ammo_save_entity('meeting', array('title' => 'Invalid support test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01'));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Invalid support test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01'));
   $document = ammo_save_entity('document', array('title' => 'Invalid support document', 'meeting_id' => $meeting->id));
   $amendment = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'state' => 'submitted'));
   ammo_invalid_support_assert(ammo_support_add_allowed('add', 'amendment', $amendment->id), 'Submitted amendment accepts support');
@@ -65,10 +65,10 @@ try {
   ammo_invalid_support_assert(entity_load_single('amendment', $amendment->id)->state === 'assessed' && entity_load_single('contact_relation', $own->id), 'Withdraw submit leaves an accepted amendment and its owner');
   form_clear_error();
   drupal_get_messages('error');
-  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'voorstel / steun intrekken') === FALSE, 'Accepted amendment hides the withdraw link');
+  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'ammo/support/withdraw/branch/amendment/' . $amendment->id) === FALSE, 'Accepted amendment hides the withdraw link');
   $amendment->advice = 'reject';
   entity_save('amendment', $amendment);
-  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'voorstel / steun intrekken') !== FALSE, 'Rejected amendment keeps the withdraw link');
+  ammo_invalid_support_assert(strpos(theme('amendment', array('entity_id' => $amendment->id)), 'ammo/support/withdraw/branch/amendment/' . $amendment->id) !== FALSE, 'Rejected amendment keeps the withdraw link');
   $amendment->advice = 'accept';
   entity_save('amendment', $amendment);
   entity_delete('contact_relation', $own->id);

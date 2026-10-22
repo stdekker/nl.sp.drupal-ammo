@@ -32,8 +32,9 @@ overviews and proposal pages.
 For admins (permissions `administer amendments and motions` and `administer
 ammo`), under `/admin/ammo`:
 
-- **Bijeenkomsten**: meetings with their periods for submitting and changing,
-  the *Uiterste intrek/ondersteuningsdatum*, and switches to hide the meeting,
+- **Bijeenkomsten**: meetings with their periods, per type, for submitting
+  (and co-submitting), changing, withdrawing, leaving as co-submitter
+  (*Steun intrekken*) and requesting a vote, and switches to hide the meeting,
   the statuses or the advice.
 - **Documenten**: the documents to amend, with their locations (*locaties*)
   such as Hoofdstuk, Artikel and Lid that number the amendments (`3.12`,

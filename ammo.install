@@ -58,8 +58,63 @@ function ammo_schema() {
         'type' => 'datetime',
         'mysql_type' => 'datetime',
       ),
-      'withdrawal_closing_date' => array(
-        'description' => 'The date amendments and motions can no longer be withdrawn.',
+      'amendment_withdraw_start' => array(
+        'description' => 'Start of the range in which amendments can be withdrawn by their submitter (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_withdraw_end' => array(
+        'description' => 'End of the range in which amendments can be withdrawn by their submitter; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_withdraw_start' => array(
+        'description' => 'Start of the range in which motions can be withdrawn by their submitter (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_withdraw_end' => array(
+        'description' => 'End of the range in which motions can be withdrawn by their submitter; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_support_withdraw_start' => array(
+        'description' => 'Start of the range in which amendments can be left by their co-submitters (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_support_withdraw_end' => array(
+        'description' => 'End of the range in which amendments can be left by their co-submitters; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_support_withdraw_start' => array(
+        'description' => 'Start of the range in which motions can be left by their co-submitters (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_support_withdraw_end' => array(
+        'description' => 'End of the range in which motions can be left by their co-submitters; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_vote_request_start' => array(
+        'description' => 'Start of the range in which amendments can be given a vote request by a branch (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'amendment_vote_request_end' => array(
+        'description' => 'End of the range in which amendments can be given a vote request by a branch; empty means never.',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_vote_request_start' => array(
+        'description' => 'Start of the range in which motions can be given a vote request by a branch (empty: open right away).',
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+      ),
+      'motion_vote_request_end' => array(
+        'description' => 'End of the range in which motions can be given a vote request by a branch; empty means never.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
       ),
@@ -782,4 +837,36 @@ function ammo_update_7019() {
     }
   }
   return 'Wijzigingsvoorstellen en moties houden hun aanmaakdatum bij.';
+}
+
+/**
+ * Replace the withdrawal date with ranges for withdrawing, leaving as co-submitter and requesting a vote, per type.
+ */
+function ammo_update_7020() {
+  module_load_include('inc', 'ammo', 'ammo');
+  $schema = ammo_schema();
+  $kinds = array('withdraw', 'support_withdraw', 'vote_request');
+  foreach ($kinds as $kind) {
+    foreach (array('amendment', 'motion') as $type) {
+      foreach (array('_start', '_end') as $part) {
+        $field = $type . '_' . $kind . $part;
+        if (!db_field_exists('ammo_meetings', $field)) {
+          db_add_field('ammo_meetings', $field, $schema['ammo_meetings']['fields'][$field]);
+        }
+      }
+    }
+  }
+  if (!db_field_exists('ammo_meetings', 'withdrawal_closing_date')) {
+    return 'De termijnen voor intrekken en stemming aanvragen bestonden al.';
+  }
+  // The withdrawal date closed all three actions, so it becomes the end of each new range.
+  $update = db_update('ammo_meetings')->isNotNull('withdrawal_closing_date');
+  foreach ($kinds as $kind) {
+    foreach (array('amendment', 'motion') as $type) {
+      $update->expression($type . '_' . $kind . '_end', 'withdrawal_closing_date');
+    }
+  }
+  $update->execute();
+  db_drop_field('ammo_meetings', 'withdrawal_closing_date');
+  return 'De Uiterste intrek/ondersteuningsdatum is vervangen door termijnen voor Voorstel intrekken, Steun intrekken en Stemming aanvragen per soort voorstel.';
 }

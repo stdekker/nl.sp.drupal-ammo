@@ -32,7 +32,7 @@ Machine name `ammo`. See `README.md` for the basic functions and
 | --- | --- |
 | `ammo.module` | Hooks: menu, permissions, access callbacks, `hook_mail`, `hook_theme`, `template_preprocess_*`, `hook_entity_info`, intro and admin pages. |
 | `ammo.inc` | Shared helpers: states, advice, afdelingen/contacts, relations, saving (`ammo_save_entity`, `ammo_store`), access (`ammo_edit_access`, `ammo_access`, …), diff and mail helpers, document range validation. Loaded on every request by `ammo_init()`. |
-| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7019`. |
+| `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7020`. |
 | `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `mail_settings`, `print`, `export`, `branch-overview`, …). |
 | `locators.inc` | Location indicators (locators) of documents and amendments: definitions with the legacy fallback, validation, storage fields, grouping, numbering, location text and sorting. Required by `ammo.inc`. |
 | `submitted-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `status-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
@@ -46,10 +46,10 @@ Machine name `ammo`. See `README.md` for the basic functions and
 Five Entity API entities with no fields (`fieldable => FALSE`), each backed
 by its own table:
 
-- `meeting` → `ammo_meetings`. Holds four date ranges, each a `_start` and
-  `_end` column: `amendment_submission`, `motion_submission`,
-  `amendment_change` and `motion_change` (see `ammo_meeting_ranges()`). It
-  also holds the deadlines `withdrawal_closing_date` and `date`, and switches
+- `meeting` → `ammo_meetings`. Holds ten date ranges, each a `_start` and
+  `_end` column: `submission`, `change`, `withdraw`, `support_withdraw` and
+  `vote_request`, each for `amendment_` and `motion_` (see
+  `ammo_meeting_ranges()`). It also holds the meeting `date`, and switches
   such as `hide_meeting`, `hide_state` and `hide_advice`. An empty motion
   submission range means the meeting has no motions
   (`ammo_meeting_has_motions()`).
@@ -110,12 +110,17 @@ The last one stands apart: the admin permissions do not include it.
   - `ammo_add_access()` and `ammo_view_overview_access()` for submitting and
     viewing.
   - `ammo_*_motions_access()` for motion pages.
-  - `ammo_edit_access()`, `ammo_support_access()`, `ammo_withdraw_access()`,
-    `ammo_vote_request_access()` and `ammo_advice_access()` for the actions on
-    one entry. Supporting, withdrawing and vote requests close at the end of
-    `withdrawal_closing_date`; the status/advies form at the meeting `date`.
-    Vote requests are further limited to the statuses in
-    `ammo_vote_request_allowed_statuses()`; admins bypass both limits.
+  - `ammo_edit_access()`, `ammo_co_submit_access()`,
+    `ammo_withdraw_access()`, `ammo_support_withdraw_access()`,
+    `ammo_support_access()`, `ammo_vote_request_access()` and
+    `ammo_advice_access()` for the actions on one entry. Each takes the type
+    and follows its range: co-submitting the submission range, withdrawing
+    `_withdraw`, leaving as co-submitter, removing member submitters and
+    member support `_support_withdraw`, and vote requests `_vote_request`.
+    `ammo_withdrawable_branches()` sorts a user's owner branches into first
+    owner (withdraw) and co-submitters (leave). The status/advies form closes
+    at the meeting `date`. Vote requests are further limited to the statuses
+    in `ammo_vote_request_allowed_statuses()`; admins bypass both limits.
 - Submitting and changing follow the meeting ranges through
   `ammo_meeting_range_open()`; `ammo_edit_access()` applies them. A concept
   follows the submission range, a submitted item the change range, and only
@@ -124,9 +129,8 @@ The last one stands apart: the admin permissions do not include it.
     `ammo_save_submitted_edit()` in `submitted-edit.inc`. It is saved in place
     with the state `changed` ("Gewijzigd"), the advice is kept, and every owner
     branch is mailed.
-- The other deadlines (`withdraw`, `event`) are enforced through
-  `ammo_passed_date()`. Admins can bypass some of them, and the existing
-  checks show which ones.
+- The meeting date (`event`) is enforced through `ammo_passed_date()`.
+  Admins can bypass some deadlines, and the existing checks show which ones.
 - A user's branches come from `ammo_get_afdelingen($contact_id)`.
   - The result is cached in `drupal_static` and in the `ammo_data` cache entry
     for 24 hours.
@@ -172,7 +176,7 @@ The last one stands apart: the admin permissions do not include it.
   - A switched-off mail counts as sent, so callers don't warn about it.
 - To change the schema:
   1. Change `ammo_schema()`.
-  2. Add the next `ammo_update_70NN()` (currently 7020). Guard it with
+  2. Add the next `ammo_update_70NN()` (currently 7021). Guard it with
      `db_field_exists()` or `db_table_exists()`, and reuse the definition from
      `ammo_schema()`.
 - To change data access, prefer `db_select` and `EntityFieldQuery`. Load and

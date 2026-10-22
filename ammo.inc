@@ -887,10 +887,32 @@ function ammo_delete_entity_form_submit($form, &$form_state) {
 }
 
 /**
- * Whether supporting is open: until the end of the Uiterste intrek/ondersteuningsdatum.
+ * Whether a range of the meeting with this id is open now.
  */
-function ammo_support_access($meeting_id) {
-  return !ammo_passed_date($meeting_id, 'withdraw') && ammo_add_access();
+function ammo_meeting_range_open_by_id($meeting_id, $range) {
+  $meeting = empty($meeting_id) ? FALSE : entity_load_single('meeting', $meeting_id);
+  return !empty($meeting) && ammo_meeting_range_open($meeting, $range);
+}
+
+/**
+ * Whether members can support an amendment or motion: while its Steun intrekken range is open.
+ */
+function ammo_support_access($meeting_id, $type) {
+  return ammo_meeting_range_open_by_id($meeting_id, $type . '_support_withdraw') && ammo_add_access();
+}
+
+/**
+ * Whether branches can co-submit an amendment or motion: while its submission range is open.
+ */
+function ammo_co_submit_access($meeting_id, $type) {
+  return ammo_meeting_range_open_by_id($meeting_id, $type . '_submission') && ammo_add_access();
+}
+
+/**
+ * Whether co-submitters can leave an amendment or motion, and branches can remove their member submitters: while its Steun intrekken range is open.
+ */
+function ammo_support_withdraw_access($meeting_id, $type) {
+  return ammo_meeting_range_open_by_id($meeting_id, $type . '_support_withdraw') && ammo_add_access();
 }
 
 /**
@@ -900,14 +922,32 @@ function ammo_advice_access($meeting_id) {
   return !ammo_passed_date($meeting_id, 'event') && ammo_add_access();
 }
 
-function ammo_withdraw_access($meeting_id) {
-  if (ammo_passed_date($meeting_id, 'withdraw')) {
-    return FALSE;
+/**
+ * Whether the submitting branch can withdraw an amendment or motion: while its Voorstel intrekken range is open.
+ */
+function ammo_withdraw_access($meeting_id, $type) {
+  return ammo_meeting_range_open_by_id($meeting_id, $type . '_withdraw') && ammo_add_access();
+}
+
+/**
+ * The branches of the user that may give up their ownership now: the first owner withdraws within the Voorstel intrekken range, co-submitters leave within the Steun intrekken range.
+ */
+function ammo_withdrawable_branches($type, $entity_id, array $branch_ids) {
+  $meeting_id = ammo_get_meeting_id($type, $entity_id);
+  $first_owner = ammo_get_first_owner($type, $entity_id);
+  $withdraw = ammo_withdraw_access($meeting_id, $type);
+  $support_withdraw = ammo_support_withdraw_access($meeting_id, $type);
+  $allowed = array('withdraw' => array(), 'support_withdraw' => array());
+  foreach ($branch_ids as $branch_id) {
+    if (!ammo_is_related($entity_id, $type, 'owner', 'branch', $branch_id)) {
+      continue;
+    }
+    $is_first = !empty($first_owner) && $first_owner['contact_type'] === 'branch' && $first_owner['contact_id'] == $branch_id;
+    if ($is_first ? $withdraw : $support_withdraw) {
+      $allowed[$is_first ? 'withdraw' : 'support_withdraw'][] = $branch_id;
+    }
   }
-  if (ammo_add_access()) {
-    return TRUE;
-  }
-  return FALSE;
+  return $allowed;
 }
 
 /**
@@ -927,15 +967,14 @@ function ammo_vote_request_branch_allowed($type, $entity, $branch_id) {
 }
 
 /**
- * Whether the user may manage vote requests: admins always, otherwise only for the allowed statuses until the withdrawal date.
+ * Whether the user may manage vote requests: admins always, otherwise only for the allowed statuses within the Stemming aanvragen range.
  */
-function ammo_vote_request_access($meeting_id, $status) {
+function ammo_vote_request_access($meeting_id, $status, $type) {
   if (ammo_admin_access()) {
     return TRUE;
   }
 
-  // Check if withdrawal date has passed
-  if (ammo_passed_date($meeting_id, 'withdraw')) {
+  if (!ammo_meeting_range_open_by_id($meeting_id, $type . '_vote_request')) {
     return FALSE;
   }
 
@@ -1580,9 +1619,6 @@ function ammo_passed_date($meeting_id, $date_type) {
   case 'event':
     $field = 'date';
     break;
-  case 'withdraw':
-    $field = 'withdrawal_closing_date';
-    break;
   }
   $meeting = entity_load_single('meeting', $meeting_id);
   if (!empty($meeting->$field)) {
@@ -1596,7 +1632,7 @@ function ammo_passed_date($meeting_id, $date_type) {
 }
 
 /**
- * The date ranges of a meeting for submitting and changing amendments and motions.
+ * The date ranges of a meeting for submitting, changing and withdrawing amendments and motions, leaving them as co-submitter and requesting a vote.
  */
 function ammo_meeting_ranges() {
   return array(
@@ -1618,6 +1654,36 @@ function ammo_meeting_ranges() {
     'motion_change' => array(
       'label' => 'Wijzigen ingediende moties',
       'empty' => 'Leeg: de indiener kan ingediende moties niet wijzigen.',
+      'required' => FALSE,
+    ),
+    'amendment_withdraw' => array(
+      'label' => 'Intrekken wijzigingsvoorstellen',
+      'empty' => 'Leeg: de indiener kan wijzigingsvoorstellen niet intrekken.',
+      'required' => FALSE,
+    ),
+    'motion_withdraw' => array(
+      'label' => 'Intrekken moties',
+      'empty' => 'Leeg: de indiener kan moties niet intrekken.',
+      'required' => FALSE,
+    ),
+    'amendment_support_withdraw' => array(
+      'label' => 'Steun intrekken wijzigingsvoorstellen',
+      'empty' => 'Leeg: mede-indieners kunnen hun steun niet intrekken.',
+      'required' => FALSE,
+    ),
+    'motion_support_withdraw' => array(
+      'label' => 'Steun intrekken moties',
+      'empty' => 'Leeg: mede-indieners kunnen hun steun niet intrekken.',
+      'required' => FALSE,
+    ),
+    'amendment_vote_request' => array(
+      'label' => 'Stemming aanvragen wijzigingsvoorstellen',
+      'empty' => 'Leeg: afdelingen kunnen geen stemming aanvragen.',
+      'required' => FALSE,
+    ),
+    'motion_vote_request' => array(
+      'label' => 'Stemming aanvragen moties',
+      'empty' => 'Leeg: afdelingen kunnen geen stemming aanvragen.',
       'required' => FALSE,
     ),
   );

@@ -35,7 +35,7 @@ try {
   // Mail as with default settings, whatever the site has switched off.
   variable_del('ammo_mail_enabled');
   variable_del('ammo_mail_steps');
-  $meeting = ammo_save_entity('meeting', array('title' => 'Status test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'email' => 'secretariaat@example.invalid', 'hide_meeting' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Status test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'email' => 'secretariaat@example.invalid', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Status document', 'meeting_id' => $meeting->id));
   $long = '<p>Een twee drie vier vijf zes zeven acht negen tien elf twaalf</p>';
   $first = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 3, 'line' => 10, 'amendment_text' => $long, 'state' => 'submitted', 'advice' => 'reject', 'advice_supplement' => "Niet nodig.\nZie artikel 4."));

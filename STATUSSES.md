@@ -78,13 +78,14 @@ open. Only its owners and admins see it.
 When the afdeling submits the proposal it gets the status **Ingediend**, and
 the afdeling gets a confirmation mail. While a proposal is Ingediend:
 
-- other afdelingen can **co-submit** it (*mede indienen*); this is only possible
-  in this status;
-- members can support it;
+- other afdelingen can **co-submit** it (*mede indienen*) while the *Indienen*
+  period is open; this is only possible in this status;
+- members can support it while the *Steun intrekken* period is open;
 - the submitter can **change** it while the change period (*Wijzigen*) of the
   meeting is open (see Gewijzigd);
-- the submitter can **withdraw** it, and co-submitters can leave it, until the
-  *Uiterste intrek/ondersteuningsdatum*.
+- the submitter can **withdraw** it while the *Voorstel intrekken* period is
+  open, and co-submitters can leave it while the *Steun intrekken* period is
+  open.
 
 ### 3. Gewijzigd
 
@@ -133,12 +134,19 @@ changes, unless the meeting hides it. A vote can be requested (*stemming aanvrag
 
 ## Deadlines
 
-| Deadline | What it closes |
+Each meeting has these periods (*termijnen*) separately for amendments and for
+motions. A period runs from the start of its Van day to the end of its Tot day;
+without Van it is open right away, and an empty period means the action is not
+possible.
+
+| Deadline | What it opens |
 | --- | --- |
-| *Indienen* period | Submitting new proposals and changing concepts. |
-| *Wijzigen* period | Changing submitted proposals by the submitter. |
-| *Uiterste intrek/ondersteuningsdatum* (end of that day) | Withdrawing, co-submitting, leaving as co-submitter, member support and vote requests. |
-| Meeting date | The status/advies form. |
+| *Indienen* period | Submitting new proposals, changing concepts and co-submitting (*mede indienen*). |
+| *Wijzigen na indienen* period | Changing submitted proposals by the submitter. |
+| *Voorstel intrekken* period | Withdrawing the proposal by the submitting afdeling. |
+| *Steun intrekken* period | Leaving as co-submitter, removing individual member submitters, and member support. |
+| *Stemming aanvragen* period | Requesting a vote and withdrawing that request. |
+| Meeting date | Closes the status/advies form. |
 
 Admins are not bound by the *Indienen* and *Wijzigen* periods, and can still
-handle vote requests after the *Uiterste intrek/ondersteuningsdatum*.
+handle vote requests outside the *Stemming aanvragen* period.

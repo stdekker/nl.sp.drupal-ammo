@@ -59,29 +59,36 @@ try {
   ammo_ranges_test_assert(array_keys($errors) === array('amendment_submission_start'), 'Van after Tot is refused');
   ammo_ranges_test_assert(!ammo_ranges_test_errors(array('amendment_submission_end' => $tomorrow)), 'Only the amendment submission Tot is needed');
   $values = ammo_meeting_ranges_values(array('amendment_submission_start' => '2099-01-05 00:00:00', 'amendment_submission_end' => '2099-01-05', 'motion_submission_start' => '', 'motion_submission_end' => ''));
-  ammo_ranges_test_assert($values['motion_submission_end'] === NULL && $values['motion_submission_start'] === NULL && count($values) === 8, 'Empty dates are stored as NULL');
+  ammo_ranges_test_assert($values['motion_submission_end'] === NULL && $values['motion_submission_start'] === NULL && count($values) === 20, 'Empty dates are stored as NULL');
   ammo_ranges_test_assert($values['amendment_submission_start'] === '2099-01-05 00:00:00' && $values['amendment_submission_end'] === '2099-01-05 23:59:59', 'Van starts at 00:00 and Tot ends at 23:59:59');
   ammo_ranges_test_assert(!ammo_ranges_test_errors(array('amendment_submission_start' => '2099-01-05', 'amendment_submission_end' => '2099-01-05')), 'A range of one day is allowed');
 
   // A saved meeting without motions keeps its empty ranges on the edit form.
   $user = user_load(1);
-  $saved = ammo_save_entity('meeting', array('title' => 'Ranges test ' . uniqid(), 'date' => '2099-01-01', 'email' => 'ammo-test@example.invalid', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'admin_owner' => 'de congrescommissie') + ammo_meeting_ranges_values(array('amendment_submission_end' => $tomorrow)));
+  $saved = ammo_save_entity('meeting', array('title' => 'Ranges test ' . uniqid(), 'date' => '2099-01-01', 'email' => 'ammo-test@example.invalid', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'hide_meeting' => 0, 'admin_owner' => 'de congrescommissie') + ammo_meeting_ranges_values(array('amendment_submission_end' => $tomorrow)));
   $form_state = array('build_info' => array('args' => array($saved)));
   $form = drupal_build_form('ammo_meeting_edit_form', $form_state);
+  foreach (array('amendment', 'motion') as $type) {
+    foreach (array('submission', 'change', 'withdraw', 'support_withdraw', 'vote_request') as $kind) {
+      ammo_ranges_test_assert(isset($form['ranges']['columns'][$type][$type . '_' . $kind][$type . '_' . $kind . '_start'], $form['ranges']['columns'][$type][$type . '_' . $kind][$type . '_' . $kind . '_end']), 'The edit form has Van and Tot for ' . $type . '_' . $kind);
+    }
+  }
+  ammo_ranges_test_assert(!isset($form['ranges']['withdrawal_closing_date']), 'The withdrawal date is gone from the edit form');
   ammo_ranges_test_assert(empty($form['ranges']['columns']['motion']['motion_submission']['motion_submission_end']['#default_value']) && $form['ranges']['columns']['amendment']['amendment_submission']['amendment_submission_end']['#default_value'] === date('Y-m-d', strtotime($tomorrow)), 'Empty ranges stay empty on the edit form');
-  $form_state = array('build_info' => array('args' => array($saved)), 'values' => array('title' => $saved->title, 'description' => '', 'email' => 'ammo-test@example.invalid', 'date' => array('date' => '01-01-2099'), 'amendment_submission_end' => array('date' => date('d-m-Y', strtotime($later))), 'withdrawal_closing_date' => array('date' => '01-01-2099'), 'op' => 'Opslaan'));
+  $form_state = array('build_info' => array('args' => array($saved)), 'values' => array('title' => $saved->title, 'description' => '', 'email' => 'ammo-test@example.invalid', 'date' => array('date' => '01-01-2099'), 'amendment_submission_end' => array('date' => date('d-m-Y', strtotime($later))), 'amendment_withdraw_end' => array('date' => '01-01-2099'), 'op' => 'Opslaan'));
   drupal_form_submit('ammo_meeting_edit_form', $form_state, $saved);
   ammo_ranges_test_assert(!form_get_errors(), 'The edit form saves: ' . implode(' ', form_get_errors() ?: array()));
   entity_get_controller('meeting')->resetCache();
   $reloaded = entity_load_single('meeting', $saved->id);
-  ammo_ranges_test_assert($reloaded->motion_submission_end === NULL && $reloaded->motion_change_start === NULL && $reloaded->amendment_submission_end === date('Y-m-d', strtotime($later)) . ' 23:59:59' && $reloaded->withdrawal_closing_date === '2099-01-01 23:59:59', 'Saving with empty ranges stores NULL; set ends and the withdrawal date run to the end of the day');
+  ammo_ranges_test_assert($reloaded->motion_submission_end === NULL && $reloaded->motion_change_start === NULL && $reloaded->amendment_submission_end === date('Y-m-d', strtotime($later)) . ' 23:59:59' && $reloaded->amendment_withdraw_end === '2099-01-01 23:59:59', 'Saving with empty ranges stores NULL; set ends run to the end of the day');
   drupal_get_messages();
-  $form_state = array('build_info' => array('args' => array($reloaded)), 'values' => array('title' => $saved->title, 'email' => 'ammo-test@example.invalid', 'date' => array('date' => '01-01-2099'), 'amendment_submission_end' => array('date' => 'abc'), 'withdrawal_closing_date' => array('date' => '01-01-2099'), 'op' => 'Opslaan'));
+  $form_state = array('build_info' => array('args' => array($reloaded)), 'values' => array('title' => $saved->title, 'email' => 'ammo-test@example.invalid', 'date' => array('date' => '01-01-2099'), 'amendment_submission_end' => array('date' => 'abc'), 'op' => 'Opslaan'));
   drupal_form_submit('ammo_meeting_edit_form', $form_state, $reloaded);
   ammo_ranges_test_assert(isset(form_get_errors()['amendment_submission_end']), 'An unreadable date is refused without a crash');
   drupal_static_reset('form_set_error');
   drupal_get_messages();
-  ammo_ranges_test_assert(strpos(ammo_meeting_ranges_summary($reloaded), 'Indienen moties: niet') !== FALSE, 'The meeting list shows an empty range as niet');
+  module_load_include('inc', 'ammo', 'meeting.form');
+  ammo_ranges_test_assert(strpos(ammo_meeting_list_page(), 'Termijnen') === FALSE, 'The meeting list leaves the ranges to the edit form');
 
   // Meeting choice and motion visibility follow the ranges.
   ammo_ranges_test_assert(isset(ammo_get_meetings('amendment_submission')[$saved->id]) && !isset(ammo_get_meetings('motion_submission')[$saved->id]), 'Only meetings with an open range can be chosen');
@@ -108,18 +115,24 @@ try {
   ammo_ranges_test_assert(!ammo_edit_access($saved->id, 99999999, 'amendment', $concept->id) && ammo_edit_access($saved->id, 99999999, 'amendment', $submitted->id), 'After the submission range a concept is closed, and the change range opens the submitted item');
   ammo_ranges_test_assert(!ammo_edit_access($saved->id, 99999999, 'amendment'), 'No new amendment after the submission range');
 
-  // Supporting closes at the end of the withdrawal date; the status/advies form at the meeting.
+  // Each action follows its own range per type; the status/advies form closes at the meeting.
   $reloaded->date = '2099-01-01 00:00:00';
-  $reloaded->withdrawal_closing_date = date('Y-m-d') . ' 23:59:59';
+  $reloaded->amendment_support_withdraw_end = date('Y-m-d') . ' 23:59:59';
+  $reloaded->amendment_withdraw_end = $reloaded->amendment_vote_request_end = $reloaded->motion_support_withdraw_end = $reloaded->motion_withdraw_end = NULL;
   entity_save('meeting', $reloaded);
-  ammo_ranges_test_assert(ammo_support_access($saved->id) && ammo_advice_access($saved->id), 'Supporting is open through the whole withdrawal day');
-  $reloaded->withdrawal_closing_date = date('Y-m-d', strtotime('-1 day')) . ' 23:59:59';
+  ammo_ranges_test_assert(ammo_support_access($saved->id, 'amendment') && ammo_support_withdraw_access($saved->id, 'amendment') && ammo_advice_access($saved->id), 'Supporting and leaving are open through the whole last day of Steun intrekken');
+  ammo_ranges_test_assert(!ammo_withdraw_access($saved->id, 'amendment') && !ammo_vote_request_access($saved->id, 'assessed', 'amendment') && !ammo_support_access($saved->id, 'motion'), 'Steun intrekken opens neither withdrawing, vote requests nor the motion range');
+  $reloaded->amendment_withdraw_end = $tomorrow;
   entity_save('meeting', $reloaded);
-  ammo_ranges_test_assert(!ammo_support_access($saved->id) && ammo_advice_access($saved->id), 'After the withdrawal date supporting closes, before the meeting the advice stays open');
+  ammo_ranges_test_assert(ammo_withdraw_access($saved->id, 'amendment') && !ammo_withdraw_access($saved->id, 'motion'), 'Voorstel intrekken opens withdrawing per type');
+  ammo_ranges_test_assert(ammo_co_submit_access($saved->id, 'amendment') === ammo_meeting_range_open($reloaded, 'amendment_submission'), 'Co-submitting follows the submission range');
+  $reloaded->amendment_support_withdraw_end = date('Y-m-d', strtotime('-1 day')) . ' 23:59:59';
+  entity_save('meeting', $reloaded);
+  ammo_ranges_test_assert(!ammo_support_access($saved->id, 'amendment') && ammo_advice_access($saved->id), 'After Steun intrekken supporting closes, before the meeting the advice stays open');
   module_load_include('inc', 'ammo', 'support.form');
   $form_state = array('build_info' => array('args' => array('add', 'member', 'amendment', $submitted->id)), 'no_cache' => TRUE);
   $form = drupal_build_form('ammo_support_form', $form_state);
-  ammo_ranges_test_assert(!isset($form['submit']) && strpos(implode(' ', form_get_errors() ?: array()), 'niet (meer) mogelijk te ondersteunen') !== FALSE, 'The support form refuses after the withdrawal date');
+  ammo_ranges_test_assert(!isset($form['submit']) && strpos(implode(' ', form_get_errors() ?: array()), 'niet (meer) mogelijk te ondersteunen') !== FALSE, 'The support form refuses after the Steun intrekken range');
   drupal_static_reset('form_set_error');
   drupal_get_messages();
   $reloaded->date = date('Y-m-d', strtotime('-1 day')) . ' 00:00:00';

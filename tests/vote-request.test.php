@@ -20,7 +20,7 @@ try {
   $permissions[$user->uid] = array('add amendments and motions' => TRUE);
   $branches = &drupal_static('ammo_get_afdelingen');
   $branches[99999999] = array(99999999 => 'Andere afdeling', 99999998 => 'Indiener');
-  $meeting = ammo_save_entity('meeting', array('title' => 'Vote request test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01'));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Vote request test', 'date' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01'));
   $document = ammo_save_entity('document', array('title' => 'Vote request document', 'meeting_id' => $meeting->id));
   $amendment = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'state' => 'assessed', 'advice' => 'accept'));
   ammo_save_entity('contact_relation', array('target_id' => $amendment->id, 'target_type' => 'amendment', 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => 99999998, 'branch_id' => 99999998, 'contact_display_name' => 'Indiener', 'branch_display_name' => 'Indiener'));
@@ -68,16 +68,29 @@ try {
     ammo_vote_request_assert($vote_heading !== FALSE && $vote_heading === strrpos($markup, '<h4>') && $vote_heading > strpos($markup, 'Toelichting advies'), 'Stemming aangevraagd door is the last part of the ' . $type);
   }
 
+  // Vote requests follow their own range per type, not the withdraw ranges.
+  $meeting->amendment_withdraw_end = $meeting->amendment_support_withdraw_end = '2000-01-01 23:59:59';
+  entity_save('meeting', $meeting);
+  ammo_vote_request_assert(ammo_vote_request_access($meeting->id, 'assessed', 'amendment'), 'Closing the withdraw ranges keeps vote requests open');
+  $meeting->amendment_vote_request_end = '2000-01-01 23:59:59';
+  entity_save('meeting', $meeting);
+  ammo_vote_request_assert(!ammo_vote_request_access($meeting->id, 'assessed', 'amendment') && ammo_vote_request_access($meeting->id, 'assessed', 'motion'), 'The amendment vote request range closes amendments only');
+  $state = array();
+  $form = ammo_vote_request_form(array(), $state, 'add', 'branch', 'amendment', $amendment->id);
+  ammo_vote_request_assert(empty($form['submit']) && strpos(implode(' ', form_get_errors() ?: array()), 'termijn voor stemming aanvragen') !== FALSE, 'The vote request form refuses after its range');
+  form_clear_error();
+  drupal_get_messages();
+
   // Only the allowed statuses take vote requests, except for admins.
-  ammo_vote_request_assert(!ammo_vote_request_access($meeting->id, 'submitted'), 'A regular user may not manage vote requests on a submitted item');
+  ammo_vote_request_assert(!ammo_vote_request_access($meeting->id, 'submitted', 'motion'), 'A regular user may not manage vote requests on a submitted item');
   $permissions[$user->uid]['administer amendments and motions'] = TRUE;
-  ammo_vote_request_assert(ammo_vote_request_access($meeting->id, 'submitted'), 'Admins may manage vote requests on a submitted item');
+  ammo_vote_request_assert(ammo_vote_request_access($meeting->id, 'submitted', 'amendment'), 'Admins may manage vote requests on a submitted item, also after the range');
   $amendment->advice = 'accept';
   entity_save('amendment', $amendment);
   ammo_vote_request_assert(ammo_vote_request_branch_allowed('amendment', $amendment, 99999998), 'Admins are not bound by the submitter rule');
 
   $transaction->rollback();
-  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, vote requests shown last, motions, the allowed statuses and admins. Fixtures rolled back.\n";
+  print "PASS: accepted items only take vote requests from branches that did not (co-)submit, member submitters included; rejected items from anyone; form, validation, links, vote requests shown last, motions, the vote request range per type, the allowed statuses and admins. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

@@ -33,6 +33,14 @@ function ammo_support_withdraw_allowed($action, $contact_type, $target_type, $en
   return !$entity || !ammo_assessed_as($entity, 'accept');
 }
 
+/**
+ * The ids of the given branches that may give up their ownership of an amendment or motion now.
+ */
+function ammo_support_withdrawable_branch_ids($target_type, $entity_id, array $branch_ids) {
+  $withdrawable = ammo_withdrawable_branches($target_type, $entity_id, $branch_ids);
+  return array_merge($withdrawable['withdraw'], $withdrawable['support_withdraw']);
+}
+
 function ammo_support_form($form, &$form_state, $action, $contact_type, $target_type = NULL, $entity_id = NULL) {
   global $user;
   $user_wrapper = entity_metadata_wrapper('user', $user);
@@ -82,7 +90,7 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
   switch ($contact_type) {
   case 'member':
     // Controleer toegang op basis evenement.
-    if (!$meeting_id || !ammo_support_access($meeting_id)) {
+    if (!$meeting_id || !ammo_support_access($meeting_id, $target_type)) {
       form_set_error('support', 'Het is niet (meer) mogelijk te ondersteunen.');
       return array();
     }
@@ -114,9 +122,9 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
     );
     break;
   case 'branch':
-    // Controleer toegang op basis evenement.
-    if (!$meeting_id || !ammo_withdraw_access($meeting_id)) {
-      form_set_error('support', 'Het is niet (meer) mogelijk in te dienen of in te trekken.');
+    // Co-submitting follows the submission range; withdrawing is checked per branch below.
+    if (!$meeting_id || ($action === 'add' && !ammo_co_submit_access($meeting_id, $target_type))) {
+      form_set_error('support', 'Het is niet (meer) mogelijk mede in te dienen.');
       return array();
     }
     // Create texts.
@@ -144,6 +152,11 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
     }
     // Get afdelingen.
     $branches = ammo_get_afdelingen($contact_id);
+    $withdrawable = ammo_support_withdrawable_branch_ids($target_type, $entity_id, array_keys((array) $branches));
+    if ($action === 'withdraw' && !$withdrawable) {
+      form_set_error('support', 'Het is niet (meer) mogelijk in te trekken.');
+      return array();
+    }
     // Filter branches that already support.
     foreach ($branches as $contact_id => $branch) {
       $backed = ammo_is_related($entity_id, $target_type, 'owner', $contact_type, $contact_id);
@@ -154,7 +167,7 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
         }
         break;
       case 'withdraw':
-        if (!empty($backed)) {
+        if (!empty($backed) && in_array($contact_id, $withdrawable)) {
           $options[$contact_id] = $branch;
         }
         break;
@@ -174,8 +187,8 @@ function ammo_support_form($form, &$form_state, $action, $contact_type, $target_
     switch ($action) {
     case 'withdraw':
       // Controleer toegang op basis evenement.
-      if (!$meeting_id || !ammo_withdraw_access($meeting_id)) {
-        form_set_error('support', 'Het is niet (meer) mogelijk in te dienen of in te trekken.');
+      if (!$meeting_id || !ammo_support_withdraw_access($meeting_id, $target_type)) {
+        form_set_error('support', 'Het is niet (meer) mogelijk indieners in te trekken.');
         return array();
       }
       // Controleer of er leden zijn die hebben ingediend.
@@ -263,9 +276,19 @@ function ammo_support_form_validate($form, &$form_state) {
     break;
   case 'branch':
     $selected = FALSE;
+    // The ranges may have closed since the form was built.
+    $meeting_id = ammo_get_meeting_id($target_type, $entity_id);
+    if ($action === 'add' && !ammo_co_submit_access($meeting_id, $target_type)) {
+      form_set_error('support', 'Het is niet (meer) mogelijk mede in te dienen.');
+      return;
+    }
+    $withdrawable = $action === 'withdraw' ? ammo_support_withdrawable_branch_ids($target_type, $entity_id, array_keys($values['branch_id'])) : array();
     foreach ($values['branch_id'] as $key => $value) {
       if ($key == $value) {
         $selected = TRUE;
+        if ($action === 'withdraw' && !in_array($value, $withdrawable)) {
+          form_set_error('support', 'Het is niet (meer) mogelijk in te trekken voor een van de gekozen afdelingen.');
+        }
         $backed = ammo_is_related($entity_id, $target_type, 'owner', $contact_type, $value);
         switch ($action) {
         case 'add':
@@ -286,6 +309,9 @@ function ammo_support_form_validate($form, &$form_state) {
     }
     break;
   case 'branchmembers':
+    if (!ammo_support_withdraw_access(ammo_get_meeting_id($target_type, $entity_id), $target_type)) {
+      form_set_error('support', 'Het is niet (meer) mogelijk indieners in te trekken.');
+    }
     if (!$form_state['values']['support']) {
       form_set_error('support', 'Zet een vinkje');
     }
@@ -360,7 +386,7 @@ function ammo_support_form_submit($form, &$form_state) {
           
           // Check if this is the first/primary owner
           $first_owner = ammo_get_first_owner($target_type, $entity_id);
-          $is_primary_owner = (!empty($first_owner) && $first_owner['contact_id'] == $value);
+          $is_primary_owner = (!empty($first_owner) && $first_owner['contact_type'] === 'branch' && $first_owner['contact_id'] == $value);
           
           if ($is_primary_owner) {
             // Primary owner is withdrawing - set status to withdrawn but keep ownership visible

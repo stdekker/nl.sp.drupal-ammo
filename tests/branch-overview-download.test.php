@@ -55,7 +55,7 @@ try {
   $afdelingen['all'] = array($a => 'SP Afdeling A', $b => 'SP Afdeling B');
   $branches = array($a => 'SP Afdeling A');
 
-  $meeting = ammo_save_entity('meeting', array('title' => 'Branch download test', 'date' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0, 'hide_state' => 0, 'hide_advice' => 0, 'motion_submission_end' => '2099-01-01'));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Branch download test', 'date' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'hide_meeting' => 0, 'hide_state' => 0, 'hide_advice' => 0, 'motion_submission_end' => '2099-01-01'));
   $first = ammo_save_entity('document', array('title' => 'A eerste document', 'meeting_id' => $meeting->id));
   $second = ammo_save_entity('document', array('title' => 'B tweede document', 'meeting_id' => $meeting->id));
   ammo_save_entity('document', array('title' => 'C leeg document', 'meeting_id' => $meeting->id));

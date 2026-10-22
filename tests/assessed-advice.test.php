@@ -31,7 +31,7 @@ $previous_user = $user;
 $transaction = db_transaction();
 try {
   $user = user_load(1);
-  $meeting = ammo_save_entity('meeting', array('title' => 'Advice test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'withdrawal_closing_date' => '2099-01-01', 'hide_meeting' => 0));
+  $meeting = ammo_save_entity('meeting', array('title' => 'Advice test', 'date' => '2099-01-01', 'amendment_submission_end' => '2099-01-01', 'motion_submission_end' => '2099-01-01', 'amendment_withdraw_end' => '2099-01-01', 'motion_withdraw_end' => '2099-01-01', 'amendment_support_withdraw_end' => '2099-01-01', 'motion_support_withdraw_end' => '2099-01-01', 'amendment_vote_request_end' => '2099-01-01', 'motion_vote_request_end' => '2099-01-01', 'hide_meeting' => 0));
   $document = ammo_save_entity('document', array('title' => 'Advice document', 'meeting_id' => $meeting->id));
   $amendment = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'amendment_text' => 'Tekst', 'state' => 'submitted'));
   // The status/advies form only opens items with a first owner.

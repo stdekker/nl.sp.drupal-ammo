@@ -35,15 +35,15 @@ function ammo_vote_request_form($form, &$form_state, $action, $contact_type, $ta
   }
   
   // Check if vote requests are allowed for this status
-  if (!ammo_vote_request_access($meeting_id, $entity->state)) {
+  if (!ammo_vote_request_access($meeting_id, $entity->state, $target_type)) {
     // Provide more specific error messages
     $allowed_statuses = ammo_vote_request_allowed_statuses();
     $states = ammo_states();
     
     if (!in_array($entity->state, $allowed_statuses)) {
       form_set_error('vote_request', 'Het is niet mogelijk stemming aan te vragen voor voorstellen met de status "' . $entity->state . '". Toegestane statussen: ' . implode(', ', array_intersect_key($states, array_flip($allowed_statuses))) . '.');
-    } elseif (ammo_passed_date($meeting_id, 'withdraw') && !ammo_admin_access()) {
-      form_set_error('vote_request', 'Het is niet meer mogelijk stemming aan te vragen omdat de intrekdatum voor dit evenement is verstreken.');
+    } elseif (!ammo_meeting_range_open_by_id($meeting_id, $target_type . '_vote_request') && !ammo_admin_access()) {
+      form_set_error('vote_request', 'Het is niet meer mogelijk stemming aan te vragen omdat de termijn voor stemming aanvragen niet open is.');
     } else {
       form_set_error('vote_request', 'Het is niet mogelijk stemming aan te vragen voor dit voorstel.');
     }
@@ -58,7 +58,7 @@ function ammo_vote_request_form($form, &$form_state, $action, $contact_type, $ta
   switch ($contact_type) {
   case 'branch':
     // Controleer toegang op basis evenement.
-    if (!$meeting_id || !ammo_withdraw_access($meeting_id)) {
+    if (!$meeting_id || !ammo_meeting_range_open_by_id($meeting_id, $target_type . '_vote_request') || !ammo_add_access()) {
       form_set_error('vote_request', 'Het is niet (meer) mogelijk stemming aan te vragen.');
       return array();
     }
