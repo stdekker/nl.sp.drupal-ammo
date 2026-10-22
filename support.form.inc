@@ -378,7 +378,7 @@ function ammo_support_form_submit($form, &$form_state) {
             $result = entity_delete('contact_relation', $remove_id);
             if ($result !== FALSE) {
               drupal_set_message('U bent niet langer (mede) indiener.');
-              ammo_withdraw_mail($target_type, $entity_id, $owner, $meeting_id);
+              ammo_withdraw_mail($target_type, $entity_id, $owner, $meeting_id, 'support_withdraw');
             }
             else {
               drupal_set_message('Er is een fout opgetreden.' , 'error');

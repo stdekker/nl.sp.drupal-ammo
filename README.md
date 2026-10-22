@@ -43,6 +43,10 @@ ammo`), under `/admin/ammo`:
   number) to a Word file.
 - **Stemmingaanvraag instellingen**: the statuses on which a vote can be
   requested.
+- **E-mailinstellingen** (`/admin/ammo/mail-settings`, separate permission
+  `administer ammo mail settings`): turn each mail on or off per step,
+  separately for the submitters and for the meeting's address. A main switch
+  stops all mail and keeps those choices.
 - **Testgegevens**: generate and remove test proposals for a meeting.
 
 ## Requirements

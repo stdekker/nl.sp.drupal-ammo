@@ -33,7 +33,7 @@ Machine name `ammo`. See `README.md` for the basic functions and
 | `ammo.module` | Hooks: menu, permissions, access callbacks, `hook_mail`, `hook_theme`, `template_preprocess_*`, `hook_entity_info`, intro and admin pages. |
 | `ammo.inc` | Shared helpers: states, advice, afdelingen/contacts, relations, saving (`ammo_save_entity`, `ammo_store`), access (`ammo_edit_access`, `ammo_access`, …), diff and mail helpers, document range validation. Loaded on every request by `ammo_init()`. |
 | `ammo.install` | `ammo_schema()` plus `ammo_update_7001`–`7016`. |
-| `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `print`, `export`, `branch-overview`, …). |
+| `*.form.inc` | Form builders, validators and submit handlers, one per page (`amendment`, `motion`, `meeting`, `document`, `support`, `ownership`, `vote_request*`, `mail_settings`, `print`, `export`, `branch-overview`, …). |
 | `locators.inc` | Location indicators (locators) of documents and amendments: definitions with the legacy fallback, validation, storage fields, grouping, numbering, location text and sorting. Required by `ammo.inc`. |
 | `submitted-edit.inc`, `amendments-pager.inc`, `branch-overview.inc`, `item-view.inc`, `test-data.inc` | Logic for the newer features, kept apart from their form or page files. |
 | `*.tpl.php` | Templates registered in `ammo_theme()`; their variables come from the matching `template_preprocess_*` in `ammo.module`. |
@@ -94,12 +94,14 @@ The rules the code depends on:
 
 ## Access
 
-The module defines four permissions: `administer ammo` (superadmin),
-`administer amendments and motions` (admin), `add amendments and motions`, and
-`view submitted amendments and motions`.
+The module defines five permissions: `administer ammo` (superadmin),
+`administer amendments and motions` (admin), `add amendments and motions`,
+`view submitted amendments and motions`, and `administer ammo mail settings`.
+The last one stands apart: the admin permissions do not include it.
 
 - Use the existing helpers instead of calling `user_access()` directly:
   - `ammo_superadmin_access()` and `ammo_admin_access()` for admin rights.
+  - `ammo_mail_settings_access()` for the mail settings page.
   - `ammo_add_access()` and `ammo_view_overview_access()` for submitting and
     viewing.
   - `ammo_*_motions_access()` for motion pages.
@@ -153,6 +155,16 @@ The module defines four permissions: `administer ammo` (superadmin),
   - Use `ammo_item_view_path($type, $id)` to link to the page of one item.
 - Mail goes through `hook_mail` (`ammo_mail()`) and the `ammo_*_mail()`
   helpers in `ammo.inc`. Do not send mail from test data or from test scripts.
+  - Each helper belongs to a step from `ammo_mail_steps()` and sends through
+    `ammo_send_mail($step, $recipient, …)`. The recipient is `user` (the
+    contacts of the proposal) or `admin` (the meeting's address).
+  - Users with `administer ammo mail settings` switch steps per recipient at
+    `admin/ammo/mail-settings`. The settings are stored in `ammo_mail_steps`,
+    and a step that was never saved is on. The main switch `ammo_mail_enabled`
+    stops all mail but keeps the steps.
+  - A new mail needs a new step in `ammo_mail_steps()`. `ammo_store()` picks
+    its step itself (`ammo_store_mail_step()`); the other callers pass theirs.
+  - A switched-off mail counts as sent, so callers don't warn about it.
 - To change the schema:
   1. Change `ammo_schema()`.
   2. Add the next `ammo_update_70NN()` (currently 7018). Guard it with

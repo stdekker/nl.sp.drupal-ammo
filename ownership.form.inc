@@ -315,7 +315,7 @@ function ammo_ownership_form_submit($form, &$form_state) {
           'diff' => 'Eigenaarschap aangepast door beheerder',
         ),
       );
-      ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeting_id);
+      ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeting_id, 'ownership');
     }
   } else {
     drupal_set_message('Geen wijzigingen aangebracht.');

@@ -543,6 +543,9 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
     shurly_shorten($long_url, $code);
   }
 
+  // Pick the mail step first: saving also changes the cached original entity.
+  $mail_step = empty($original_entity) ? NULL : ammo_store_mail_step($mapping, $original_entity, $fields);
+
   // Save entity.
   $entity = ammo_save_entity($entity_type, $fields, $entity_id);
   if (empty($entity)) {
@@ -555,7 +558,7 @@ function ammo_store($entity_type, $entity_id, $mapping, $form, &$form_state) {
       if (!empty($differences)) {
         $meeting_id = isset($form_state['storage']['meeting']) ? $form_state['storage']['meeting'] : NULL;
         if (!empty($meeting_id) && is_numeric($meeting_id)) {
-          ammo_changes_update_mail($entity_type, $entity->id, $differences, $meeting_id);
+          ammo_changes_update_mail($entity_type, $entity->id, $differences, $meeting_id, $mail_step);
         }
       }
     }
@@ -1240,94 +1243,190 @@ function ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_ema
   return $params;
 }
 
-function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeting_id) {
-  $meeting = entity_load_single('meeting', $meeting_id);
+/**
+ * Steps that send a notification mail, with the title and description shown on the mail settings page.
+ */
+function ammo_mail_steps() {
+  return array(
+    'concept' => array('Concept opgeslagen', 'Een afdeling slaat een concept-wijzigingsvoorstel op of wijzigt het.'),
+    'submit' => array('Definitief ingediend', 'Een afdeling dient een wijzigingsvoorstel of een motie definitief in.'),
+    'submitted_edit' => array('Ingediend voorstel gewijzigd', 'De indiener wijzigt een ingediend voorstel; de status wordt Gewijzigd.'),
+    'change' => array('Voorstel gewijzigd door beheerder', 'Een beheerder wijzigt de tekst of de locatie van een voorstel.'),
+    'advice' => array('Status of advies opgeslagen', 'Een beheerder slaat de status of het advies van een voorstel op.'),
+    'ownership' => array('Indieners aangepast', 'Een beheerder wijzigt de indieners van een voorstel.'),
+    'support' => array('Mede ingediend', 'Een afdeling dient een voorstel mede in.'),
+    'support_withdraw' => array('Mede-indiening ingetrokken', 'Een mede-indiener is niet langer mede-indiener.'),
+    'withdraw' => array('Voorstel ingetrokken', 'De indiener trekt het voorstel in.'),
+    'vote_request' => array('Stemming aangevraagd', 'Een afdeling vraagt een stemming aan.'),
+    'vote_request_withdraw' => array('Stemmingsaanvraag ingetrokken', 'Een afdeling trekt haar stemmingsaanvraag in.'),
+    'delete' => array('Voorstel verwijderd', 'Een beheerder verwijdert een voorstel, met een toelichting.'),
+  );
+}
+
+/**
+ * Recipients a step can mail: the contacts of the proposal and the meeting's own address.
+ */
+function ammo_mail_recipients() {
+  return array(
+    'user' => 'Indieners en betrokken afdelingen',
+    'admin' => 'Beheerder (e-mailadres van de bijeenkomst)',
+  );
+}
+
+/**
+ * Per step and recipient whether it is mailed, apart from the main switch; a step that was never saved is on.
+ */
+function ammo_mail_step_settings() {
+  $saved = variable_get('ammo_mail_steps', array());
+  $settings = array();
+  foreach (array_keys(ammo_mail_steps()) as $step) {
+    foreach (array_keys(ammo_mail_recipients()) as $recipient) {
+      $settings[$step][$recipient] = !isset($saved[$step][$recipient]) || !empty($saved[$step][$recipient]);
+    }
+  }
+  return $settings;
+}
+
+/**
+ * Whether a step mails the recipient, or without a recipient anyone; the main switch turns off every step.
+ */
+function ammo_mail_enabled($step, $recipient = NULL) {
+  if (!variable_get('ammo_mail_enabled', TRUE)) {
+    return FALSE;
+  }
+  $settings = ammo_mail_step_settings();
+  $step_settings = isset($settings[$step]) ? $settings[$step] : array_fill_keys(array_keys(ammo_mail_recipients()), TRUE);
+  return $recipient === NULL ? in_array(TRUE, $step_settings, TRUE) : !empty($step_settings[$recipient]);
+}
+
+/**
+ * Sends one notification mail when its step mails the recipient; FALSE only when sending failed.
+ */
+function ammo_send_mail($step, $recipient, $key, $to, array $params, $sender_email) {
   global $language;
+  if (!ammo_mail_enabled($step, $recipient)) {
+    return TRUE;
+  }
+  $result = drupal_mail('ammo', $key, $to, $language, $params, $sender_email, TRUE);
+  return !empty($result['result']);
+}
+
+/**
+ * Mail step of a save through ammo_store(): status/advies, a concept, its submission or another change.
+ */
+function ammo_store_mail_step(array $mapping, $original_entity, array $fields) {
+  foreach (array_keys($mapping) as $field) {
+    if ($field !== 'state' && strpos($field, 'advice') !== 0) {
+      $state = isset($fields['state']) ? $fields['state'] : $original_entity->state;
+      if ($state === 'concept') {
+        return 'concept';
+      }
+      return $original_entity->state === 'concept' ? 'submit' : 'change';
+    }
+  }
+  return 'advice';
+}
+
+function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeting_id, $step = 'change') {
+  if (!ammo_mail_enabled($step)) {
+    return TRUE;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type, 'owner', 'branch');
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email);
   $params['differences'] = $differences;
-  $result = drupal_mail('ammo', 'change_message', $sender_email, $language, $params, $sender_email, TRUE);
-  $success = !empty($result['result']);
+  $success = ammo_send_mail($step, 'admin', 'change_message', $sender_email, $params, $sender_email);
   if (!empty($differences)) {
     foreach ($relations as $relation) {
       if (!empty($relation['contact_email'])) {
-        $result = drupal_mail('ammo', 'change_message', $relation['contact_email'], $language, $params, $sender_email, TRUE);
-        $success = !empty($result['result']) && $success;
+        $success = ammo_send_mail($step, 'user', 'change_message', $relation['contact_email'], $params, $sender_email) && $success;
       }
     }
   }
   return $success;
 }
 
-function ammo_withdraw_mail($entity_type, $entity_id, $owner, $meeting_id) {
-  global $language;
+/**
+ * Mails that an owner withdrew: the step is withdraw for the submitter and support_withdraw for a co-submitter.
+ */
+function ammo_withdraw_mail($entity_type, $entity_id, $owner, $meeting_id, $step = 'withdraw') {
+  if (!ammo_mail_enabled($step)) {
+    return;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type);
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $owner);
-  drupal_mail('ammo', 'withdraw_ownership', $sender_email, $language, $params, $sender_email, TRUE);
+  ammo_send_mail($step, 'admin', 'withdraw_ownership', $sender_email, $params, $sender_email);
   if (!empty($owner->contact_email)) {
-    drupal_mail('ammo', 'withdraw_ownership', $owner->contact_email, $language, $params, $sender_email, TRUE);
+    ammo_send_mail($step, 'user', 'withdraw_ownership', $owner->contact_email, $params, $sender_email);
   }
   foreach ($relations as $relation) {
     if (!empty($relation['contact_email'])) {
-      drupal_mail('ammo', 'withdraw_ownership', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+      ammo_send_mail($step, 'user', 'withdraw_ownership', $relation['contact_email'], $params, $sender_email);
     }
   }
 }
 
 function ammo_support_mail($entity_type, $entity_id, $owner, $meeting_id) {
-  global $language;
+  if (!ammo_mail_enabled('support')) {
+    return;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type);
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $owner);
-  drupal_mail('ammo', 'support', $sender_email, $language, $params, $sender_email, TRUE);
+  ammo_send_mail('support', 'admin', 'support', $sender_email, $params, $sender_email);
   foreach ($relations as $relation) {
     if (!empty($relation['contact_email'])) {
-      drupal_mail('ammo', 'support', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+      ammo_send_mail('support', 'user', 'support', $relation['contact_email'], $params, $sender_email);
     }
   }
 }
 
 function ammo_delete_mail($entity_type, $entity_id, $meeting_id, $mail_text) {
-  global $language;
+  if (!ammo_mail_enabled('delete')) {
+    return;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type);
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email);
   $params['mail_text'] = '<p>' . check_plain($mail_text) . '</p>';
-  drupal_mail('ammo', 'delete_message', $sender_email, $language, $params, $sender_email, TRUE);
+  ammo_send_mail('delete', 'admin', 'delete_message', $sender_email, $params, $sender_email);
   foreach ($relations as $relation) {
     if (!empty($relation['contact_email'])) {
-      drupal_mail('ammo', 'delete_message', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+      ammo_send_mail('delete', 'user', 'delete_message', $relation['contact_email'], $params, $sender_email);
     }
   }
 }
 
 function ammo_vote_request_mail($entity_type, $entity_id, $vote_request, $meeting_id) {
-  global $language;
+  if (!ammo_mail_enabled('vote_request')) {
+    return;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type);
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $vote_request);
-  drupal_mail('ammo', 'vote_request', $sender_email, $language, $params, $sender_email, TRUE);
+  ammo_send_mail('vote_request', 'admin', 'vote_request', $sender_email, $params, $sender_email);
   foreach ($relations as $relation) {
     if (!empty($relation['contact_email'])) {
-      drupal_mail('ammo', 'vote_request', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+      ammo_send_mail('vote_request', 'user', 'vote_request', $relation['contact_email'], $params, $sender_email);
     }
   }
 }
 
 function ammo_vote_request_withdraw_mail($entity_type, $entity_id, $vote_request, $meeting_id) {
-  global $language;
+  if (!ammo_mail_enabled('vote_request_withdraw')) {
+    return;
+  }
   $sender_email = ammo_mailadress($meeting_id);
   $relations = ammo_get_related_contacts($entity_id, $entity_type);
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email, $vote_request);
-  drupal_mail('ammo', 'vote_request_withdraw', $sender_email, $language, $params, $sender_email, TRUE);
+  ammo_send_mail('vote_request_withdraw', 'admin', 'vote_request_withdraw', $sender_email, $params, $sender_email);
   if (!empty($vote_request->contact_email)) {
-    drupal_mail('ammo', 'vote_request_withdraw', $vote_request->contact_email, $language, $params, $sender_email, TRUE);
+    ammo_send_mail('vote_request_withdraw', 'user', 'vote_request_withdraw', $vote_request->contact_email, $params, $sender_email);
   }
   foreach ($relations as $relation) {
     if (!empty($relation['contact_email'])) {
-      drupal_mail('ammo', 'vote_request_withdraw', $relation['contact_email'], $language, $params, $sender_email, TRUE);
+      ammo_send_mail('vote_request_withdraw', 'user', 'vote_request_withdraw', $relation['contact_email'], $params, $sender_email);
     }
   }
 }

@@ -9,6 +9,11 @@ status to the next, and what is still possible in each status.
 the proposal; *co-submitters* (*mede-indieners*) are afdelingen that joined it
 later.
 
+The mails described below are sent by default. Users with the permission
+`administer ammo mail settings` can switch each one off at
+`/admin/ammo/mail-settings` (*E-mailinstellingen*), or switch all of them off
+at once.
+
 ## The flow
 
 ```mermaid

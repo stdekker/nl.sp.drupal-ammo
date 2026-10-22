@@ -474,3 +474,20 @@ h4.inline-title {
   flex: 1 1 100%;
   margin: 0;
 }
+
+/* Mail settings: one checkbox column per recipient */
+
+.ammo-mail-settings th,
+.ammo-mail-settings td {
+  vertical-align: top;
+  padding: .4em 1em .4em .5em;
+}
+
+.ammo-mail-settings td.recipient {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ammo-mail-settings td.recipient .form-item {
+  margin: 0;
+}

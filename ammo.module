@@ -248,6 +248,16 @@ function ammo_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
+  $items['admin/ammo/mail-settings'] = array(
+    'title' => 'E-mailinstellingen',
+    'description' => 'Zet de e-mailmeldingen per stap aan of uit',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_mail_settings_form'),
+    'access callback' => 'ammo_mail_settings_access',
+    'file' => 'mail_settings.form.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   $items['admin/ammo/user-section'] = array(
     'title' => 'Indienen / wijzigen',
     'type' => MENU_NORMAL_ITEM,
@@ -374,11 +384,22 @@ function ammo_permission() {
     'view submitted amendments and motions' => array(
       'title' => 'Bekijk ingediende wijzigingsvoorstellen en moties',
     ),
+    'administer ammo mail settings' => array(
+      'title' => 'Beheer ammo e-mailinstellingen',
+      'description' => 'Zet de e-mailmeldingen per stap aan of uit.',
+    ),
   );
 }
 
 function ammo_superadmin_access() {
   return user_access('administer ammo');
+}
+
+/**
+ * Whether the user may switch mail notifications on and off; a permission of its own, apart from the admin rights.
+ */
+function ammo_mail_settings_access() {
+  return user_access('administer ammo mail settings');
 }
 
 function ammo_admin_access() {
@@ -543,6 +564,10 @@ function ammo_theme() {
     'export_meeting_xml' => array(
       'variables' => array(),
       'template' => 'export_meeting_xml',
+    ),
+    'ammo_mail_settings_steps' => array(
+      'render element' => 'element',
+      'file' => 'mail_settings.form.inc',
     ),
   );
   return $theme;
@@ -1237,6 +1262,7 @@ function ammo_admin_overview_page() {
     'admin/ammo/print' => t('Print'),
     // 'admin/ammo/export' => t('Export'), // TEMPORARILY DISABLED
     'admin/ammo/vote-request-settings' => t('Stemmingaanvraag instellingen'),
+    'admin/ammo/mail-settings' => t('E-mailinstellingen'),
     'admin/ammo/user-section' => t('Indienen / wijzigen'),
   );
 

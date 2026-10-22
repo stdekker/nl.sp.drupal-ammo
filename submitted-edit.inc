@@ -160,7 +160,7 @@ function ammo_save_submitted_edit($type, $storage) {
       $differences[$field] = array('fieldname' => $description['name'], 'diff' => ammo_diffline($original->$field, $value));
     }
     // The change mail goes to every owner branch, co-submitters included.
-    if (!ammo_changes_update_mail($type, $saved->id, $differences, $storage['meeting'])) {
+    if (!ammo_changes_update_mail($type, $saved->id, $differences, $storage['meeting'], 'submitted_edit')) {
       drupal_set_message('Het voorstel is opgeslagen, maar niet alle e-mails konden worden verzonden.', 'warning');
     }
   }
