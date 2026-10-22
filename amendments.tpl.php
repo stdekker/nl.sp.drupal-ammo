@@ -1,19 +1,8 @@
 <?php if (!empty($meeting['selected_document']) && empty($meeting['hide'])) : ?>
-  <nav class="chapter-navigation" aria-label="Hoofdstukken bovenaan">
-    <?php print $chapter_navigation; ?>
-  </nav>
   <?php $document = $meeting['documents'][$meeting['selected_document']]; ?>
-  <?php if (!empty($document['amendments'])): ?>
-    <nav class="amendment-navigation" aria-label="Wijzigingsvoorstellen in dit hoofdstuk">
-      <ul class="amendments">
-        <?php foreach ($document['amendments'] as $amendment): ?>
-          <li class="amendment">
-            <a href="#amendment<?php print $amendment['id']; ?>"><?php print $amendment['number']; ?></a>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    </nav>
-  <?php endif; ?>
+  <nav class="amendments-navigation" aria-label="Documenten, hoofdstukken en voorstellen">
+    <?php print $chapter_navigation . $amendment_navigation; ?>
+  </nav>
   <div class="first">
     <?php if ($meeting['admin_access']):
       $states = ammo_states();
@@ -36,8 +25,8 @@
       <?php endforeach; ?>
     </ul>
   </div>
-  <nav class="chapter-navigation" aria-label="Hoofdstukken onderaan">
-    <?php print $bottom_chapter_navigation; ?>
+  <nav class="amendments-navigation" aria-label="Documenten en hoofdstukken onderaan">
+    <?php print $chapter_navigation; ?>
   </nav>
 <?php elseif (empty($meeting['hide'])): ?>
   <p>Er zijn geen wijzigingsvoorstellen beschikbaar.<?php if (!empty($submit_link)) : ?> <?php print $submit_link; ?><?php endif; ?></p>

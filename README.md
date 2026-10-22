@@ -18,7 +18,8 @@ For afdelingen (permission `add amendments and motions`):
   (`/ammo/amendments`, `/ammo/motions`), and a page per proposal
   (`/ammo/amendment/view/ID`, `/ammo/motion/view/ID`).
 - **Mijn afdeling** (`/ammo/afdeling`): what the afdeling submitted and what
-  it co-submitted.
+  it co-submitted, with a download of those proposals as one Word file: the
+  amendments per document, then the motions when the meeting has them.
 - **Change** a submitted proposal, **co-submit** (*mede indienen*) another
   afdeling's proposal, **withdraw**, and **request a vote** (*stemming
   aanvragen*).
@@ -39,6 +40,10 @@ ammo`), under `/admin/ammo`:
   `B.4`).
 - **Status/advies** per proposal, plus managing owners (*indieners*), vote
   requests and deleting.
+- **Status wijzigen** (`/admin/ammo/status`): amendments and motions per
+  document and chapter, with their location, submitter, the start of the
+  text, status, advice and the same actions as on the proposal itself; tick
+  proposals to give them a new status at once.
 - **Print** amendments (by location or number) or motions (by afdeling or
   number) to a Word file.
 - **Stemmingaanvraag instellingen**: the statuses on which a vote can be

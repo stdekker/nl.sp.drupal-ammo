@@ -100,6 +100,13 @@ function ammo_motion_advice() {
   );
 }
 
+/**
+ * Whether the advice of a proposal is shown: not yet while it is Concept or Ingediend.
+ */
+function ammo_state_shows_advice($state) {
+  return !in_array($state, array('concept', 'submitted'), TRUE);
+}
+
 function ammo_get_afdelingen($contact_id) {
   $afdelingen = [];
   if (empty($contact_id)) {

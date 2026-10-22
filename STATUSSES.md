@@ -40,7 +40,9 @@ stateDiagram-v2
 
 Admins can set any status (except Verwijderd) on the **status/advies** form at
 any time until the meeting starts, so the diagram shows the usual route, not
-every possible one.
+every possible one. On **Status wijzigen** (`/admin/ammo/status`) they can give
+several proposals the same status at once; Beoordeeld still needs an advice,
+and each change is mailed as on the status/advies form.
 
 ## The statuses
 
@@ -57,6 +59,11 @@ every possible one.
 
 A meeting can hide statuses and advice from regular users. Concept,
 Ingetrokken and (for amendments) Ongeldig are always shown.
+
+The advice is never shown while a proposal is Concept or Ingediend, to admins
+neither: not on the proposal, in its mails or on Mijn afdeling. The download on
+Mijn afdeling follows the same rules as that page, hidden statuses and advice
+included. The admin print and export still include the status and advice.
 
 ## Step by step
 

@@ -301,6 +301,17 @@ function ammo_amendment_location($amendment, array $locators, $include_grouping 
 }
 
 /**
+ * Short location of an amendment in a table: "2 / 14 / 220" for legacy documents, otherwise the full location.
+ */
+function ammo_amendment_location_short($amendment, $document) {
+  $locators = ammo_document_locators($document);
+  if (ammo_document_is_legacy(is_object($document) ? $document : entity_load_single('document', $document))) {
+    return implode(' / ', array_filter(ammo_amendment_locator_values($amendment, $locators), 'strlen'));
+  }
+  return ammo_amendment_location($amendment, $locators);
+}
+
+/**
  * Compare two values of one locator; empty values sort first.
  */
 function ammo_compare_locator_values($type, $a, $b) {

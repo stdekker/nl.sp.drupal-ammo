@@ -48,7 +48,7 @@ $is_collapsed = $is_withdrawn || $state === 'invalid';
 ?>
 <?php endif; ?>
 
-<?php $show_advice = !$hide_advice || ($admin_access && empty($mail)); ?>
+<?php $show_advice = (!$hide_advice || ($admin_access && empty($mail))) && ammo_state_shows_advice($state); ?>
 <?php if (!empty($advice) && $show_advice): ?>
 <h4>Advies:</h4>
 <p>
@@ -76,45 +76,12 @@ if (!empty($vote_requests) && is_array($vote_requests) && count($vote_requests) 
 }
 ?>
 
-<?php if (empty($no_links)): ?>
-<?php $dest = (!empty($destination) ? $destination : ammo_get_destination()); ?>
+<?php if (empty($no_links) && !empty($actions)): ?>
 <ul class="ammo-list">
-  <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
-    <?php if ($edit_access): ?>
-      <li>Bewerken:</li>
-      <li><?php print l('voorstel wijzigen', 'ammo/amendment/edit/' . $entity_id, array('query' => $dest)); ?></li>
-    <?php endif; ?>
-    <?php if (($admin_access && $advice_access) || $superadmin_access): ?>
-      <li><?php print l('status/advies', 'ammo/amendment/advice/' . $entity_id, array('query' => $dest)); ?></li>
-    <?php endif; ?>
-    <?php if ($admin_access): ?>
-      <li><?php print l('indieners', 'ammo/amendment/ownership/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php if ($state !== 'spelling_grammar'): ?>
-        <li><?php print l('stemming', 'ammo/amendment/vote-request/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-    <?php endif; ?>
-  <?php endif; ?>
-  <?php if (!empty($owners_branch) || !empty($owners_member)): ?>
-    <?php if ($withdraw_access && $state !== 'withdrawn' && $state !== 'spelling_grammar'): ?>
-      <?php if ($unsupported_branches && ammo_can_co_submit($state)): ?>
-        <li><?php print l('mede indienen', 'ammo/support/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-      <?php if ($supported_branches && !$withdraw_locked && (empty($vote_requests) || !is_array($vote_requests) || count($vote_requests) == 0)): ?>
-        <li><?php print l('voorstel / steun intrekken', 'ammo/support/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-      <?php if ($removable_member_owners && !$withdraw_locked): ?>
-        <li><?php print l('intrekken individuele indieners', 'ammo/support/withdraw/branchmembers/amendment/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-    <?php endif; ?>
-    <?php if ($vote_request_access): ?>
-      <?php if ($vote_unrequested_branches): ?>
-        <li><?php print l('stemming aanvragen', 'ammo/vote_request/add/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-      <?php if ($vote_requested_branches): ?>
-        <li><?php print l('stemming intrekken', 'ammo/vote_request/withdraw/branch/amendment/' . $entity_id, array('query' => $dest)); ?></li>
-      <?php endif; ?>
-    <?php endif; ?>
-  <?php endif; ?>
+  <li>Bewerken:</li>
+  <?php foreach ($actions as $action): ?>
+    <li><?php print l($action['title'], $action['href'], $action); ?></li>
+  <?php endforeach; ?>
 </ul>
 <?php endif; ?>
 

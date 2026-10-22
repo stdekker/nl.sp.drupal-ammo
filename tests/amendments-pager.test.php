@@ -34,6 +34,10 @@ try {
   ammo_pager_assert(array_keys($document['amendments']) === array((int) $ids[2]), 'Only selected chapter records loaded');
   ammo_pager_assert(!isset($page['meeting']['documents'][$second->id]['amendments']), 'Other document records not loaded');
   ammo_pager_assert(array_sum($document['totals']) == 4, 'Totals cover entire document');
+  $navigation = $page['chapter_navigation'];
+  ammo_pager_assert(strpos($navigation, '<span class="navigation-label">Document:</span>') !== FALSE && strpos($navigation, '<span class="navigation-label">Hoofdstuk:</span>') !== FALSE && strpos($page['amendment_navigation'], '<span class="navigation-label">Voorstel:</span>') !== FALSE, 'Document, Hoofdstuk and Voorstel rows');
+  ammo_pager_assert(preg_match('/<a [^>]*document=' . $first->id . '"[^>]*aria-current="page"/', $navigation) && !preg_match('/<a [^>]*document=' . $second->id . '"[^>]*aria-current/', $navigation), 'A link per document, the selected one current');
+  ammo_pager_assert(substr_count($navigation, 'chapter=') === 4 && strpos($navigation, 'document=' . $second->id . '&amp;chapter') === FALSE && strpos($page['amendment_navigation'], '#amendment' . $ids[2]) !== FALSE, 'Only the selected document has chapter links, and the chapter its amendment links');
   ammo_pager_assert(count($document['chapters']) == 4, 'Admin sees all chapters');
   $_GET = array('document' => $first->id, 'chapter' => 2);
   $variables = array('meeting_id' => $meeting->id);

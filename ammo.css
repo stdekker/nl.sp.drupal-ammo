@@ -160,76 +160,61 @@ h4.inline-title {
   font-size: .72em;
 }
 
-.page-ammo-amendments ul.tab {
-	list-style-type: none;
-	margin: 0;
-	padding: 0;
-	overflow: hidden;
-	border: 1px solid #ccc;
-	background-color: #f1f1f1;
+/* Amendments navigation: rows of plain text links (Document, Hoofdstuk,
+   Voorstel), separated by a grey bar that meets WCAG AA contrast on white. */
+.page-ammo-amendments .amendments-navigation {
+  margin-block: 1.5em;
+  padding: .75em 1em .35em;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
-/* Float the list items side by side */
-.page-ammo-amendments ul.tab li {
-  float: left;
+.page-ammo-amendments .navigation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 .5em;
+  margin-bottom: .4em;
 }
 
-.page-ammo-amendments .chapters li.chapter {
-  padding-bottom: 0px;
-  border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-  margin-bottom: -1px;
-}
-
-.page-ammo-amendments ul.tab li a,
-.page-ammo-amendments ul.tab li span {
-    display: inline-block;
-    color: black;
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
-    transition: 0.3s;
-    font-size: 17px;
-}
-
-/* Change background color of links on hover */
-.page-ammo-amendments ul.tab li a:hover {background-color: #ddd;}
-
-/* Keep the selected chapter clear on both navigation bars. */
-.page-ammo-amendments .chapter-navigation ul.tab li a[aria-current="page"] {
-  background-color: #222;
-  color: #fff;
+.page-ammo-amendments .navigation-label {
+  min-width: 6.5em;
   font-weight: bold;
 }
 
-.page-ammo-amendments .chapter-navigation {
-  margin-block: 1.5em;
-}
-
-.page-ammo-amendments .amendment-navigation .amendments {
+.page-ammo-amendments .primary-content .navigation-row ul,
+.page-ammo-amendments .navigation-row ul {
   display: flex;
   flex-wrap: wrap;
-  gap: .5em;
-  list-style: none;
-  margin: -1em 0 1.5em;
+  flex: 1;
+  margin: 0;
   padding: 0;
+  list-style: none;
 }
 
-.page-ammo-amendments .amendment-navigation .amendment {
+.page-ammo-amendments .navigation-row li {
   margin: 0;
 }
 
-.page-ammo-amendments .amendment-navigation a {
-  display: block;
-  background: #eee;
-  padding: .6em .8em;
+.page-ammo-amendments .navigation-row li + li::before {
+  content: "|";
+  content: "|" / "";
+  padding: 0 .5em;
+  color: #767676;
+}
+
+.page-ammo-amendments .navigation-row a {
   text-decoration: none;
 }
 
-.page-ammo-amendments .amendment-navigation a:hover,
-.page-ammo-amendments .amendment-navigation a:focus {
-  background: #222;
-  color: #fff;
+.page-ammo-amendments .navigation-row a:hover,
+.page-ammo-amendments .navigation-row a:focus {
+  text-decoration: underline;
+}
+
+.page-ammo-amendments .navigation-row a[aria-current="page"] {
+  color: inherit;
+  font-weight: bold;
 }
 
 .page-ammo td {
@@ -302,6 +287,14 @@ h4.inline-title {
 	margin-bottom: 4px;
 	font-weight: 600;
 	color: #757575;
+}
+
+/* A light line between the content of a proposal and its Bewerken links,
+   on the overviews and the proposal page. */
+.ammo-element ul.ammo-list {
+  border-top: 1px solid #e6e6e6;
+  padding-top: .75em;
+  margin-top: 1em;
 }
 
 .ammo-section-content .button-group {
@@ -490,4 +483,96 @@ h4.inline-title {
 
 .ammo-mail-settings td.recipient .form-item {
   margin: 0;
+}
+
+/* Status overview: filters and the bulk status change above the table */
+
+.ammo-status-overview .ammo-status-filters,
+.ammo-status-overview .ammo-status-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .5em 1.5em;
+  margin-bottom: 1em;
+}
+
+.ammo-status-overview .ammo-status-filters .form-item,
+.ammo-status-overview .ammo-status-bulk .form-item {
+  margin: 0;
+}
+
+.ammo-status-overview table {
+  width: 100%;
+}
+
+.ammo-status-overview th,
+.ammo-status-overview td {
+  text-align: left;
+  vertical-align: top;
+  padding: .3em 1em .3em .5em;
+}
+
+.ammo-status-overview th {
+  background: #eee;
+  color: #333;
+}
+
+.ammo-status-overview tr.withdrawn,
+.ammo-status-overview tr.invalid,
+.ammo-status-overview tr.blocked {
+  color: #767676;
+}
+
+/* The actions dropbutton keeps its place in the row and opens over the rows below. */
+.ammo-status-overview .ammo-status-actions {
+  position: relative;
+  min-width: 12em;
+  min-height: 1.9em;
+}
+
+.ammo-status-overview .ammo-status-actions .ctools-button-processed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-color: #ccc;
+  border-radius: 4px;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.ammo-status-overview .ammo-status-actions .ctools-button-processed:hover,
+.ammo-status-overview .ammo-status-actions .ctools-dropbutton-processed.open {
+  border-color: #999;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+}
+
+.ammo-status-overview .ammo-status-actions .ctools-content li {
+  margin: 0;
+}
+
+.ammo-status-overview .ammo-status-actions .ctools-content a {
+  padding: .2em .8em;
+  text-decoration: none;
+}
+
+.ammo-status-overview .ammo-status-actions .ctools-content a:hover,
+.ammo-status-overview .ammo-status-actions .ctools-content a:focus {
+  background: #eee;
+}
+
+.ammo-item-dates {
+  color: #767676;
+  font-size: .9em;
+}
+
+/* Download links above Mijn afdeling. */
+ul.branch-overview-downloads {
+  margin: 0 0 1em;
+  padding: 0;
+}
+
+ul.branch-overview-downloads li {
+  display: inline-block;
+  margin-right: 1.5em;
+  padding: 0;
 }

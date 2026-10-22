@@ -32,7 +32,7 @@ if (!empty($document_title)): ?>
   <h2><?php print $document_title; ?></h2>
 <?php endif; ?>
 <?php foreach ($meeting['documents'] as $document) : ?>
-  <?php foreach ($document['chapters'] as $chapter) : ?>
+  <?php foreach (isset($document['chapters']) ? $document['chapters'] : array() as $chapter) : ?>
       <?php foreach ($chapter['amendments'] as $amendment) : ?>
         <h3><?php print $amendment['number']; ?></h3>
         <p><strong><?php print $amendment['location']; ?></strong></p>

@@ -54,8 +54,23 @@ try {
   ammo_assessed_advice_assert(isset(form_get_errors()['advice']) && entity_load_single('amendment', $amendment->id)->state === 'submitted', 'Form refuses Beoordeeld without advice and saves nothing');
   drupal_get_messages();
 
+  // Advice stays hidden while a proposal is Concept or Ingediend, also for admins.
+  ammo_assessed_advice_assert(!ammo_state_shows_advice('concept') && !ammo_state_shows_advice('submitted') && ammo_state_shows_advice('changed') && ammo_state_shows_advice('assessed'), 'Advice is shown from Gewijzigd on');
+  $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 1, 'consideration_body' => 'Overweging', 'state' => 'submitted', 'advice' => 'reject', 'advice_supplement' => 'Advies toelichting'));
+  ammo_save_entity('amendment', array('advice' => 'reject', 'advice_supplement' => 'Advies toelichting'), $amendment->id);
+  foreach (array('amendment' => $amendment->id, 'motion' => $motion->id) as $type => $id) {
+    foreach (array('concept' => FALSE, 'submitted' => FALSE, 'changed' => TRUE, 'assessed' => TRUE) as $state => $shown) {
+      ammo_save_entity($type, array('state' => $state), $id);
+      entity_get_controller($type)->resetCache();
+      $markup = theme($type, array('entity_id' => $id, 'no_links' => TRUE));
+      ammo_assessed_advice_assert((strpos($markup, 'Advies:') !== FALSE) === $shown && (strpos($markup, 'Advies toelichting') !== FALSE) === $shown, $type . ': advice ' . ($shown ? 'shown' : 'hidden') . ' when ' . $state);
+    }
+  }
+  module_load_include('inc', 'ammo', 'branch-overview');
+  ammo_assessed_advice_assert(ammo_branch_overview_advice_label('amendment', 'reject', $meeting, 'submitted') === '' && ammo_branch_overview_advice_label('amendment', 'reject', $meeting, 'assessed') === 'Afwijzen', 'Mijn afdeling hides the advice while Ingediend');
+
   $transaction->rollback();
-  print "PASS: Beoordeeld requires an advice on the amendment and motion status/advies steps; other statuses and the saved item unaffected. Fixtures rolled back.\n";
+  print "PASS: Beoordeeld requires an advice on the amendment and motion status/advies steps; other statuses and the saved item unaffected; advice hidden while Concept or Ingediend. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

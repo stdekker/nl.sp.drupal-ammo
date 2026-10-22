@@ -106,23 +106,41 @@ function ammo_amendments_page($meeting_id, array $selection) {
   }
   unset($amendment);
   $meeting['documents'][$document_id]['amendments'] = $amendments;
-  $navigation = '';
-  $bottom_navigation = '';
+  // Each row is a label and links; the current document and chapter decide the rows below them.
+  $items = array();
   foreach ($meeting['documents'] as $document) {
-    $title = $document['title'];
-    // The page title is the h1.
-    $heading = $document['id'] == $document_id ? 'h2' : 'h3';
-    $grouping = $groupings[$document['id']];
-    $links = '<ul class="chapters tab"><li class="chapter"><span>' . check_plain($grouping['label']) . ':</span></li>';
-    foreach ($document['chapters'] as $number) {
-      $options = array('query' => array('document' => $document['id'], 'chapter' => $number));
-      if ($document['id'] == $document_id && $number == $chapter) {
-        $options['attributes'] = array('class' => array('active'), 'aria-current' => 'page');
-      }
-      $links .= '<li class="chapter">' . l(!$number && !empty($grouping['legacy']) ? 'Zonder ' . ammo_locator_inline_label($grouping) : $number, 'ammo/amendments/' . $meeting_id, $options) . '</li>';
-    }
-    $navigation .= '<div class="document"><' . $heading . '>' . $title . '</' . $heading . '>' . $links . '</ul></div>';
-    $bottom_navigation .= '<div class="document"><span class="document-name">' . $title . '</span>' . $links . '</ul></div>';
+    $items[] = ammo_amendments_navigation_link($document['title'], $meeting_id, array('document' => $document['id']), $document['id'] == $document_id);
   }
-  return array('meeting' => $meeting, 'chapter_navigation' => $navigation, 'bottom_chapter_navigation' => $bottom_navigation);
+  $navigation = ammo_amendments_navigation_row('Document', 'documents', $items);
+  $grouping = $groupings[$document_id];
+  $items = array();
+  foreach ($meeting['documents'][$document_id]['chapters'] as $number) {
+    $title = !$number && !empty($grouping['legacy']) ? 'Zonder ' . ammo_locator_inline_label($grouping) : check_plain($number);
+    $items[] = ammo_amendments_navigation_link($title, $meeting_id, array('document' => $document_id, 'chapter' => $number), $number == $chapter);
+  }
+  $navigation .= ammo_amendments_navigation_row(check_plain($grouping['label']), 'chapters', $items);
+  $items = array();
+  foreach ($amendments as $amendment) {
+    $items[] = '<a href="#amendment' . $amendment['id'] . '">' . $amendment['number'] . '</a>';
+  }
+  $amendment_navigation = $items ? ammo_amendments_navigation_row('Voorstel', 'amendments', $items) : '';
+  return array('meeting' => $meeting, 'chapter_navigation' => $navigation, 'amendment_navigation' => $amendment_navigation);
+}
+
+/**
+ * Link in the amendments navigation; the current one is marked for screen readers and styling.
+ */
+function ammo_amendments_navigation_link($title, $meeting_id, array $query, $current) {
+  $options = array('query' => $query, 'html' => TRUE);
+  if ($current) {
+    $options['attributes'] = array('aria-current' => 'page');
+  }
+  return l($title, 'ammo/amendments/' . $meeting_id, $options);
+}
+
+/**
+ * One row of the amendments navigation: a label followed by its links.
+ */
+function ammo_amendments_navigation_row($label, $class, array $items) {
+  return '<div class="navigation-row ' . $class . '"><span class="navigation-label">' . $label . ':</span><ul><li>' . implode('</li><li>', $items) . '</li></ul></div>';
 }

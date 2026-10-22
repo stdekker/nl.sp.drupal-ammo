@@ -122,6 +122,21 @@ function ammo_item_view_page($type, $id) {
     '#attached' => array('js' => array(drupal_get_path('module', 'ammo') . '/ammo.js')),
     'context' => array('#markup' => '<p class="ammo-item-context">' . $context . '</p>'),
     'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id, 'show_heading' => FALSE)) . '</li></ul>'),
+    'dates' => array('#markup' => ammo_item_view_dates($item)),
     'back' => array('#markup' => '<p class="ammo-item-back">' . $back . '</p>'),
   );
+}
+
+/**
+ * When the item was created and last changed, below the item; parts that are not known are left out.
+ */
+function ammo_item_view_dates($item) {
+  $dates = array();
+  if ($created = ammo_item_date($item, 'created')) {
+    $dates[] = 'Aangemaakt op ' . $created;
+  }
+  if ($changed = ammo_item_date($item, 'changed')) {
+    $dates[] = 'laatst gewijzigd op ' . $changed;
+  }
+  return $dates ? '<p class="ammo-item-dates">' . ucfirst(implode(', ', $dates)) . '</p>' : '';
 }

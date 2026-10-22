@@ -83,6 +83,16 @@ try {
   ammo_item_view_assert(strpos($markup, 'ammo/support/add/branch/amendment/' . $ids['foreign'] . '?destination=ammo/amendment/view/' . $ids['foreign']) !== FALSE, 'Actions return to the item page');
   ammo_item_view_assert(strpos($markup, 'ammo/amendments/' . $meeting->id . '?document=' . $document->id . '&amp;chapter=2#amendment' . $ids['foreign']) !== FALSE, 'Back link targets document, chapter and anchor');
   ammo_item_view_assert(strpos(implode(' ', array_keys(drupal_add_js())), 'ammo.js') !== FALSE, 'Script for collapsed details attached');
+  $now = format_date(REQUEST_TIME, 'custom', 'j F Y, H:i');
+  ammo_item_view_assert(strpos($markup, '<p class="ammo-item-dates">Aangemaakt op ' . $now . ', laatst gewijzigd op ' . $now . '</p>') > strpos($markup, 'Tekst foreign'), 'The creation and last change dates are shown below the item');
+  db_update('ammo_amendments')->fields(array('created' => NULL))->condition('id', $ids['foreign'])->execute();
+  entity_get_controller('amendment')->resetCache();
+  $page = ammo_item_view_page('amendment', $ids['foreign']);
+  ammo_item_view_assert(strpos(drupal_render($page), '<p class="ammo-item-dates">Laatst gewijzigd op ' . $now . '</p>') !== FALSE, 'An unknown creation date is left out');
+  db_update('ammo_amendments')->fields(array('changed' => NULL))->condition('id', $ids['foreign'])->execute();
+  entity_get_controller('amendment')->resetCache();
+  $page = ammo_item_view_page('amendment', $ids['foreign']);
+  ammo_item_view_assert(strpos(drupal_render($page), 'ammo-item-dates') === FALSE, 'No dates for items from before the updates');
   $page = ammo_item_view_page('amendment', $ids['withdrawn']);
   ammo_item_view_assert(strpos(drupal_render($page), 'class="amendment-details-toggle"') !== FALSE, 'Withdrawn item keeps its details toggle');
   $page = ammo_item_view_page('amendment', $ids['own_draft']);

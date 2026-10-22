@@ -123,6 +123,15 @@ function ammo_menu() {
     'weight' => 2,
   );
 
+  $items['ammo/afdeling/%/download'] = array(
+    'title' => 'Mijn afdeling downloaden',
+    'page callback' => 'ammo_branch_overview_download',
+    'page arguments' => array(2),
+    'file' => 'branch-overview.inc',
+    'type' => MENU_CALLBACK,
+    'access callback' => 'ammo_add_access',
+  );
+
   $items['admin/ammo'] = array(
     'title' => 'Ammo',
     'description' => 'Ammo admin',
@@ -245,6 +254,16 @@ function ammo_menu() {
     'page arguments' => array('ammo_vote_request_settings_form'),
     'access callback' => 'ammo_superadmin_access',
     'file' => 'vote_request_settings.form.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/ammo/status'] = array(
+    'title' => 'Status wijzigen',
+    'description' => 'Wijzig de status van meerdere voorstellen tegelijk',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ammo_status_overview_form'),
+    'access callback' => 'ammo_admin_access',
+    'file' => 'status-overview.form.inc',
     'type' => MENU_NORMAL_ITEM,
   );
 
@@ -431,6 +450,90 @@ function ammo_show_motions_access() {
  */
 function ammo_item_view_path($type, $id) {
   return 'ammo/' . $type . '/view/' . $id;
+}
+
+/**
+ * The action links of an amendment or motion for the current user, as theme('links') items, from the variables of its template_preprocess_*().
+ */
+function ammo_item_action_links($type, array $v) {
+  $id = $v['entity_id'];
+  $options = array('query' => !empty($v['destination']) ? $v['destination'] : ammo_get_destination());
+  $owned = !empty($v['owners_branch']) || !empty($v['owners_member']);
+  $no_vote_requests = empty($v['vote_requests']) || !is_array($v['vote_requests']);
+  $links = array();
+  if ($type === 'amendment') {
+    if ($owned) {
+      if ($v['edit_access']) {
+        $links[] = array('title' => 'voorstel wijzigen', 'href' => 'ammo/amendment/edit/' . $id) + $options;
+      }
+      if (($v['admin_access'] && $v['advice_access']) || $v['superadmin_access']) {
+        $links[] = array('title' => 'status/advies', 'href' => 'ammo/amendment/advice/' . $id) + $options;
+      }
+      if ($v['admin_access']) {
+        $links[] = array('title' => 'indieners', 'href' => 'ammo/amendment/ownership/' . $id) + $options;
+        if ($v['state'] !== 'spelling_grammar') {
+          $links[] = array('title' => 'stemming', 'href' => 'ammo/amendment/vote-request/' . $id) + $options;
+        }
+      }
+      if ($v['withdraw_access'] && $v['state'] !== 'withdrawn' && $v['state'] !== 'spelling_grammar') {
+        if ($v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
+          $links[] = array('title' => 'mede indienen', 'href' => 'ammo/support/add/branch/amendment/' . $id) + $options;
+        }
+        if ($v['supported_branches'] && !$v['withdraw_locked'] && $no_vote_requests) {
+          $links[] = array('title' => 'voorstel / steun intrekken', 'href' => 'ammo/support/withdraw/branch/amendment/' . $id) + $options;
+        }
+        if ($v['removable_member_owners'] && !$v['withdraw_locked']) {
+          $links[] = array('title' => 'intrekken individuele indieners', 'href' => 'ammo/support/withdraw/branchmembers/amendment/' . $id) + $options;
+        }
+      }
+      if ($v['vote_request_access']) {
+        if ($v['vote_unrequested_branches']) {
+          $links[] = array('title' => 'stemming aanvragen', 'href' => 'ammo/vote_request/add/branch/amendment/' . $id) + $options;
+        }
+        if ($v['vote_requested_branches']) {
+          $links[] = array('title' => 'stemming intrekken', 'href' => 'ammo/vote_request/withdraw/branch/amendment/' . $id) + $options;
+        }
+      }
+    }
+    return $links;
+  }
+  if ($owned || $v['admin_access'] || $v['superadmin_access']) {
+    if ($v['edit_access'] || $v['admin_access']) {
+      $links[] = array('title' => 'motie wijzigen', 'href' => 'ammo/motion/edit/' . $id) + $options;
+    }
+    if (($v['admin_access'] && $v['advice_access']) || $v['superadmin_access']) {
+      $links[] = array('title' => 'status/advies', 'href' => 'ammo/motion/advice/' . $id) + $options;
+    }
+    if ($v['admin_access']) {
+      $links[] = array('title' => 'indieners', 'href' => 'ammo/motion/ownership/' . $id) + $options;
+      $links[] = array('title' => 'stemming', 'href' => 'ammo/motion/vote-request/' . $id) + $options;
+    }
+    if ($v['superadmin_access']) {
+      $links[] = array('title' => 'verwijderen', 'href' => 'ammo/motion/delete/' . $id) + $options;
+    }
+  }
+  if ($owned) {
+    if (($v['withdraw_access'] && $v['state'] !== 'withdrawn' && !$v['rejected'] && $v['state'] !== 'spelling_grammar') || $v['admin_access']) {
+      if ($v['unsupported_branches'] && ammo_can_co_submit($v['state'])) {
+        $links[] = array('title' => 'mede indienen als afdeling', 'href' => 'ammo/support/add/branch/motion/' . $id) + $options;
+      }
+      if ($v['supported_branches'] && !$v['withdraw_locked'] && $no_vote_requests) {
+        $links[] = array('title' => 'intrekken als afdeling', 'href' => 'ammo/support/withdraw/branch/motion/' . $id) + $options;
+      }
+      if ($v['removable_member_owners'] && !$v['withdraw_locked']) {
+        $links[] = array('title' => 'intrekken individuele indieners', 'href' => 'ammo/support/withdraw/branchmembers/motion/' . $id) + $options;
+      }
+    }
+    if ($v['vote_request_access'] || $v['admin_access']) {
+      if ($v['vote_unrequested_branches']) {
+        $links[] = array('title' => 'stemming aanvragen als afdeling', 'href' => 'ammo/vote_request/add/branch/motion/' . $id) + $options;
+      }
+      if ($v['vote_requested_branches']) {
+        $links[] = array('title' => 'stemming aanvraag intrekken als afdeling', 'href' => 'ammo/vote_request/withdraw/branch/motion/' . $id) + $options;
+      }
+    }
+  }
+  return $links;
 }
 
 /**
@@ -689,6 +792,7 @@ function template_preprocess_amendment(&$variables) {
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
+    $variables['actions'] = empty($variables['no_links']) ? ammo_item_action_links('amendment', $variables) : array();
   }
 }
 
@@ -802,6 +906,7 @@ function template_preprocess_motion(&$variables) {
       $value = ammo_sanitize_text($value);
     }
     $variables = $variables + $vars;
+    $variables['actions'] = empty($variables['no_links']) ? ammo_item_action_links('motion', $variables) : array();
   }
 }
 
@@ -1178,6 +1283,26 @@ function _ammo_preprocess_meeting_data($meeting_id) {
 /**
  * Implements hook_entity_info().
  */
+/**
+ * Implements hook_entity_presave(): an amendment or motion records when it was created and last saved.
+ */
+function ammo_entity_presave($entity, $type) {
+  if ($type === 'amendment' || $type === 'motion') {
+    if (!empty($entity->is_new) || empty($entity->id)) {
+      $entity->created = REQUEST_TIME;
+    }
+    $entity->changed = REQUEST_TIME;
+  }
+}
+
+/**
+ * The created or changed date of an amendment or motion, or an empty string when it is not known.
+ */
+function ammo_item_date($item, $field) {
+  $item = (object) $item;
+  return empty($item->$field) ? '' : format_date($item->$field, 'custom', 'j F Y, H:i');
+}
+
 function ammo_entity_info() {
   $info = array();
 
@@ -1259,6 +1384,7 @@ function ammo_admin_overview_page() {
   $other_links = array(
     'admin/ammo/meeting' => t('Bijeenkomsten'),
     'admin/ammo/document' => t('Documenten'),
+    'admin/ammo/status' => t('Status wijzigen'),
     'admin/ammo/print' => t('Print'),
     // 'admin/ammo/export' => t('Export'), // TEMPORARILY DISABLED
     'admin/ammo/vote-request-settings' => t('Stemmingaanvraag instellingen'),

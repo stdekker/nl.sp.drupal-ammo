@@ -144,11 +144,6 @@ function ammo_print_form_submit($form, &$form_state) {
   // Build filename
   $filename = 'ammo-' . $sanitized_meeting_name . '-' . $content_type . '-' . $date_time . '.docx';
   
-  header('Content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-  header('Content-Disposition: attachement; filename="' . $filename . '";');
-  // open the "output" stream
-  $f = fopen('php://output', 'w');
-
   switch ($form_state['values']['type']) {
   case 'amendments':
     switch ($form_state['values']['amendments_order']) {
@@ -172,9 +167,18 @@ function ammo_print_form_submit($form, &$form_state) {
     break;
   }
 
+  ammo_print_download($filename, $content);
+}
+
+/**
+ * Sends a print template's output as a Word file and ends the request.
+ */
+function ammo_print_download($filename, $content) {
+  header('Content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  header('Content-Disposition: attachement; filename="' . $filename . '";');
   // UTF-8 encoding is now fully supported by modern Word versions
   // No longer converting to ISO as it causes issues with emoji and special characters
-
+  $f = fopen('php://output', 'w');
   fputs($f, $content);
   fclose($f);
   drupal_exit();

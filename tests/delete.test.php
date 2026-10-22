@@ -28,6 +28,9 @@ $previous_get = $_GET;
 $conf['mail_system'] = array('default-system' => 'TestingMailSystem', 'ammo' => 'TestingMailSystem');
 $transaction = db_transaction();
 try {
+  // Mail as with default settings, whatever the site has switched off.
+  variable_del('ammo_mail_enabled');
+  variable_del('ammo_mail_steps');
   $user = user_save(NULL, array('name' => 'ammo-delete-test-' . uniqid(), 'mail' => 'ammo-test@example.invalid', 'status' => 1));
   $permissions = &drupal_static('user_access');
   $permissions[$user->uid] = array('administer amendments and motions' => TRUE, 'add amendments and motions' => TRUE);

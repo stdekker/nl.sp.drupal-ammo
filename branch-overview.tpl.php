@@ -3,6 +3,9 @@
 <?php elseif (empty($branches)) : ?>
   <p>Er is geen afdeling aan uw account gekoppeld.</p>
 <?php else : ?>
+  <?php if (!empty($downloads)) : ?>
+    <?php print theme('links', array('links' => $downloads, 'attributes' => array('class' => array('branch-overview-downloads')))); ?>
+  <?php endif; ?>
   <?php foreach ($branches as $branch) : ?>
     <?php foreach ($branch as $part => $content) : ?>
       <section class="branch-overview <?php print drupal_html_class($part); ?>">
