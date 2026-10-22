@@ -79,9 +79,10 @@ try {
   $page = ammo_item_view_page('amendment', $ids['foreign']);
   $markup = drupal_render($page);
   ammo_item_view_assert(strpos(drupal_get_title(), 'Voorstel 2.1') === 0, 'Page title carries the amendment heading');
-  ammo_item_view_assert(strpos($markup, 'Item view test: Item view document') !== FALSE && strpos($markup, '<h3') === FALSE && strpos($markup, 'Tekst foreign') !== FALSE, 'Page shows meeting, document and the item without its heading');
+  ammo_item_view_assert(strpos($markup, '<h4>Bijeenkomst:</h4>') < strpos($markup, '<h4>Document:</h4>') && strpos($markup, '<h4>Document:</h4>') < strpos($markup, 'Tekst foreign') && strpos($markup, '<p>Item view test</p>') !== FALSE && strpos($markup, '<p>Item view document</p>') !== FALSE && strpos($markup, 'ammo-item-context') === FALSE && strpos($markup, '<h3') === FALSE, 'Meeting and document are the first properties of the item, which has no heading');
   ammo_item_view_assert(strpos($markup, 'ammo/support/add/branch/amendment/' . $ids['foreign'] . '?destination=ammo/amendment/view/' . $ids['foreign']) !== FALSE, 'Actions return to the item page');
   ammo_item_view_assert(strpos($markup, 'ammo/amendments/' . $meeting->id . '?document=' . $document->id . '&amp;chapter=2#amendment' . $ids['foreign']) !== FALSE, 'Back link targets document, chapter and anchor');
+  ammo_item_view_assert(preg_match('#<nav class="ammo-item-back" aria-label="Terug naar"><span class="ammo-item-back-label">Terug naar:</span><ul><li><a href="[^"]*ammo/amendments/[^"]*">Alle voorstellen</a></li><li><a href="[^"]*ammo/afdeling/' . $meeting->id . '">Mijn afdeling</a></li></ul></nav>#', $markup), 'Back links to all proposals and to Mijn afdeling');
   ammo_item_view_assert(strpos(implode(' ', array_keys(drupal_add_js())), 'ammo.js') !== FALSE, 'Script for collapsed details attached');
   $now = format_date(REQUEST_TIME, 'custom', 'j F Y, H:i');
   ammo_item_view_assert(strpos($markup, '<p class="ammo-item-dates">Aangemaakt op ' . $now . ', laatst gewijzigd op ' . $now . '</p>') > strpos($markup, 'Tekst foreign'), 'The creation and last change dates are shown below the item');
@@ -98,9 +99,14 @@ try {
   $page = ammo_item_view_page('amendment', $ids['own_draft']);
   $markup = drupal_render($page);
   ammo_item_view_assert(strpos($markup, 'ammo/afdeling/' . $meeting->id) !== FALSE && strpos($markup, 'ammo/amendment/edit/' . $ids['own_draft']) !== FALSE, 'Draft links back to the branch overview and to its form');
+  ammo_item_view_assert(strpos($markup, '>Alle voorstellen</a>') === FALSE && strpos($markup, '>Mijn afdeling</a>') !== FALSE, 'Draft only links back to Mijn afdeling');
   $page = ammo_item_view_page('motion', $motion->id);
   $markup = drupal_render($page);
-  ammo_item_view_assert(drupal_get_title() === 'Motie 7' && strpos($markup, 'ammo/motions/' . $meeting->id . '#motion' . $motion->id) !== FALSE, 'Motion page has title and back link');
+  ammo_item_view_assert(drupal_get_title() === 'Motie 7' && strpos($markup, 'ammo/motions/' . $meeting->id . '#motion' . $motion->id) !== FALSE && strpos($markup, '<p>Item view test</p>') !== FALSE && strpos($markup, '<h4>Document:</h4>') === FALSE, 'Motion page has title, back link and its meeting without a document');
+  $user = $viewer;
+  $page = ammo_item_view_page('motion', $motion->id);
+  $markup = drupal_render($page);
+  ammo_item_view_assert(strpos($markup, '>Alle voorstellen</a>') !== FALSE && strpos($markup, '>Mijn afdeling</a>') === FALSE, 'Viewer without Mijn afdeling only links back to all proposals');
 
   $params = array('reply_to' => 'ammo-test@example.invalid', 'entity_type' => 'amendment', 'entity_id' => $ids['foreign'], 'id' => '2.1', 'meeting_id' => $meeting->id, 'document_title' => 'Item view document', 'markup' => '', 'first_owner' => 'Indiener', 'differences' => array());
   foreach (array('change_message' => array('foreign')) as $key => $linked) {

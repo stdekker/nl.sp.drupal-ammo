@@ -13,6 +13,15 @@ $is_withdrawn = ($state === 'withdrawn' || $rejected);
 </h3>
 <?php endif; ?>
 
+<?php if (!empty($properties)): ?>
+<div class="ammo-properties">
+  <?php foreach ($properties as $label => $value): ?>
+    <h4><?php print $label; ?>:</h4>
+    <div class="ammo-section-content"><p><?php print $value; ?></p></div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <?php if ($is_withdrawn): ?>
 <a href="#" class="withdrawn-toggle" data-target="motion-content-<?php print $entity_id; ?>">[Toon details]</a>
 <div id="motion-content-<?php print $entity_id; ?>" class="motion-content-collapsed" style="display: none;">

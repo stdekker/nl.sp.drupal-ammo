@@ -13,6 +13,15 @@ $is_collapsed = $is_withdrawn || $state === 'invalid';
 </h3>
 <?php endif; ?>
 
+<?php if (!empty($properties)): ?>
+<div class="ammo-properties">
+  <?php foreach ($properties as $label => $value): ?>
+    <h4><?php print $label; ?>:</h4>
+    <p><?php print $value; ?></p>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <?php if ($is_collapsed): ?>
 <a href="#" class="amendment-details-toggle" data-target="amendment-content-<?php print $entity_id; ?>">[Toon details]</a>
 <div id="amendment-content-<?php print $entity_id; ?>" class="amendment-content-collapsed" style="display: none;">

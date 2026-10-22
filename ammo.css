@@ -576,3 +576,37 @@ ul.branch-overview-downloads li {
   margin-right: 1.5em;
   padding: 0;
 }
+
+/* Back links below an item page, separated like the overview navigation. */
+.ammo-item-back {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 .5em;
+  margin: 1em 0;
+}
+
+.ammo-item-back-label {
+  font-weight: bold;
+}
+
+.ammo-item-back ul,
+.primary-content .ammo-item-back ul {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ammo-item-back li {
+  margin: 0;
+  padding: 0;
+}
+
+.ammo-item-back li + li::before {
+  content: "|";
+  content: "|" / "";
+  padding: 0 .5em;
+  color: #767676;
+}

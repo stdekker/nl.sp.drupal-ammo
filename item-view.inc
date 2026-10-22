@@ -97,33 +97,34 @@ function ammo_item_view_page($type, $id) {
   }
   $item = $loaded['item'];
   $meeting = $loaded['meeting'];
+  // Shown as the first properties of the item.
+  $properties = array('Bijeenkomst' => check_plain($meeting->title));
   if ($type === 'amendment') {
-    $context = check_plain($meeting->title) . ': ' . check_plain($loaded['document']->title);
+    $properties['Document'] = check_plain($loaded['document']->title);
     $overview = 'ammo/amendments/' . $meeting->id;
     // The amendment overview only loads the selected document and group.
     $group = ammo_amendment_group($item);
     $options = array('query' => array('document' => $item->document_id, 'chapter' => $group === '' ? 0 : $group));
   }
   else {
-    $context = check_plain($meeting->title);
     $overview = 'ammo/motions/' . $meeting->id;
     $options = array();
   }
   // The page title replaces the heading of the item.
   drupal_set_title(ammo_item_heading($type, $item) . ammo_item_view_status_suffix($type, $item));
+  $back = array();
   // Drafts are not part of the overviews.
-  if ($item->state === 'concept') {
-    $back = l('Terug naar Mijn afdeling', 'ammo/afdeling/' . $meeting->id);
+  if ($item->state !== 'concept') {
+    $back[] = l('Alle voorstellen', $overview, $options + array('fragment' => $type . $item->id));
   }
-  else {
-    $back = l('Terug naar overzicht', $overview, $options + array('fragment' => $type . $item->id));
+  if (ammo_add_access()) {
+    $back[] = l('Mijn afdeling', 'ammo/afdeling/' . $meeting->id);
   }
   return array(
     '#attached' => array('js' => array(drupal_get_path('module', 'ammo') . '/ammo.js')),
-    'context' => array('#markup' => '<p class="ammo-item-context">' . $context . '</p>'),
-    'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id, 'show_heading' => FALSE)) . '</li></ul>'),
+    'item' => array('#markup' => '<ul class="ammo-item"><li class="ammo-element ' . drupal_html_class($item->state) . '">' . theme($type, array('entity_id' => $item->id, 'show_heading' => FALSE, 'properties' => $properties)) . '</li></ul>'),
     'dates' => array('#markup' => ammo_item_view_dates($item)),
-    'back' => array('#markup' => '<p class="ammo-item-back">' . $back . '</p>'),
+    'back' => array('#markup' => $back ? '<nav class="ammo-item-back" aria-label="Terug naar"><span class="ammo-item-back-label">Terug naar:</span><ul><li>' . implode('</li><li>', $back) . '</li></ul></nav>' : ''),
   );
 }
 
