@@ -312,7 +312,7 @@ function ammo_get_related_contacts($target_id, $target_type, $relation_type = NU
  * @relation_type: either backer or owner.
  * @contact_type: either member or branch.
  */
-function ammo_is_related($target_id, $target_type, $relation_type = NULL, $contact_type, $contact_id = NULL) {
+function ammo_is_related($target_id, $target_type, $relation_type, $contact_type, $contact_id = NULL) {
   if ($contact_id === NULL) {
     global $user;
     $user_wrapper = entity_metadata_wrapper('user', $user);
