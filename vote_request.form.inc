@@ -231,5 +231,5 @@ function ammo_vote_request_form_submit($form, &$form_state) {
     }
     break;
   }
-  $form_state['redirect'] = ammo_get_destination();
+  $form_state['redirect'] = ammo_get_destination_redirect();
 } 

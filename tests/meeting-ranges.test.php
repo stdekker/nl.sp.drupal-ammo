@@ -105,14 +105,15 @@ try {
   $document = ammo_save_entity('document', array('title' => 'Ranges document', 'meeting_id' => $saved->id));
   $concept = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 1, 'state' => 'concept'));
   $submitted = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 2, 'state' => 'submitted'));
-  foreach (array($concept, $submitted) as $entity) {
+  $assessed = ammo_save_entity('amendment', array('document_id' => $document->id, 'chapter' => 1, 'chapterized_id' => 3, 'state' => 'assessed', 'advice' => 'reject'));
+  foreach (array($concept, $submitted, $assessed) as $entity) {
     ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'amendment', 'target_id' => $entity->id, 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling'));
   }
-  ammo_ranges_test_assert(ammo_edit_access($saved->id, 99999999, 'amendment', $concept->id) && !ammo_edit_access($saved->id, 99999999, 'amendment', $submitted->id), 'Inside the submission range a concept can be changed, a submitted item without a change range cannot');
+  ammo_ranges_test_assert(ammo_edit_access($saved->id, 99999999, 'amendment', $concept->id) && !ammo_edit_access($saved->id, 99999999, 'amendment', $assessed->id), 'Inside the submission range a concept can be changed, an assessed item without a change range cannot');
   $reloaded->amendment_submission_end = $yesterday;
   $reloaded->amendment_change_end = $tomorrow;
   entity_save('meeting', $reloaded);
-  ammo_ranges_test_assert(!ammo_edit_access($saved->id, 99999999, 'amendment', $concept->id) && ammo_edit_access($saved->id, 99999999, 'amendment', $submitted->id), 'After the submission range a concept is closed, and the change range opens the submitted item');
+  ammo_ranges_test_assert(!ammo_edit_access($saved->id, 99999999, 'amendment', $concept->id) && ammo_edit_access($saved->id, 99999999, 'amendment', $assessed->id) && !ammo_edit_access($saved->id, 99999999, 'amendment', $submitted->id), 'After the submission range a concept is closed, and the change range opens the assessed item but not one that is only submitted');
   ammo_ranges_test_assert(!ammo_edit_access($saved->id, 99999999, 'amendment'), 'No new amendment after the submission range');
 
   // Each action follows its own range per type; the status/advies form closes at the meeting.

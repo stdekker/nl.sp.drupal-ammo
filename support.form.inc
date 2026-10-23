@@ -439,5 +439,5 @@ function ammo_support_form_submit($form, &$form_state) {
       entity_save($target_type, $entity);
     }
   }
-  $form_state['redirect'] = ammo_get_destination();
+  $form_state['redirect'] = ammo_get_destination_redirect();
 }

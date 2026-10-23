@@ -123,8 +123,9 @@ The last one stands apart: the admin permissions do not include it.
     in `ammo_vote_request_allowed_statuses()`; admins bypass both limits.
 - Submitting and changing follow the meeting ranges through
   `ammo_meeting_range_open()`; `ammo_edit_access()` applies them. A concept
-  follows the submission range, a submitted item the change range, and only
-  the first owner's branch may change it. Admins bypass the ranges.
+  follows the submission range and an item assessed as Afwijzen the change
+  range; in every other state the owners cannot change it. Only the first
+  owner's branch may change it. Admins bypass the ranges.
   - The owner's change to a submitted item goes through
     `ammo_save_submitted_edit()` in `submitted-edit.inc`. It is saved in place
     with the state `changed` ("Gewijzigd"), the advice is kept, and every owner

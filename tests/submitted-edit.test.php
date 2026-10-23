@@ -48,10 +48,10 @@ try {
   ammo_edit_test_assert(ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'Owner may change inside the change range, also when assessed.');
   ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999997, 'amendment', $original->id), 'A co-submitting branch may not change it.');
   ammo_edit_test_assert(!ammo_edit_access($meeting->id, 123, 'amendment', $original->id), 'Another branch may not change it.');
-  foreach (array('withdrawn', 'blocked') as $state) {
+  foreach (array('submitted', 'invalid', 'spelling_grammar', 'withdrawn', 'blocked') as $state) {
     $original->state = $state;
     entity_save('amendment', $original);
-    ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'Closed state ' . $state . ' must be denied.');
+    ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'amendment', $original->id), 'The submitter may only change an assessed item, not one in state ' . $state . '.');
   }
   $original->state = 'assessed';
   $original->advice = 'accept';
@@ -139,7 +139,7 @@ try {
   drupal_get_messages();
 
   // Motions follow the same rules.
-  $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 4, 'consideration_opening' => 'Overwegende dat', 'consideration_body' => 'Oude overweging', 'follow_up_opening' => 'Verzoekt het congres', 'follow_up_body' => 'Iets te doen', 'state' => 'submitted', 'advice' => 'reject'));
+  $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 4, 'consideration_opening' => 'Overwegende dat', 'consideration_body' => 'Oude overweging', 'follow_up_opening' => 'Verzoekt het congres', 'follow_up_body' => 'Iets te doen', 'state' => 'assessed', 'advice' => 'reject'));
   ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'motion', 'target_id' => $motion->id, 'contact_type' => 'branch', 'contact_id' => 99999999, 'branch_id' => 99999999, 'contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling', 'contact_email' => 'owner@example.invalid'));
   ammo_save_entity('contact_relation', array('relation_type' => 'owner', 'target_type' => 'motion', 'target_id' => $motion->id, 'contact_type' => 'branch', 'contact_id' => 99999997, 'branch_id' => 99999997, 'contact_display_name' => 'Mede-indiener', 'branch_display_name' => 'Mede-indiener', 'contact_email' => 'coowner@example.invalid'));
   ammo_edit_test_assert(ammo_edit_access($meeting->id, 99999999, 'motion', $motion->id) && !ammo_edit_access($meeting->id, 99999997, 'motion', $motion->id), 'Only the submitting branch may change a motion.');
@@ -148,6 +148,9 @@ try {
   entity_save('motion', $motion);
   ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'motion', $motion->id), 'A motion assessed as Overnemen may not be changed.');
   $motion->state = 'submitted';
+  entity_save('motion', $motion);
+  ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'motion', $motion->id), 'A submitted motion that is not yet assessed may not be changed.');
+  $motion->state = 'assessed';
   $motion->advice = 'reject';
   entity_save('motion', $motion);
   ammo_edit_test_change_range($meeting, 'motion', FALSE);

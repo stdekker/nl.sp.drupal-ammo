@@ -1009,9 +1009,9 @@ function ammo_edit_access($meeting_id, $branch_id, $entity_type = NULL, $entity_
   if (!$entity || empty($entity->state) || $entity->state === 'concept') {
     return ammo_meeting_range_open($meeting, $entity_type . '_submission');
   }
-  // An item assessed as accepted (Overnemen) is final, and a changed item
-  // (Gewijzigd) waits for a new assessment before the next change.
-  return !in_array($entity->state, array('withdrawn', 'blocked', 'changed'), TRUE)
+  // The submitter may only change an item once it is assessed (Beoordeeld),
+  // and one assessed as accepted (Overnemen) is final.
+  return $entity->state === 'assessed'
     && !ammo_assessed_as($entity, 'accept')
     && ammo_add_access()
     && ammo_meeting_range_open($meeting, $entity_type . '_change');
@@ -1075,6 +1075,22 @@ function ammo_get_destination() {
   if ($destination['destination'] !== 'system/ajax') {
     return $destination;
   }
+}
+
+/**
+ * The destination as a $form_state['redirect'] value.
+ *
+ * drupal_redirect_form() passes an array redirect to drupal_goto() through
+ * call_user_func_array(), so it must be a list of arguments: a keyed
+ * drupal_get_destination() array breaks as named parameters on PHP 8.
+ */
+function ammo_get_destination_redirect() {
+  $destination = ammo_get_destination();
+  if (empty($destination['destination'])) {
+    return NULL;
+  }
+  $parsed = drupal_parse_url($destination['destination']);
+  return array($parsed['path'], array('query' => $parsed['query'], 'fragment' => $parsed['fragment']));
 }
 
 function ammo_save_relation($relation_type, $target_type, $target_id, $contact_id, $contact_type, $contact_display_name, $branch_id = NULL, $branch_display_name = NULL) {

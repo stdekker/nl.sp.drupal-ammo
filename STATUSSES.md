@@ -13,7 +13,7 @@ The mails described below can be switched on and off per recipient by users
 with the permission `administer ammo mail settings` at
 `/admin/ammo/mail-settings` (*E-mailinstellingen*), or all at once. Until those
 settings are saved, only the owner afdelingen are mailed, and only when the
-submitter changes a submitted proposal, on co-submitting and leaving, on
+submitter changes an assessed proposal, on co-submitting and leaving, on
 withdrawing, on vote requests and their withdrawal, and on deleting. The
 meeting's address gets no mail by default.
 
@@ -25,7 +25,6 @@ stateDiagram-v2
   [*] --> Concept: save as concept
   [*] --> Ingediend: submit
   Concept --> Ingediend: submit
-  Ingediend --> Gewijzigd: submitter changes the text
   Ingediend --> Beoordeeld: admin gives an advice
   Gewijzigd --> Beoordeeld: admin assesses again
   Beoordeeld --> Gewijzigd: submitter changes the text (only after Afwijzen)
@@ -34,8 +33,6 @@ stateDiagram-v2
   Beoordeeld --> Ingetrokken: submitter withdraws (amendments, only after Afwijzen)
   Ingediend --> Ongeldig: admin
   Ingediend --> TekstueleWijziging: admin
-  Ongeldig --> Gewijzigd: submitter changes the text
-  TekstueleWijziging --> Gewijzigd: submitter changes the text
   Ongeldig --> Ingetrokken: submitter withdraws
   Ingediend --> Verwijderd: admin deletes
   Verwijderd --> Ingediend: admin restores
@@ -84,15 +81,15 @@ the afdeling gets a confirmation mail. While a proposal is Ingediend:
 - other afdelingen can **co-submit** it (*mede indienen*) while the *Indienen*
   period is open; this is only possible in this status;
 - members can support it while the *Steun intrekken* period is open;
-- the submitter can **change** it while the change period (*Wijzigen*) of the
-  meeting is open (see Gewijzigd);
+- the submitter cannot change it yet: that is only possible once it is
+  Beoordeeld (see Gewijzigd);
 - the submitter can **withdraw** it while the *Voorstel intrekken* period is
   open, and co-submitters can leave it while the *Steun intrekken* period is
   open.
 
 ### 3. Gewijzigd
 
-When the submitter changes a submitted proposal, only the text and the
+When the submitter changes an assessed proposal, only the text and the
 explanation (*toelichting*) can change; the number and location stay the same.
 The proposal gets the status **Gewijzigd** and keeps its previous advice. The
 secretariat and all owner afdelingen, co-submitters included, get a mail with
@@ -124,13 +121,11 @@ changes, unless the meeting hides it. A vote can be requested (*stemming aanvrag
 - **Ingetrokken**: the submitter withdrew the proposal (also when it has
   co-submitters), or the last owner left it. It is shown folded in, and
   afdelingen can do nothing more with it.
-- **Ongeldig**: set by an admin. It can no longer be co-submitted, and an
-  amendment gets no new member support. The submitter can still withdraw it,
-  or change it while the change period is open (it then becomes Gewijzigd).
+- **Ongeldig**: set by an admin. It can no longer be co-submitted or changed,
+  and an amendment gets no new member support. The submitter can still
+  withdraw it.
 - **Tekstuele wijziging**: set by an admin for a change in spelling or grammar
-  only. Afdelingen can no longer withdraw or co-submit it. The submitter can
-  still change it while the change period is open (it then becomes
-  Gewijzigd).
+  only. Afdelingen can no longer withdraw, change or co-submit it.
 - **Verwijderd**: an admin deletes the proposal with the **Verwijderen** button
   and an explanation, which is mailed to the owners. Only admins still see it.
   Choosing another status on status/advies restores it.
@@ -145,7 +140,7 @@ possible.
 | Deadline | What it opens |
 | --- | --- |
 | *Indienen* period | Submitting new proposals, changing concepts and co-submitting (*mede indienen*). |
-| *Wijzigen na indienen* period | Changing submitted proposals by the submitter. |
+| *Wijzigen na indienen* period | Changing proposals assessed as Afwijzen by the submitter. |
 | *Voorstel intrekken* period | Withdrawing the proposal by the submitting afdeling. |
 | *Steun intrekken* period | Leaving as co-submitter, removing individual member submitters, and member support. |
 | *Stemming aanvragen* period | Requesting a vote and withdrawing that request. |
