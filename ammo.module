@@ -584,6 +584,13 @@ function ammo_mail($key, &$message, $params) {
     break;
     
   case 'change_message':
+    // A change to the text or location of a proposal, by its submitter or an admin.
+    if (isset($params['step']) && in_array($params['step'], array('submitted_edit', 'change'), TRUE)) {
+      $message['subject'] = ($params['entity_type'] == 'amendment' ? 'Gewijzigd voorstel: ' : 'Gewijzigde motie: ') . $params['id'];
+      if (!empty($params['document_title'])) {
+        $message['subject'] .= ' - ' . $params['document_title'];
+      }
+    }
     // Create messeage
     $message['body'][] = $params['markup'];
     $message['body'][] = '<hr /><h3>Wijzigingen</h3>';

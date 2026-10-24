@@ -1411,6 +1411,7 @@ function ammo_changes_update_mail($entity_type, $entity_id, $differences, $meeti
   $relations = ammo_get_related_contacts($entity_id, $entity_type, 'owner', 'branch');
   $params = ammo_mail_get_params($entity_type, $entity_id, $meeting_id, $sender_email);
   $params['differences'] = $differences;
+  $params['step'] = $step;
   $success = ammo_send_mail($step, 'admin', 'change_message', $sender_email, $params, $sender_email);
   if (!empty($differences)) {
     foreach ($relations as $relation) {

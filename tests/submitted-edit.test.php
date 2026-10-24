@@ -116,6 +116,8 @@ try {
   ammo_edit_test_assert(entity_load_single('contact_relation', $owner->id)->target_id == $original->id && entity_load_single('contact_relation', $coowner->id)->target_id == $original->id, 'Owner and co-submitter stay attached.');
   $recipients = array_map(function ($mail) { return $mail['to']; }, variable_get('drupal_test_email_collector', array()));
   ammo_edit_test_assert(in_array('coowner@example.invalid', $recipients, TRUE) && in_array('owner@example.invalid', $recipients, TRUE), 'The change mail reaches the owner and the co-submitter.');
+  $subjects = array_unique(array_map(function ($mail) { return $mail['subject']; }, variable_get('drupal_test_email_collector', array())));
+  ammo_edit_test_assert($subjects === array('Gewijzigd voorstel: 1.1 - Testdocument'), 'The change mail subject names the number and the document: ' . implode(', ', $subjects));
   ammo_edit_test_assert(ammo_save_submitted_edit('amendment', $storage) === FALSE, 'Stale submission must fail.');
   drupal_get_messages();
 
@@ -169,6 +171,8 @@ try {
   ammo_edit_test_assert($changed->consideration_body === 'Nieuwe overweging' && $changed->state === 'changed' && $changed->advice === 'reject', 'Motion is changed in place to Gewijzigd with its advice kept.');
   $recipients = array_map(function ($mail) { return $mail['to']; }, variable_get('drupal_test_email_collector', array()));
   ammo_edit_test_assert(in_array('coowner@example.invalid', $recipients, TRUE), 'The motion co-submitter gets the change mail.');
+  $subjects = array_unique(array_map(function ($mail) { return $mail['subject']; }, variable_get('drupal_test_email_collector', array())));
+  ammo_edit_test_assert($subjects === array('Gewijzigde motie: ' . $changed->motion_id), 'The motion change mail subject names the number: ' . implode(', ', $subjects));
   ammo_edit_test_assert(!ammo_edit_access($meeting->id, 99999999, 'motion', $motion->id), 'A Gewijzigd motion cannot be changed again by the submitter.');
   drupal_get_messages();
 
