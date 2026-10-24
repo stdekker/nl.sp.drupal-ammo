@@ -20,6 +20,7 @@ try {
   $meeting = ammo_save_entity('meeting', array('title' => 'Pager test', 'hide_meeting' => 0));
   $first = ammo_save_entity('document', array('title' => 'Z document', 'meeting_id' => $meeting->id));
   $second = ammo_save_entity('document', array('title' => 'A document', 'meeting_id' => $meeting->id));
+  $without = ammo_save_entity('document', array('title' => 'M document', 'meeting_id' => $meeting->id));
   $ids = array();
   foreach (array(1 => 'submitted', 2 => 'assessed', 3 => 'blocked', 4 => 'concept') as $chapter => $state) {
     $entry = ammo_save_entity('amendment', array('document_id' => $first->id, 'chapter' => $chapter, 'chapterized_id' => 1, 'state' => $state));
@@ -60,6 +61,15 @@ try {
   $unchaptered = ammo_amendments_page($meeting->id, array('document' => $second->id, 'chapter' => 0));
   ammo_pager_assert(count($unchaptered['meeting']['documents'][$second->id]['amendments']) === 2, 'Null and zero chapters accessible');
   ammo_pager_assert(strpos($unchaptered['chapter_navigation'], 'Zonder hoofdstuk') !== FALSE, 'Unchaptered navigation label');
+  ammo_pager_assert(preg_match('/<a [^>]*document=' . $without->id . '"[^>]*>M document</', $navigation) === 1, 'Document without amendments listed in navigation');
+  $no_amendments = ammo_amendments_page($meeting->id, array('document' => $without->id));
+  ammo_pager_assert($no_amendments['meeting']['selected_document'] == $without->id && $no_amendments['meeting']['documents'][$without->id]['amendments'] === array(), 'Document without amendments selectable');
+  ammo_pager_assert(preg_match('/<a [^>]*document=' . $without->id . '"[^>]*aria-current="page"/', $no_amendments['chapter_navigation']) && strpos($no_amendments['chapter_navigation'], 'chapter=') === FALSE && $no_amendments['amendment_navigation'] === '', 'Document without amendments has no chapter or amendment rows');
+  $_GET = array('document' => $without->id);
+  $variables = array('meeting_id' => $meeting->id);
+  template_preprocess_overview_amendments($variables);
+  ammo_pager_assert(strpos($variables['destination']['destination'], 'chapter') === FALSE, 'Return destination without chapter for document without amendments');
+  $_GET = $previous_get;
   $user = drupal_anonymous_user();
   $public = ammo_amendments_page($meeting->id, array('document' => $first->id, 'chapter' => 4));
   ammo_pager_assert(count($public['meeting']['documents'][$first->id]['chapters']) === 2, 'Hidden statuses absent from navigation');

@@ -951,7 +951,11 @@ function template_preprocess_overview_amendments(&$variables) {
   $variables += ammo_amendments_page($variables['meeting_id'], $_GET);
   $variables['submit_link'] = ammo_overview_submit_link($variables['meeting_id'], 'amendment');
   if (!empty($variables['meeting']['selected_document'])) {
-    $variables['destination'] = array('destination' => url('ammo/amendments/' . $variables['meeting']['id'], array('query' => array('document' => $variables['meeting']['selected_document'], 'chapter' => $variables['meeting']['selected_chapter']))));
+    $query = array('document' => $variables['meeting']['selected_document']);
+    if (isset($variables['meeting']['selected_chapter'])) {
+      $query['chapter'] = $variables['meeting']['selected_chapter'];
+    }
+    $variables['destination'] = array('destination' => url('ammo/amendments/' . $variables['meeting']['id'], array('query' => $query)));
   }
 }
 

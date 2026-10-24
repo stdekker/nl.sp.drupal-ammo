@@ -17,13 +17,17 @@
         <?php print theme('table', array('header' => $header, 'rows' => array($counts))); ?>
       </div>
     <?php endif; ?>
-    <ul class="amendments">
-      <?php foreach ($document['amendments'] as $amendment): ?>
-        <li class="ammo-element <?php print check_plain($amendment['state']); ?>">
-          <?php print theme('amendment', array('entity_id' => $amendment['id'], 'destination' => $destination)); ?>
-        </li>
-      <?php endforeach; ?>
-    </ul>
+    <?php if ($document['amendments']): ?>
+      <ul class="amendments">
+        <?php foreach ($document['amendments'] as $amendment): ?>
+          <li class="ammo-element <?php print check_plain($amendment['state']); ?>">
+            <?php print theme('amendment', array('entity_id' => $amendment['id'], 'destination' => $destination)); ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php else: ?>
+      <p>Er zijn nog geen wijzigingsvoorstellen op dit document ingediend.<?php if (!empty($submit_link)) : ?> <?php print $submit_link; ?><?php endif; ?></p>
+    <?php endif; ?>
   </div>
   <nav class="amendments-navigation" aria-label="Documenten en hoofdstukken onderaan">
     <?php print $chapter_navigation; ?>

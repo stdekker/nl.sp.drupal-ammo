@@ -51,19 +51,22 @@ function ammo_amendments_page($meeting_id, array $selection) {
   $summary->addExpression('COALESCE(a.group_value, a.chapter, 0)', 'chapter_number');
   $summary->addExpression('COUNT(*)', 'total');
   $summary->groupBy('a.document_id')->groupBy('a.state')->groupBy('chapter_number');
+  // Every document is listed in the navigation, also the ones without visible amendments.
+  foreach ($documents as $id => $title) {
+    $meeting['documents'][$id] = array('id' => $id, 'title' => check_plain($title), 'chapters' => array(), 'totals' => array_fill_keys(array_keys(ammo_states()), 0));
+  }
+  $has_amendments = FALSE;
   foreach ($summary->execute() as $row) {
     $id = $row->document_id;
-    if (!isset($meeting['documents'][$id])) {
-      $meeting['documents'][$id] = array('id' => $id, 'title' => check_plain($documents[$id]), 'chapters' => array(), 'totals' => array_fill_keys(array_keys(ammo_states()), 0));
-    }
+    $has_amendments = TRUE;
     $meeting['documents'][$id]['chapters'][$row->chapter_number] = $row->chapter_number;
     if (!isset($meeting['documents'][$id]['totals'][$row->state])) {
       $meeting['documents'][$id]['totals'][$row->state] = 0;
     }
     $meeting['documents'][$id]['totals'][$row->state] += $row->total;
   }
-  $meeting['documents'] = array_replace(array_intersect_key($documents, $meeting['documents']), $meeting['documents']);
-  if (!$meeting['documents']) {
+  if (!$has_amendments) {
+    $meeting['documents'] = array();
     return array('meeting' => $meeting, 'chapter_navigation' => '');
   }
   $entities = entity_load('document', array_keys($meeting['documents']));
@@ -78,7 +81,12 @@ function ammo_amendments_page($meeting_id, array $selection) {
   unset($document);
   $document_id = isset($selection['document']) && is_scalar($selection['document']) ? (string) $selection['document'] : '';
   if (!isset($meeting['documents'][$document_id])) {
-    $document_id = key($meeting['documents']);
+    // Default to the first document that has amendments.
+    foreach ($meeting['documents'] as $document_id => $document) {
+      if ($document['chapters']) {
+        break;
+      }
+    }
   }
   $chapters = $meeting['documents'][$document_id]['chapters'];
   $chapter = isset($selection['chapter']) && is_scalar($selection['chapter']) ? ammo_normalize_locator_value($groupings[$document_id], $selection['chapter']) : '';
@@ -87,10 +95,40 @@ function ammo_amendments_page($meeting_id, array $selection) {
   }
   $meeting['selected_document'] = $document_id;
   $meeting['selected_chapter'] = $chapter;
+  $amendments = array();
+  if ($chapters) {
+    $amendments = ammo_amendments_chapter_records($meeting_id, $document_id, $groupings[$document_id], $chapter);
+  }
+  $meeting['documents'][$document_id]['amendments'] = $amendments;
+  // Each row is a label and links; the current document and chapter decide the rows below them.
+  $items = array();
+  foreach ($meeting['documents'] as $document) {
+    $items[] = ammo_amendments_navigation_link($document['title'], $meeting_id, array('document' => $document['id']), $document['id'] == $document_id);
+  }
+  $navigation = ammo_amendments_navigation_row('Document', 'documents', $items);
+  $grouping = $groupings[$document_id];
+  $items = array();
+  foreach ($chapters as $number) {
+    $title = !$number && !empty($grouping['legacy']) ? 'Zonder ' . ammo_locator_inline_label($grouping) : check_plain($number);
+    $items[] = ammo_amendments_navigation_link($title, $meeting_id, array('document' => $document_id, 'chapter' => $number), $number == $chapter);
+  }
+  $navigation .= $items ? ammo_amendments_navigation_row(check_plain($grouping['label']), 'chapters', $items) : '';
+  $items = array();
+  foreach ($amendments as $amendment) {
+    $items[] = '<a href="#amendment' . $amendment['id'] . '">' . $amendment['number'] . '</a>';
+  }
+  $amendment_navigation = $items ? ammo_amendments_navigation_row('Voorstel', 'amendments', $items) : '';
+  return array('meeting' => $meeting, 'chapter_navigation' => $navigation, 'amendment_navigation' => $amendment_navigation);
+}
+
+/**
+ * Visible amendments of one chapter of a document, in numbering order.
+ */
+function ammo_amendments_chapter_records($meeting_id, $document_id, array $grouping, $chapter) {
   $query = ammo_amendments_visible_query($meeting_id);
   $query->fields('a', array('id', 'chapter', 'group_value', 'chapterized_id', 'state'));
   $query->condition('a.document_id', $document_id);
-  if (empty($groupings[$document_id]['legacy'])) {
+  if (empty($grouping['legacy'])) {
     $query->condition('a.group_value', $chapter);
   }
   elseif ((string) $chapter === '0') {
@@ -105,26 +143,7 @@ function ammo_amendments_page($meeting_id, array $selection) {
     $amendment['number'] = check_plain(ammo_amendment_number($amendment));
   }
   unset($amendment);
-  $meeting['documents'][$document_id]['amendments'] = $amendments;
-  // Each row is a label and links; the current document and chapter decide the rows below them.
-  $items = array();
-  foreach ($meeting['documents'] as $document) {
-    $items[] = ammo_amendments_navigation_link($document['title'], $meeting_id, array('document' => $document['id']), $document['id'] == $document_id);
-  }
-  $navigation = ammo_amendments_navigation_row('Document', 'documents', $items);
-  $grouping = $groupings[$document_id];
-  $items = array();
-  foreach ($meeting['documents'][$document_id]['chapters'] as $number) {
-    $title = !$number && !empty($grouping['legacy']) ? 'Zonder ' . ammo_locator_inline_label($grouping) : check_plain($number);
-    $items[] = ammo_amendments_navigation_link($title, $meeting_id, array('document' => $document_id, 'chapter' => $number), $number == $chapter);
-  }
-  $navigation .= ammo_amendments_navigation_row(check_plain($grouping['label']), 'chapters', $items);
-  $items = array();
-  foreach ($amendments as $amendment) {
-    $items[] = '<a href="#amendment' . $amendment['id'] . '">' . $amendment['number'] . '</a>';
-  }
-  $amendment_navigation = $items ? ammo_amendments_navigation_row('Voorstel', 'amendments', $items) : '';
-  return array('meeting' => $meeting, 'chapter_navigation' => $navigation, 'amendment_navigation' => $amendment_navigation);
+  return $amendments;
 }
 
 /**
