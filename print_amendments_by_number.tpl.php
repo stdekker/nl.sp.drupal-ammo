@@ -54,7 +54,7 @@ if (!empty($document_title)): ?>
   <p>Ondersteunt door <?php print $number; ?> <?php print ($number == 1) ? 'lid' : 'leden'; ?><?php if (empty($amendment['owners_branch'])) : print ' ('; print ($number >= 5) ? 'voldoende' : 'onvoldoende'; print ' steun)'; endif ?>.</p>
   <?php else: ?>
     <?php if (!empty($amendment['owners_branch'])) : ?>
-      <p>Ingediend door afdeling <?php print $owners_list; ?>.</p>
+      <p>Ingediend door: <?php print $owners_list; ?>.</p>
     <?php endif; ?>
   <?php endif; ?>
   <?php if ($variables['values']['notespace']) print $meeting['notespacetext'];?>
