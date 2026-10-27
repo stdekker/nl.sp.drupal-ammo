@@ -3,6 +3,7 @@
 /** Run with ddev drush scr; fixtures are rolled back. */
 module_load_include('inc', 'ammo', 'ammo');
 module_load_include('inc', 'ammo', 'meeting.form');
+module_load_include('inc', 'ammo', 'branch-overview');
 
 function ammo_admin_owner_assert($condition, $message) {
   if (!$condition) {
@@ -14,8 +15,17 @@ function ammo_admin_owner_test_owner($type, $id, $contact_id, $name) {
   return ammo_save_entity('contact_relation', array('target_id' => $id, 'target_type' => $type, 'relation_type' => 'owner', 'contact_type' => 'branch', 'contact_id' => $contact_id, 'branch_id' => $contact_id, 'contact_display_name' => $name, 'branch_display_name' => $name))->id;
 }
 
-function ammo_admin_owner_test_names($relation_id) {
+function ammo_admin_owner_test_stored($relation_id) {
   return db_query('SELECT contact_display_name, branch_display_name FROM {ammo_contact_relations} WHERE id = :id', array(':id' => $relation_id))->fetchAssoc();
+}
+
+function ammo_admin_owner_test_names($type, $id) {
+  entity_get_controller('contact_relation')->resetCache();
+  $names = array();
+  foreach (ammo_get_related_contacts($id, $type, 'owner') as $contact_id => $contact) {
+    $names[$contact_id] = $contact['contact_display_name'] . '|' . $contact['branch_display_name'];
+  }
+  return $names;
 }
 
 $transaction = db_transaction();
@@ -29,27 +39,31 @@ try {
   $motion = ammo_save_entity('motion', array('meeting_id' => $meeting->id, 'motion_id' => 1, 'state' => 'submitted'));
   $other_amendment = ammo_save_entity('amendment', array('document_id' => $other_document->id, 'chapter' => 1, 'chapterized_id' => 1, 'page' => 1, 'line' => 1, 'state' => 'submitted'));
 
-  $admin_amendment = ammo_admin_owner_test_owner('amendment', $amendment->id, 0, '- de congrescommissie');
+  $admin_amendment = ammo_admin_owner_test_owner('amendment', $amendment->id, 0, 'de congrescommissie');
   $co_owner = ammo_admin_owner_test_owner('amendment', $amendment->id, 99999999, 'Testafdeling');
-  $admin_motion = ammo_admin_owner_test_owner('motion', $motion->id, 0, '- de congrescommissie');
-  $admin_other = ammo_admin_owner_test_owner('amendment', $other_amendment->id, 0, '- de congrescommissie');
+  // Submitting through the branch select passes the option label with its dash.
+  $admin_motion = ammo_save_relation('owner', 'motion', $motion->id, 0, 'branch', '- de congrescommissie', 0, '- de congrescommissie')->id;
+  $admin_other = ammo_admin_owner_test_owner('amendment', $other_amendment->id, 0, 'de congrescommissie');
 
+  ammo_admin_owner_assert(ammo_admin_owner_test_stored($admin_motion) === array('contact_display_name' => 'de congrescommissie', 'branch_display_name' => 'de congrescommissie'), 'Admin owner is saved without the dash of the select');
+
+  // The edit page gets the meeting from the entity cache, which saving updates in place.
+  $loaded = entity_load_single('meeting', $meeting->id);
   $form_state = array();
-  $form = ammo_meeting_edit_form(array(), $form_state, $meeting);
+  $form = ammo_meeting_edit_form(array(), $form_state, $loaded);
   ammo_admin_owner_assert(empty($form['admin_owner']['#disabled']), 'Admin owner can be changed');
-  $form_state = array('meeting' => $meeting, 'values' => array('admin_owner' => 'het partijbestuur') + (array) $meeting);
+  $form_state = array('meeting' => $loaded, 'values' => array('admin_owner' => 'het partijbestuur') + (array) $loaded);
   ammo_meeting_edit_form_submit($form, $form_state);
   drupal_get_messages();
 
-  $renamed = array('contact_display_name' => '- het partijbestuur', 'branch_display_name' => '- het partijbestuur');
-  ammo_admin_owner_assert(entity_load_single('meeting', $meeting->id)->admin_owner === 'het partijbestuur', 'Meeting keeps the new name');
-  ammo_admin_owner_assert(ammo_admin_owner_test_names($admin_amendment) === $renamed, 'Admin owner of an amendment is renamed');
-  ammo_admin_owner_assert(ammo_admin_owner_test_names($admin_motion) === $renamed, 'Admin owner of a motion is renamed');
-  ammo_admin_owner_assert(ammo_admin_owner_test_names($co_owner) === array('contact_display_name' => 'Testafdeling', 'branch_display_name' => 'Testafdeling'), 'Branch co-owner keeps its name');
-  ammo_admin_owner_assert(ammo_admin_owner_test_names($admin_other) === array('contact_display_name' => '- de congrescommissie', 'branch_display_name' => '- de congrescommissie'), 'Admin owner of another meeting keeps its name');
+  ammo_admin_owner_assert(ammo_admin_owner_test_names('amendment', $amendment->id) === array(0 => 'het partijbestuur|het partijbestuur', 99999999 => 'Testafdeling|Testafdeling'), 'Amendment shows the new admin owner and keeps its co-owner');
+  ammo_admin_owner_assert(ammo_admin_owner_test_names('motion', $motion->id) === array(0 => 'het partijbestuur|het partijbestuur'), 'Motion shows the new admin owner');
+  ammo_admin_owner_assert(ammo_admin_owner_test_names('amendment', $other_amendment->id) === array(0 => 'de congrescommissie|de congrescommissie'), 'Another meeting keeps its admin owner');
+  $overview = ammo_branch_overview_items('amendment', $meeting->id, array(99999999));
+  ammo_admin_owner_assert($overview[99999999]['co_submitted'][$amendment->id]['others'] === array(0 => 'het partijbestuur'), 'Branch overview shows the new admin owner');
 
   $transaction->rollback();
-  print "PASS: renaming the admin owner updates the admin-owned amendments and motions of the meeting only. Fixtures rolled back.\n";
+  print "PASS: the admin owner can be renamed and its proposals, the branch overview and only its own meeting show the new name. Fixtures rolled back.\n";
 }
 catch (Throwable $e) {
   $transaction->rollback();

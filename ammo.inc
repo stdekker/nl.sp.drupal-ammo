@@ -1094,6 +1094,11 @@ function ammo_get_destination_redirect() {
 }
 
 function ammo_save_relation($relation_type, $target_type, $target_id, $contact_id, $contact_type, $contact_display_name, $branch_id = NULL, $branch_display_name = NULL) {
+  // The dash only puts the admin owner first in the branch select.
+  if ($contact_id == 0) {
+    $contact_display_name = preg_replace('/^- /', '', $contact_display_name);
+    $branch_display_name = preg_replace('/^- /', '', $branch_display_name);
+  }
   $contact_display_name = ammo_cleanup_branch_name($contact_display_name);
   $branch_display_name = ammo_cleanup_branch_name($branch_display_name);
   // Get contact email.
@@ -1135,25 +1140,36 @@ function ammo_save_relation($relation_type, $target_type, $target_id, $contact_i
 }
 
 /**
- * Renames the admin owner on every proposal of a meeting that admins submitted on its behalf.
+ * The current admin owner name of the meeting of each admin-owned relation, by relation id.
  */
-function ammo_rename_admin_owner($meeting_id, $admin_owner) {
-  $name = ammo_cleanup_branch_name('- ' . $admin_owner);
-  $amendments = db_select('ammo_amendments', 'a');
-  $amendments->join('ammo_documents', 'd', 'd.id = a.document_id');
-  $amendments->fields('a', array('id'))->condition('d.meeting_id', $meeting_id);
-  $motions = db_select('ammo_motions', 'm')->fields('m', array('id'))->condition('m.meeting_id', $meeting_id);
-  $count = 0;
-  foreach (array('amendment' => $amendments, 'motion' => $motions) as $target_type => $targets) {
-    $count += db_update('ammo_contact_relations')
-      ->fields(array('contact_display_name' => $name, 'branch_display_name' => $name))
-      ->condition('relation_type', 'owner')
-      ->condition('contact_id', 0)
-      ->condition('target_type', $target_type)
-      ->condition('target_id', $targets, 'IN')
-      ->execute();
+function ammo_admin_owner_names(array $relations) {
+  $targets = array();
+  foreach ($relations as $relation) {
+    if ($relation->contact_id == 0 && $relation->relation_type === 'owner') {
+      $targets[$relation->target_type][$relation->id] = $relation->target_id;
+    }
   }
-  return $count;
+  $names = array();
+  foreach ($targets as $target_type => $target_ids) {
+    if ($target_type === 'amendment') {
+      $query = db_select('ammo_amendments', 't');
+      $query->join('ammo_documents', 'd', 'd.id = t.document_id');
+      $query->join('ammo_meetings', 'm', 'm.id = d.meeting_id');
+    }
+    else {
+      $query = db_select('ammo_motions', 't');
+      $query->join('ammo_meetings', 'm', 'm.id = t.meeting_id');
+    }
+    $query->addField('t', 'id');
+    $query->addField('m', 'admin_owner');
+    $owners = $query->condition('t.id', $target_ids, 'IN')->condition('m.admin_owner', '', '<>')->execute()->fetchAllKeyed();
+    foreach ($target_ids as $relation_id => $target_id) {
+      if (isset($owners[$target_id])) {
+        $names[$relation_id] = $owners[$target_id];
+      }
+    }
+  }
+  return $names;
 }
 
 function ammo_diff($from, $to)

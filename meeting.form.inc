@@ -241,7 +241,7 @@ function ammo_meeting_edit_form($form, &$form_state, $meeting) {
     '#type' => 'textfield',
     '#title' => 'Indienen amendementen, moties en wijzigingen door beheerders namens',
     '#default_value' => $meeting->admin_owner,
-    '#description' => 'Een gewijzigde naam wordt ook aangepast bij alle voorstellen die beheerders al namens deze naam hebben ingediend.',
+    '#description' => 'Een gewijzigde naam geldt ook voor alle voorstellen die beheerders al namens deze naam hebben ingediend.',
     '#required' => TRUE,
   );
 
@@ -298,9 +298,6 @@ function ammo_meeting_edit_form_submit($form, &$form_state) {
   $saved = ammo_save_entity('meeting', $entity_values, $meeting->id);
 
   if ($saved) {
-    if ($values['admin_owner'] !== $meeting->admin_owner) {
-      ammo_rename_admin_owner($meeting->id, $values['admin_owner']);
-    }
     drupal_set_message('Bijeenkomst is opgeslagen.');
     $form_state['redirect'] = 'admin/ammo/meeting';
   } else {

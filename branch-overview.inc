@@ -67,8 +67,13 @@ function ammo_branch_overview_items($type, $meeting_id, array $branch_ids) {
     return $overview;
   }
   $items = array();
+  $meeting = entity_load_single('meeting', $meeting_id);
   foreach (ammo_branch_overview_relations($type, $meeting_id, $branch_ids) as $relation) {
     $relation = (array) $relation;
+    // Admin-owned relations show the current admin owner name.
+    if ($relation['contact_id'] == 0 && !empty($meeting->admin_owner)) {
+      $relation['contact_display_name'] = $meeting->admin_owner;
+    }
     $id = $relation['item_id'];
     if (!isset($items[$id])) {
       $items[$id] = $relation + array('members' => array(), 'branches' => array());

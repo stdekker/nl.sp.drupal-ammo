@@ -39,7 +39,7 @@ try {
   }
   ammo_branch_overview_test_owner('amendment', $ids['shared'], $a, 'Afdeling A');
   ammo_branch_overview_test_owner('amendment', $ids['shared'], $b, 'Afdeling B');
-  ammo_branch_overview_test_owner('amendment', $ids['admin_first'], 0, '- de congrescommissie');
+  ammo_branch_overview_test_owner('amendment', $ids['admin_first'], 0, 'de congrescommissie');
   ammo_branch_overview_test_owner('amendment', $ids['admin_first'], $b, 'Afdeling B');
   ammo_branch_overview_test_owner('amendment', $ids['member_first'], $b, 'Afdeling B');
   ammo_branch_overview_test_owner('amendment', $ids['member_first'], 99999999, 'Lid Een', 'member');
@@ -60,7 +60,7 @@ try {
   ammo_branch_overview_assert(!$items[$b]['submitted'], 'Later, admin-preceded and member-preceded owners did not submit');
   ammo_branch_overview_assert(array_keys($items[$b]['co_submitted']) === array($ids['shared'], $ids['admin_first'], $ids['member_first'], $ids['second']), 'Co-submitter sees shared items but not another branch draft');
   ammo_branch_overview_assert($items[$a]['submitted'][$ids['second']]['others'] === array($b => 'Afdeling B'), 'Co-submitters listed without the branch itself');
-  ammo_branch_overview_assert($items[$b]['co_submitted'][$ids['admin_first']]['others'] === array('- de congrescommissie'), 'Admin owner is the first owner');
+  ammo_branch_overview_assert($items[$b]['co_submitted'][$ids['admin_first']]['others'] === array('de congrescommissie'), 'Admin owner is the first owner');
   ammo_branch_overview_assert($items[$b]['co_submitted'][$ids['member_first']]['others'] === array('Lid Een'), 'Member owner precedes an earlier branch owner');
   $motions = ammo_branch_overview_items('motion', $meeting->id, array($a));
   ammo_branch_overview_assert(array_keys($motions[$a]['co_submitted']) === array((int) $motion->id) && !$motions[$a]['submitted'], 'Motions follow the same rule');

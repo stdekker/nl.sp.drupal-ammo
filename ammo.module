@@ -1315,6 +1315,18 @@ function _ammo_preprocess_meeting_data($meeting_id) {
 }
 
 /**
+ * Implements hook_entity_load(); admin-owned relations show the current admin owner name of their meeting.
+ */
+function ammo_entity_load($entities, $type) {
+  if ($type === 'contact_relation') {
+    foreach (ammo_admin_owner_names($entities) as $id => $name) {
+      $entities[$id]->contact_display_name = $name;
+      $entities[$id]->branch_display_name = $name;
+    }
+  }
+}
+
+/**
  * Implements hook_entity_info().
  */
 /**
