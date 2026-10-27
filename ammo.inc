@@ -1134,6 +1134,28 @@ function ammo_save_relation($relation_type, $target_type, $target_id, $contact_i
   return $entity;
 }
 
+/**
+ * Renames the admin owner on every proposal of a meeting that admins submitted on its behalf.
+ */
+function ammo_rename_admin_owner($meeting_id, $admin_owner) {
+  $name = ammo_cleanup_branch_name('- ' . $admin_owner);
+  $amendments = db_select('ammo_amendments', 'a');
+  $amendments->join('ammo_documents', 'd', 'd.id = a.document_id');
+  $amendments->fields('a', array('id'))->condition('d.meeting_id', $meeting_id);
+  $motions = db_select('ammo_motions', 'm')->fields('m', array('id'))->condition('m.meeting_id', $meeting_id);
+  $count = 0;
+  foreach (array('amendment' => $amendments, 'motion' => $motions) as $target_type => $targets) {
+    $count += db_update('ammo_contact_relations')
+      ->fields(array('contact_display_name' => $name, 'branch_display_name' => $name))
+      ->condition('relation_type', 'owner')
+      ->condition('contact_id', 0)
+      ->condition('target_type', $target_type)
+      ->condition('target_id', $targets, 'IN')
+      ->execute();
+  }
+  return $count;
+}
+
 function ammo_diff($from, $to)
 {
   $diffValues = array();
